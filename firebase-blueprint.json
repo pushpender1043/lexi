@@ -1,0 +1,258 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile settings, personal information, and AI companion customization preferences.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique user identifier matching Firebase Auth UID.",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address.",
+          "maxLength": 256
+        },
+        "name": {
+          "type": "string",
+          "description": "Preferred user display name.",
+          "maxLength": 64
+        },
+        "gender": {
+          "type": "string",
+          "description": "User gender.",
+          "enum": ["male", "female", "non_binary", "other"]
+        },
+        "partnerName": {
+          "type": "string",
+          "description": "Name of the AI companion partner.",
+          "maxLength": 64
+        },
+        "partnerGender": {
+          "type": "string",
+          "description": "Gender of the AI companion partner.",
+          "enum": ["male", "female", "neutral"]
+        },
+        "partnerTone": {
+          "type": "string",
+          "description": "Conversational tone of the AI companion.",
+          "enum": ["playful_loving", "calm_grounding", "strict_accountability", "caring_sweet"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update.",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId", "name", "partnerName"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "Individual habit to be tracked with streaks and emotional accountability.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique habit ID.",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID.",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the habit.",
+          "maxLength": 100
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon identifier for the habit.",
+          "maxLength": 50
+        },
+        "category": {
+          "type": "string",
+          "description": "Habit category.",
+          "enum": ["health", "fitness", "productivity", "mindset", "relationship"]
+        },
+        "targetValue": {
+          "type": "number",
+          "description": "Target numeric count per day."
+        },
+        "currentValue": {
+          "type": "number",
+          "description": "Current numeric count completed today."
+        },
+        "unit": {
+          "type": "string",
+          "description": "Measurement unit (e.g. glasses, mins).",
+          "maxLength": 30
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether the habit was completed today."
+        },
+        "streakDays": {
+          "type": "number",
+          "description": "Current active completion streak in days."
+        },
+        "reminderTime": {
+          "type": "string",
+          "description": "Optional reminder time.",
+          "maxLength": 10
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update.",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "title", "category", "targetValue", "completed"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual conversational message exchanged with the AI companion.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique message ID.",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "User ID of the conversation owner.",
+          "maxLength": 128
+        },
+        "sender": {
+          "type": "string",
+          "description": "Sender of the message.",
+          "enum": ["user", "ai"]
+        },
+        "text": {
+          "type": "string",
+          "description": "Message text content.",
+          "maxLength": 4000
+        },
+        "type": {
+          "type": "string",
+          "description": "Format of the message.",
+          "enum": ["text", "voice_note", "system_nudge"]
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Formatted display timestamp.",
+          "maxLength": 64
+        },
+        "audioDurationSec": {
+          "type": "number",
+          "description": "Duration in seconds if this is a voice note."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp when the message was sent.",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "sender", "text"]
+    },
+    "PartnerMood": {
+      "title": "PartnerMood",
+      "description": "Dynamic emotional mood and affection status of the AI companion.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID.",
+          "maxLength": 128
+        },
+        "score": {
+          "type": "number",
+          "description": "Affection score between 0 and 100."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current mood category.",
+          "enum": ["ecstatic", "loving", "happy", "neutral", "annoyed", "angry"]
+        },
+        "nakhreLevel": {
+          "type": "number",
+          "description": "Playful drama level between 0 and 5."
+        },
+        "lastInteraction": {
+          "type": "string",
+          "description": "Timestamp of the last interaction.",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last mood sync.",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId", "score", "status"]
+    },
+    "Memory": {
+      "title": "Memory",
+      "description": "Personal fact remembered by the companion about the user.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique memory ID.",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID.",
+          "maxLength": 128
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the remembered fact.",
+          "maxLength": 60
+        },
+        "fact": {
+          "type": "string",
+          "description": "Content of the remembered fact.",
+          "maxLength": 1000
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score between 0 and 1."
+        },
+        "learnedAt": {
+          "type": "string",
+          "description": "Date or timestamp when this was learned.",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "category", "fact"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Root user profile document containing user preferences and companion settings."
+    },
+    "/users/{userId}/habits/{habitId}": {
+      "schema": "Habit",
+      "description": "Subcollection of habits owned and managed by the user."
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Subcollection of chat messages in the conversation history with the companion."
+    },
+    "/users/{userId}/mood/current": {
+      "schema": "PartnerMood",
+      "description": "Single-document storage for current companion emotional status and affection score."
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": "Memory",
+      "description": "Subcollection of personalized memories learned about the user."
+    }
+  }
+}

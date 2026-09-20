@@ -1,0 +1,10 @@
+{
+  "name": "Lexi: Your AI SoulSync",
+  "description": "Hyper-personalized AI-powered virtual companion and habit tracker with dynamic emotional accountability, multimodal chat, voice calls, and schedule sync.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

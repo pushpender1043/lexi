@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access unless explicitly allowed below
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common security & authorization helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // UserProfile schema validation
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 64 &&
+             data.partnerName is string && data.partnerName.size() > 0 && data.partnerName.size() <= 64 &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 256)) &&
+             (!('gender' in data) || data.gender in ['male', 'female', 'non_binary', 'other']) &&
+             (!('partnerGender' in data) || data.partnerGender in ['male', 'female', 'neutral']) &&
+             (!('partnerTone' in data) || data.partnerTone in ['playful_loving', 'calm_grounding', 'strict_accountability', 'caring_sweet']) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // Habit schema validation
+    function isValidHabit(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.category is string && data.category in ['health', 'fitness', 'productivity', 'mindset', 'relationship'] &&
+             data.targetValue is number && data.targetValue >= 0 &&
+             data.completed is bool &&
+             (!('currentValue' in data) || data.currentValue is number) &&
+             (!('icon' in data) || (data.icon is string && data.icon.size() <= 50)) &&
+             (!('unit' in data) || (data.unit is string && data.unit.size() <= 30)) &&
+             (!('streakDays' in data) || data.streakDays is number) &&
+             (!('reminderTime' in data) || (data.reminderTime is string && data.reminderTime.size() <= 10)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // ChatMessage schema validation
+    function isValidChatMessage(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.sender in ['user', 'ai'] &&
+             data.text is string && data.text.size() <= 4000 &&
+             (!('type' in data) || data.type in ['text', 'voice_note', 'system_nudge']) &&
+             (!('timestamp' in data) || (data.timestamp is string && data.timestamp.size() <= 64)) &&
+             (!('audioDurationSec' in data) || data.audioDurationSec is number) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // PartnerMood schema validation
+    function isValidPartnerMood(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.score is number && data.score >= 0 && data.score <= 100 &&
+             data.status in ['ecstatic', 'loving', 'happy', 'neutral', 'annoyed', 'angry'] &&
+             (!('nakhreLevel' in data) || (data.nakhreLevel is number && data.nakhreLevel >= 0 && data.nakhreLevel <= 5)) &&
+             (!('lastInteraction' in data) || (data.lastInteraction is string && data.lastInteraction.size() <= 64)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // Memory schema validation
+    function isValidMemory(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.category is string && data.category.size() <= 60 &&
+             data.fact is string && data.fact.size() > 0 && data.fact.size() <= 1000 &&
+             (!('confidence' in data) || data.confidence is number) &&
+             (!('learnedAt' in data) || (data.learnedAt is string && data.learnedAt.size() <= 64));
+    }
+
+    // Root User Profile Document
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Disallow collection enumeration of all users
+      allow create: if isOwner(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidUserProfile(incoming());
+      allow delete: if isOwner(userId);
+
+      // User Habits Subcollection
+      match /habits/{habitId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(habitId) && isValidHabit(incoming());
+        allow update: if isOwner(userId) && isValidId(habitId) && isValidHabit(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      // User Messages Subcollection
+      match /messages/{messageId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(messageId) && isValidChatMessage(incoming());
+        allow update: if isOwner(userId) && isValidId(messageId) && isValidChatMessage(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      // Partner Mood Document
+      match /mood/{docId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidPartnerMood(incoming());
+        allow update: if isOwner(userId) && isValidPartnerMood(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      // Companion Memories Subcollection
+      match /memories/{memoryId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(memoryId) && isValidMemory(incoming());
+        allow update: if isOwner(userId) && isValidId(memoryId) && isValidMemory(incoming());
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
