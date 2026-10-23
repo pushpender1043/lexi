@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ProactiveNudge, UserProfile } from '../types';
 import { AexoMascot } from './AexoMascot';
-import { X, ArrowRight, CheckCircle2, Sparkles, Check } from 'lucide-react';
+import { X, ArrowRight, CheckCircle2, Check } from 'lucide-react';
 
 interface ProactiveNotificationBannerProps {
   nudge: ProactiveNudge | null;
@@ -39,37 +39,37 @@ export const ProactiveNotificationBanner: React.FC<ProactiveNotificationBannerPr
   return (
     <div 
       id={`proactive-nudge-${nudge.id}`}
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-lg transition-all duration-300 animate-in fade-in slide-in-from-top-4"
+      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-lg transition-all duration-300 animate-in fade-in slide-in-from-top-4 select-none"
     >
-      <div className="bg-white/95 dark:bg-[#161224]/95 backdrop-blur-xl rounded-2xl p-3.5 sm:p-4 shadow-[0_12px_36px_-4px_rgba(124,58,237,0.2)] border border-purple-200/90 dark:border-purple-800/50 flex items-start gap-3">
+      <div className="glass-strong rounded-[20px] p-4 shadow-[var(--shadow-glass)] border border-[var(--border)] flex items-start gap-3.5">
         {/* Companion Mascot Avatar */}
         <div className="relative shrink-0">
           <AexoMascot size="sm" isListening={true} />
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#161224]" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--success-green)] ring-2 ring-white dark:ring-[#0F0B1A]" />
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+              <span className="text-xs font-bold text-[var(--text-primary)]">
                 {partnerName}
               </span>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--light-purple-surface)] text-[var(--primary-purple)] border border-[var(--border)]">
                 {isHabitRelated ? 'Habit Reminder' : 'Companion Nudge'}
               </span>
             </div>
             <button
               id="dismiss-nudge-btn"
               onClick={onDismiss}
-              className="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
+              className="p-1 rounded-[8px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               title="Dismiss"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-normal">
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-normal">
             "{nudge.message}"
           </p>
 
@@ -80,10 +80,10 @@ export const ProactiveNotificationBanner: React.FC<ProactiveNotificationBannerPr
                 id="nudge-mark-complete-btn"
                 onClick={handleMarkComplete}
                 disabled={isCompletedJustNow}
-                className={`px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 ${
+                className={`px-3 py-1.5 rounded-[12px] text-[11px] font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 ${
                   isCompletedJustNow
-                    ? 'bg-emerald-600 text-white animate-pulse'
-                    : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                    ? 'bg-[var(--success-green)] text-white animate-pulse'
+                    : 'bg-[var(--success-green)] hover:brightness-105 text-white'
                 }`}
               >
                 {isCompletedJustNow ? (
@@ -106,7 +106,7 @@ export const ProactiveNotificationBanner: React.FC<ProactiveNotificationBannerPr
                 onReplyInChat(`Hey ${partnerName}, I saw your reminder: "${nudge.message.slice(0, 32)}..." I'm on it! ❤️`);
                 onDismiss();
               }}
-              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold shadow-xs flex items-center gap-1.5 transition-transform active:scale-95"
+              className="btn-primary-purple px-3 py-1.5 rounded-[12px] text-[11px] font-semibold shadow-xs flex items-center gap-1.5"
             >
               <span>Reply</span>
               <ArrowRight className="w-3 h-3" />
@@ -115,7 +115,7 @@ export const ProactiveNotificationBanner: React.FC<ProactiveNotificationBannerPr
             <button
               id="nudge-dismiss-action-btn"
               onClick={onDismiss}
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="glass-button px-2.5 py-1.5 rounded-[12px] text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             >
               Later
             </button>

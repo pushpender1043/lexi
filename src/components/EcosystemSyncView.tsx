@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CalendarEvent, UserProfile } from '../types';
-import { Calendar, Bell, Clock, Plus, Check, RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Calendar, Bell, Plus } from 'lucide-react';
 
 interface EcosystemSyncViewProps {
   events: CalendarEvent[];
@@ -43,15 +43,15 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
   };
 
   return (
-    <div className="w-full glass-card rounded-3xl p-5 sm:p-7 shadow-xl border border-white/70 dark:border-white/10 space-y-6">
+    <div className="w-full glass rounded-[20px] p-5 sm:p-6 shadow-[var(--shadow-glass)] border border-[var(--border)] space-y-6">
       {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
             <span>Ecosystem & Schedule Sync</span>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--success-green)] animate-ping" />
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
             {userProfile.partnerName} syncs with your Google Calendar & Alarms to send context-aware proactive reminders.
           </p>
         </div>
@@ -59,7 +59,7 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
         <button
           id="sync-add-event-toggle-btn"
           onClick={() => setIsAdding(!isAdding)}
-          className="px-3.5 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-md transition-all flex items-center gap-1.5"
+          className="btn-primary-purple px-3.5 py-2 rounded-[12px] text-xs font-semibold flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" />
           <span>Add Synced Event</span>
@@ -69,19 +69,19 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
       {/* Sync Services Status Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Google Calendar Card */}
-        <div className="p-4 rounded-2xl bg-white/60 dark:bg-zinc-800/50 border border-white/80 dark:border-white/10 shadow-xs flex items-center justify-between">
+        <div className="p-4 rounded-[16px] glass border border-[var(--border)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-[12px] bg-[var(--light-purple-surface)] text-[var(--primary-purple)] flex items-center justify-center border border-[var(--border)]">
               <Calendar className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Google Calendar</h4>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
+                <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">Google Calendar</h4>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--success-green)]/15 text-[var(--success-green)] font-semibold">
                   Live
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-[11px] text-[var(--text-secondary)]">
                 Syncs tests, assignments & meetings
               </p>
             </div>
@@ -90,10 +90,10 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
           <button
             id="toggle-google-cal-btn"
             onClick={onToggleCalendarSync}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+            className={`px-3 py-1.5 rounded-[12px] text-xs font-semibold border transition-all ${
               userProfile.calendarSynced
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                : 'bg-zinc-100 text-zinc-500 border-zinc-200'
+                ? 'bg-[var(--success-green)]/15 text-[var(--success-green)] border-[var(--success-green)]/30'
+                : 'glass-button text-[var(--text-muted)] border-[var(--border)]'
             }`}
           >
             {userProfile.calendarSynced ? 'Synced 🟢' : 'Enable Sync'}
@@ -101,19 +101,19 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
         </div>
 
         {/* Native Alarms Card */}
-        <div className="p-4 rounded-2xl bg-white/60 dark:bg-zinc-800/50 border border-white/80 dark:border-white/10 shadow-xs flex items-center justify-between">
+        <div className="p-4 rounded-[16px] glass border border-[var(--border)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-[12px] bg-[var(--light-purple-surface)] text-amber-500 flex items-center justify-center border border-[var(--border)]">
               <Bell className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Phone Alarms & Wakeup</h4>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
+                <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">Phone Alarms & Wakeup</h4>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--success-green)]/15 text-[var(--success-green)] font-semibold">
                   Active
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-[11px] text-[var(--text-secondary)]">
                 Wakes you up & enforces sleep schedule
               </p>
             </div>
@@ -122,10 +122,10 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
           <button
             id="toggle-phone-alarms-btn"
             onClick={onToggleAlarmSync}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+            className={`px-3 py-1.5 rounded-[12px] text-xs font-semibold border transition-all ${
               userProfile.alarmsSynced
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                : 'bg-zinc-100 text-zinc-500 border-zinc-200'
+                ? 'bg-[var(--success-green)]/15 text-[var(--success-green)] border-[var(--success-green)]/30'
+                : 'glass-button text-[var(--text-muted)] border-[var(--border)]'
             }`}
           >
             {userProfile.alarmsSynced ? 'Synced 🟢' : 'Enable Sync'}
@@ -135,28 +135,28 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
 
       {/* Add Synced Event Form */}
       {isAdding && (
-        <form onSubmit={handleAdd} className="p-4 rounded-2xl bg-white/80 dark:bg-zinc-800/90 border border-rose-200 shadow-md animate-fade-in">
-          <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-3">Add Event to Synced Schedule</h4>
+        <form onSubmit={handleAdd} className="p-4 rounded-[16px] glass-strong border border-[var(--primary-purple)]/40 shadow-md animate-fade-in space-y-3">
+          <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">Add Event to Synced Schedule</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 mb-1">Event Title</label>
+              <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Event Title</label>
               <input
                 id="event-title-input"
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="e.g. Physics Semester Exam"
-                className="w-full px-3 py-1.5 rounded-xl border border-zinc-200 text-xs bg-white dark:bg-zinc-900"
+                className="w-full px-3 py-2 rounded-[12px] glass-input text-xs"
                 required
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 mb-1">Category</label>
+              <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Category</label>
               <select
                 id="event-category-select"
                 value={category}
                 onChange={e => setCategory(e.target.value as any)}
-                className="w-full px-3 py-1.5 rounded-xl border border-zinc-200 text-xs bg-white dark:bg-zinc-900"
+                className="w-full px-3 py-2 rounded-[12px] glass-input text-xs"
               >
                 <option value="exam">Exam / Test 📝</option>
                 <option value="meeting">Meeting / Sync 💼</option>
@@ -165,33 +165,33 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 mb-1">Time Slot</label>
+              <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Time Slot</label>
               <div className="flex gap-1.5">
                 <input
                   id="event-start-time-input"
                   type="text"
                   value={startTime}
                   onChange={e => setStartTime(e.target.value)}
-                  className="w-1/2 px-3 py-1.5 rounded-xl border border-zinc-200 text-xs bg-white dark:bg-zinc-900"
+                  className="w-1/2 px-2.5 py-2 rounded-[12px] glass-input text-xs"
                 />
                 <input
                   id="event-end-time-input"
                   type="text"
                   value={endTime}
                   onChange={e => setEndTime(e.target.value)}
-                  className="w-1/2 px-3 py-1.5 rounded-xl border border-zinc-200 text-xs bg-white dark:bg-zinc-900"
+                  className="w-1/2 px-2.5 py-2 rounded-[12px] glass-input text-xs"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 mb-1">Location / Link</label>
+              <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Location / Link</label>
               <input
                 id="event-location-input"
                 type="text"
                 value={location}
                 onChange={e => setLocation(e.target.value)}
                 placeholder="e.g. Hall 4 or Zoom"
-                className="w-full px-3 py-1.5 rounded-xl border border-zinc-200 text-xs bg-white dark:bg-zinc-900"
+                className="w-full px-3 py-2 rounded-[12px] glass-input text-xs"
               />
             </div>
           </div>
@@ -200,14 +200,14 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
             <button
               type="button"
               onClick={() => setIsAdding(false)}
-              className="px-3 py-1.5 rounded-xl text-xs text-zinc-600 hover:bg-zinc-100"
+              className="px-3 py-1.5 rounded-[12px] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
               Cancel
             </button>
             <button
               id="submit-synced-event-btn"
               type="submit"
-              className="px-4 py-1.5 rounded-xl bg-rose-500 text-white text-xs font-semibold hover:bg-rose-600 shadow-sm"
+              className="btn-primary-purple px-4 py-1.5 rounded-[12px] text-xs font-semibold"
             >
               Save & Alert {userProfile.partnerName}
             </button>
@@ -217,30 +217,30 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
 
       {/* Events List */}
       <div className="space-y-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+        <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
           Today's Active Schedule & Companion Alerts
         </h3>
 
-        {events.map(event => (
+        {events.map((event, index) => (
           <div
-            key={event.id}
+            key={event.id ? `${event.id}-${index}` : `event-${index}`}
             id={`event-item-${event.id}`}
-            className="p-4 rounded-2xl bg-white/60 dark:bg-zinc-800/40 border border-white/80 dark:border-white/10 flex flex-wrap items-center justify-between gap-3 hover:border-rose-300 transition-all"
+            className="p-3.5 sm:p-4 rounded-[16px] glass border border-[var(--border)] flex flex-wrap items-center justify-between gap-3 hover:border-[var(--primary-purple)]/40 transition-all"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center font-bold text-xs">
+              <div className="w-10 h-10 rounded-[12px] bg-[var(--light-purple-surface)] text-[var(--primary-purple)] flex items-center justify-center font-bold text-xs border border-[var(--border)]">
                 {event.category === 'exam' ? '📝' : event.category === 'meeting' ? '💼' : '⏰'}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                  <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">
                     {event.title}
                   </h4>
-                  <span className="text-[10px] px-2 py-0.2 rounded-full bg-zinc-100 text-zinc-600 font-medium">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--light-purple-surface)] text-[var(--primary-purple)] font-medium border border-[var(--border)]">
                     {event.syncedFrom === 'google_calendar' ? 'Google Cal' : 'Device Alarm'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-500">
+                <div className="flex items-center gap-2 mt-0.5 text-xs text-[var(--text-secondary)]">
                   <span>{event.startTime} - {event.endTime}</span>
                   {event.location && <span>• {event.location}</span>}
                 </div>
@@ -251,7 +251,7 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
               <button
                 id={`trigger-reminder-btn-${event.id}`}
                 onClick={() => onTriggerEventReminder(event)}
-                className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-medium transition-all flex items-center gap-1.5"
+                className="glass-button px-3 py-1.5 rounded-[12px] text-[var(--primary-purple)] border border-[var(--border)] text-xs font-medium flex items-center gap-1.5"
                 title="Simulate Lexi's proactive reminder for this event"
               >
                 <Bell className="w-3.5 h-3.5" />

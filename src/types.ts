@@ -37,12 +37,21 @@ export interface UserProfile {
   languageMix?: string;
 }
 
-export type HabitCategory = 'fitness' | 'hydration' | 'health' | 'study' | 'mindset';
+export type HabitCategory =
+  | 'health'
+  | 'productivity'
+  | 'social'
+  | 'fitness'
+  | 'hydration'
+  | 'study'
+  | 'mindset'
+  | string;
 
 export interface Habit {
   id: string;
   title: string;
   category: HabitCategory;
+  tags?: string[];
   targetValue: number;
   currentValue: number;
   unit: string;

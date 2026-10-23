@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, PartnerMood, Habit } from '../types';
-import { PhoneOff, Mic, MicOff, Volume2, X, SlidersHorizontal } from 'lucide-react';
+import { PhoneOff, Mic, MicOff, Volume2, X, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { createSpeechRecognizer, playCompanionVoice, stopCompanionVoice } from '../utils/speech';
 import { AexoMascot } from './AexoMascot';
 
@@ -169,34 +169,48 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
     handleUserUtterance(txt);
   };
 
+  const formatTimer = (totalSec: number) => {
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-zinc-950/40 dark:bg-black/70 backdrop-blur-md animate-in fade-in select-none">
-      {/* Container Matching PDF Page 5: Clean, Minimal, Purple-Lavender Aesthetic */}
-      <div className="relative w-full max-w-sm sm:max-w-md h-[560px] sm:h-[600px] rounded-3xl bg-gradient-to-b from-[#FAF8FF] via-[#FFFFFF] to-[#F5F2FC] dark:from-[#130F20] dark:via-[#161224] dark:to-[#0F0C1B] border border-purple-200/80 dark:border-purple-800/40 shadow-2xl p-5 sm:p-6 flex flex-col justify-between overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-md animate-in fade-in select-none">
+      {/* Lexi Translucent Glass Modal (Radius: 28px) */}
+      <div className="relative w-full max-w-sm sm:max-w-md h-[580px] rounded-[28px] glass-strong p-6 flex flex-col justify-between overflow-hidden shadow-[var(--shadow-glass)] border border-[var(--border)]">
         
-        {/* Top Bar (Page 5 in PDF) */}
+        {/* Soft lavender decorative background glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-44 bg-[var(--soft-lavender)]/25 rounded-full blur-3xl pointer-events-none -z-10" />
+
+        {/* Top Bar */}
         <div className="flex items-center justify-between z-10">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse" />
-            <h3 className="text-xs sm:text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-              Live with {userProfile.partnerName || 'Aexo'}
-            </h3>
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--success-green)] animate-pulse shadow-[0_0_8px_var(--success-green)]" />
+            <div>
+              <h3 className="text-xs sm:text-sm font-semibold text-[var(--text-primary)]">
+                Live with {userProfile.partnerName || 'Lexi'}
+              </h3>
+              <p className="text-[11px] text-[var(--text-muted)] font-mono">
+                {formatTimer(callSeconds)}
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => {
                 if (window.speechSynthesis.speaking) stopCompanionVoice();
               }}
-              className="p-2 rounded-full text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-purple-100/50 dark:hover:bg-white/5 transition-colors"
-              title="Sound Equalizer"
+              className="p-2 rounded-[12px] glass-button text-[var(--text-secondary)] hover:text-[var(--primary-purple)]"
+              title="Silence audio"
             >
               <SlidersHorizontal className="w-4 h-4" />
             </button>
             <button
               id="close-call-btn"
               onClick={handleEndCall}
-              className="p-2 rounded-full text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-purple-100/50 dark:hover:bg-white/5 transition-colors"
+              className="p-2 rounded-[12px] glass-button text-[var(--text-secondary)] hover:text-[var(--primary-purple)]"
               title="Close"
             >
               <X className="w-4 h-4" />
@@ -204,12 +218,12 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
           </div>
         </div>
 
-        {/* Center: Mascot + Soft Glowing Aura (Page 5 in PDF) */}
+        {/* Center: Mascot + Soft Glowing Aura */}
         <div className="flex-1 flex flex-col items-center justify-center my-auto z-10">
-          <div className="relative flex items-center justify-center mb-6">
+          <div className="relative flex items-center justify-center mb-5">
             {/* Glowing circular aura */}
-            <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-gradient-to-tr from-purple-300/30 via-violet-200/20 to-purple-400/20 blur-2xl absolute -z-10" />
-            <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full border border-purple-200/60 dark:border-purple-800/40 flex items-center justify-center bg-white/40 dark:bg-white/2 backdrop-blur-xs">
+            <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-gradient-to-tr from-[var(--soft-lavender)]/35 via-[var(--primary-purple)]/20 to-[var(--soft-lavender)]/25 blur-2xl absolute -z-10" />
+            <div className="w-40 h-40 sm:w-44 sm:h-44 rounded-full border border-[var(--border)] flex items-center justify-center bg-white/40 dark:bg-white/5 backdrop-blur-sm shadow-inner">
               <AexoMascot
                 size="lg"
                 isListening={callStatus === 'listening'}
@@ -219,8 +233,8 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
             </div>
           </div>
 
-          {/* Equalizer Frequency Bars (Page 5 in PDF) */}
-          <div className="flex items-center gap-1.5 h-10 mb-4 px-4">
+          {/* Equalizer Frequency Bars */}
+          <div className="flex items-center gap-1.5 h-10 mb-3 px-4">
             {[14, 26, 38, 20, 32, 18, 42, 28, 36, 16, 44, 24, 30, 20, 12].map((height, idx) => (
               <div
                 key={idx}
@@ -229,35 +243,43 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
                     ? `${Math.max(6, (height * ((idx + callSeconds * 3) % 5 + 1)) / 4)}px`
                     : '6px',
                 }}
-                className="w-1 rounded-full bg-purple-500/80 dark:bg-purple-400 transition-all duration-200"
+                className="w-1 rounded-full bg-[var(--primary-purple)] transition-all duration-200"
               />
             ))}
           </div>
 
           {/* Status Badge */}
-          <div className="px-5 py-1.5 rounded-full bg-white dark:bg-white/5 border border-purple-100 dark:border-white/10 shadow-xs text-xs font-semibold text-zinc-800 dark:text-zinc-200 capitalize">
-            {callStatus === 'speaking' ? 'Speaking...' : callStatus === 'listening' ? 'Listening' : callStatus === 'processing' ? 'Thinking...' : 'Connecting...'}
+          <div className="px-4 py-1.5 rounded-full glass border border-[var(--border)] shadow-xs text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${
+              callStatus === 'speaking' ? 'bg-[var(--primary-purple)] animate-ping' :
+              callStatus === 'listening' ? 'bg-[var(--success-green)] animate-pulse' :
+              'bg-[var(--soft-lavender)]'
+            }`} />
+            <span className="capitalize">
+              {callStatus === 'speaking' ? 'Speaking...' : callStatus === 'listening' ? 'Listening' : callStatus === 'processing' ? 'Thinking...' : 'Connecting...'}
+            </span>
           </div>
 
           {/* Subtitle / Live Transcript preview */}
-          <div className="mt-4 px-4 py-2 text-center max-w-xs min-h-[44px] flex items-center justify-center">
+          <div className="mt-3 px-4 py-1 text-center max-w-xs min-h-[44px] flex items-center justify-center">
             {callStatus === 'speaking' && partnerSpeechText ? (
-              <p className="text-xs text-purple-900 dark:text-purple-200 font-medium leading-relaxed animate-fade-in">
+              <p className="text-xs text-[var(--primary-purple)] font-medium leading-relaxed animate-fade-in line-clamp-2">
                 "{partnerSpeechText}"
               </p>
             ) : userSpokenText ? (
-              <p className="text-xs text-zinc-600 dark:text-zinc-300 italic">
+              <p className="text-xs text-[var(--text-secondary)] italic line-clamp-2">
                 "{userSpokenText}"
               </p>
             ) : (
-              <p className="text-[11px] text-zinc-400">
-                Speak naturally or tap a quick phrase below
+              <p className="text-[11px] text-[var(--text-muted)] flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-[var(--soft-lavender)]" />
+                <span>Speak naturally or tap a quick prompt</span>
               </p>
             )}
           </div>
         </div>
 
-        {/* Quick Voice Prompts for Accessibility */}
+        {/* Quick Voice Prompts */}
         <div className="z-10 mb-3 flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar">
           {[
             "Maine gym complete kar liya! 💪",
@@ -268,15 +290,15 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
             <button
               key={idx}
               onClick={() => triggerQuickSpeech(prompt)}
-              className="px-3 py-1 rounded-full text-[11px] whitespace-nowrap bg-white/80 dark:bg-white/5 hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-purple-100 dark:border-white/10 text-zinc-700 dark:text-zinc-300 transition-all shrink-0"
+              className="px-3 py-1 rounded-full text-[11px] whitespace-nowrap glass-button text-[var(--text-secondary)] hover:text-[var(--primary-purple)] border border-[var(--border)] shrink-0 transition-transform active:scale-95"
             >
               {prompt}
             </button>
           ))}
         </div>
 
-        {/* Call Controls Footer (Page 5 in PDF) */}
-        <div className="flex items-center justify-center gap-5 pt-3 border-t border-purple-100 dark:border-white/5 z-10">
+        {/* Call Controls Footer */}
+        <div className="flex items-center justify-center gap-5 pt-3 border-t border-[var(--border)] z-10">
           {/* Mute Mic toggle */}
           <button
             id="call-mute-mic-btn"
@@ -285,21 +307,21 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
               if (!isMuted) stopListening();
               else startListening();
             }}
-            className={`p-3 rounded-full border transition-all ${
+            className={`p-3 rounded-full border transition-all hover:scale-105 active:scale-95 ${
               isMuted
-                ? 'bg-rose-50 text-rose-600 border-rose-200'
-                : 'bg-white dark:bg-white/5 text-zinc-700 dark:text-zinc-300 border-purple-100 dark:border-white/10 hover:bg-purple-50'
+                ? 'bg-rose-500/10 text-rose-500 border-rose-300'
+                : 'glass-button text-[var(--text-primary)] border-[var(--border)]'
             }`}
             title={isMuted ? 'Unmute Mic' : 'Mute Mic'}
           >
             {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
 
-          {/* Red/Coral Large Hangup Button (Page 5 in PDF) */}
+          {/* Large Hangup Button */}
           <button
             id="call-hangup-btn"
             onClick={handleEndCall}
-            className="w-14 h-14 rounded-full bg-[#EA4335] hover:bg-red-600 text-white shadow-lg shadow-red-500/30 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+            className="w-14 h-14 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/30 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
             title="End Call"
           >
             <PhoneOff className="w-6 h-6" />
@@ -313,7 +335,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
                 stopCompanionVoice();
               }
             }}
-            className="p-3 rounded-full bg-white dark:bg-white/5 text-zinc-700 dark:text-zinc-300 border border-purple-100 dark:border-white/10 hover:bg-purple-50 transition-all"
+            className="p-3 rounded-full glass-button text-[var(--text-primary)] border border-[var(--border)] transition-transform hover:scale-105 active:scale-95"
             title="Silence Audio"
           >
             <Volume2 className="w-5 h-5" />

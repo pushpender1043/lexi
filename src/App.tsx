@@ -46,9 +46,10 @@ import {
 } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, doc, getDoc, getDocs } from 'firebase/firestore';
+import { generateUniqueId, deduplicateArrayIds } from './utils/id';
 
 export default function App() {
-  // Local storage backed state
+  // Local storage backed state with bulletproof ID deduplication
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('lexi_user_profile');
     return saved ? JSON.parse(saved) : DEFAULT_USER_PROFILE;
@@ -56,7 +57,7 @@ export default function App() {
 
   const [habits, setHabits] = useState<Habit[]>(() => {
     const saved = localStorage.getItem('lexi_habits');
-    return saved ? JSON.parse(saved) : DEFAULT_HABITS;
+    return saved ? deduplicateArrayIds(JSON.parse(saved), 'habit') : DEFAULT_HABITS;
   });
 
   const [partnerMood, setPartnerMood] = useState<PartnerMood>(() => {
@@ -66,22 +67,22 @@ export default function App() {
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const saved = localStorage.getItem('lexi_messages');
-    return saved ? JSON.parse(saved) : DEFAULT_MESSAGES;
+    return saved ? deduplicateArrayIds(JSON.parse(saved), 'msg') : DEFAULT_MESSAGES;
   });
 
   const [callRecords, setCallRecords] = useState<CallRecord[]>(() => {
     const saved = localStorage.getItem('lexi_call_records');
-    return saved ? JSON.parse(saved) : DEFAULT_CALL_RECORDS;
+    return saved ? deduplicateArrayIds(JSON.parse(saved), 'call') : DEFAULT_CALL_RECORDS;
   });
 
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(() => {
     const saved = localStorage.getItem('lexi_calendar_events');
-    return saved ? JSON.parse(saved) : DEFAULT_CALENDAR_EVENTS;
+    return saved ? deduplicateArrayIds(JSON.parse(saved), 'cal') : DEFAULT_CALENDAR_EVENTS;
   });
 
   const [memories, setMemories] = useState<MemoryItem[]>(() => {
     const saved = localStorage.getItem('lexi_memories');
-    return saved ? JSON.parse(saved) : DEFAULT_MEMORIES;
+    return saved ? deduplicateArrayIds(JSON.parse(saved), 'mem') : DEFAULT_MEMORIES;
   });
 
   // UI state - modern minimal navigation
@@ -178,7 +179,7 @@ export default function App() {
     userId?: string;
     userAvatar?: string;
   }) => {
-    const assignedUid = authData.userId || auth.currentUser?.uid || `usr_${Date.now()}`;
+    const assignedUid = authData.userId || auth.currentUser?.uid || generateUniqueId('usr');
     const updatedProfile: UserProfile = {
       ...userProfile,
       isAuthenticated: true,
@@ -286,7 +287,7 @@ export default function App() {
           const data = await res.json();
           if (data.message) {
             setProactiveNudge({
-              id: Date.now().toString(),
+              id: generateUniqueId('nudge'),
               title: `${userProfile.partnerName} checking in`,
               message: data.message,
               type: 'habit_reminder',
@@ -339,7 +340,7 @@ export default function App() {
 
     // Append to chat
     const checkInMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: generateUniqueId('msg'),
       sender: 'partner',
       text: greetingText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -350,7 +351,7 @@ export default function App() {
 
     // Show floating proactive banner
     setProactiveNudge({
-      id: `checkin-${Date.now()}`,
+      id: generateUniqueId('checkin'),
       title: `☀️ Daily Morning Brief from ${partnerName}`,
       message: greetingText,
       type: 'habit_reminder',
@@ -464,7 +465,7 @@ export default function App() {
       updateMoodOnHabitAction('completed', completedHabitTitle);
       // Companion automatic praise in chat
       const praiseMsg: ChatMessage = {
-        id: Date.now().toString(),
+        id: generateUniqueId('msg'),
         sender: 'partner',
         text: `Aww yay! 🎉 Maine dekha tumne "${completedHabitTitle}" complete kar liya! You're the best, meri jaan! ❤️`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -508,7 +509,7 @@ export default function App() {
 
     if (reachedTarget) {
       const msg: ChatMessage = {
-        id: Date.now().toString(),
+        id: generateUniqueId('msg'),
         sender: 'partner',
         text: `Wah! 💧 ${title} target complete! Ab tum bilkul hydrated aur energized rahoge! Proud of you baba! ✨`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -533,7 +534,7 @@ export default function App() {
     updateMoodOnHabitAction('skipped', habitTitle);
 
     const tauntMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: generateUniqueId('msg'),
       sender: 'partner',
       text: `Haww! "${habitTitle}" skip kar diya? 😤 Main bilkul khush nahi hoon! Aise aalas karoge toh goals kaise pure honge? Ab jab tak baki tasks nahi karoge, main thoda naraz rahungi!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -553,7 +554,7 @@ export default function App() {
   const handleAddHabit = (newHabitData: Omit<Habit, 'id' | 'streak'>) => {
     const newHabit: Habit = {
       ...newHabitData,
-      id: `habit-${Date.now()}`,
+      id: generateUniqueId('habit'),
       streak: 0,
     };
     setHabits(prev => [...prev, newHabit]);
@@ -563,7 +564,7 @@ export default function App() {
     }
 
     const msg: ChatMessage = {
-      id: Date.now().toString(),
+      id: generateUniqueId('msg'),
       sender: 'partner',
       text: `Maine naya habit note kar liya: "${newHabit.title}"! Ab main daily iska hisaab lungi tumse! 😉`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -584,7 +585,7 @@ export default function App() {
   // Send message to Gemini Companion
   const handleSendMessage = async (userText: string, type: 'text' | 'voice_note' = 'text') => {
     const userMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: generateUniqueId('msg'),
       sender: 'user',
       text: userText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -645,7 +646,7 @@ export default function App() {
         setMemories(prev => [
           ...prev,
           {
-            id: `mem-${Date.now()}`,
+            id: generateUniqueId('mem'),
             category: 'health',
             fact: data.newMemory,
             learnedAt: 'Just now in chat',
@@ -654,7 +655,7 @@ export default function App() {
       }
 
       const partnerMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: generateUniqueId('msg'),
         sender: 'partner',
         text: reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -678,7 +679,7 @@ export default function App() {
     } catch (err) {
       console.error("Chat error:", err);
       const fallbackMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: generateUniqueId('msg'),
         sender: 'partner',
         text: "Baby, ek second network ka issue lag raha hai... Main yahin hoon tumhare paas! Dobara bolo na?",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -724,7 +725,7 @@ export default function App() {
   const handleClearConversation = () => {
     const companionName = userProfile.partnerName || 'Lexi';
     const welcomeBackMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: generateUniqueId('msg'),
       sender: 'partner',
       text: `Fresh slate, jaan! ✨ I'm all ears. Tell me, how are you feeling or what do you want to work on right now?`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -766,7 +767,7 @@ export default function App() {
       const message = data.message || `Baby, tumhara ${event.startTime} baje "${event.title}" hai! Paani piyo aur ready ho jao!`;
 
       setProactiveNudge({
-        id: Date.now().toString(),
+        id: generateUniqueId('alert'),
         title: `${userProfile.partnerName}'s Schedule Alert`,
         message,
         type: 'calendar_alert',
@@ -787,7 +788,7 @@ export default function App() {
   // Add memory handler
   const handleAddMemory = (category: MemoryItem['category'], fact: string) => {
     const item: MemoryItem = {
-      id: `mem-${Date.now()}`,
+      id: generateUniqueId('mem'),
       category,
       fact,
       learnedAt: 'Just now',
@@ -795,7 +796,7 @@ export default function App() {
     setMemories(prev => [item, ...prev]);
 
     const partnerReply: ChatMessage = {
-      id: Date.now().toString(),
+      id: generateUniqueId('msg'),
       sender: 'partner',
       text: `Maine yaad rakh liya: "${fact}". Main tumhare baare mein sab kuch dhyan rakhti hoon! ❤️`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -813,12 +814,12 @@ export default function App() {
   const handleAddCalendarEvent = (eventData: Omit<CalendarEvent, 'id'>) => {
     const newEvent: CalendarEvent = {
       ...eventData,
-      id: `cal-${Date.now()}`,
+      id: generateUniqueId('cal'),
     };
     setCalendarEvents(prev => [...prev, newEvent]);
 
     const msg: ChatMessage = {
-      id: Date.now().toString(),
+      id: generateUniqueId('msg'),
       sender: 'partner',
       text: `Noted! Maine calendar mein "${newEvent.title}" (${newEvent.startTime}) add kar liya hai. Time se pehle remind kar dungi!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -839,7 +840,7 @@ export default function App() {
 
     if (sendWelcomeMsg && updated.name && updated.partnerName) {
       const welcome: ChatMessage = {
-        id: Date.now().toString(),
+        id: generateUniqueId('msg'),
         sender: 'partner',
         text: `Hi ${updated.name}! ❤️ Main hoon tumhari ${updated.partnerName}. Maine tumhara routine note kar liya hai—gym, paani aur medicines time pe lene honge, samjhe na? Koi cheating nahi chalegi! 😉`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -880,17 +881,6 @@ export default function App() {
           emotion: 'loving',
         });
       }
-
-      // Add partner reaction in messages
-      const praiseMsg: ChatMessage = {
-        id: Date.now().toString(),
-        sender: 'partner',
-        text: `Yay! Noticed you just completed "${targetHabit.title}" right from my reminder! Keep this streak blazing! 🔥❤️`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        type: 'habit_alert',
-        moodTag: 'ecstatic',
-      };
-      setMessages(prev => [...prev, praiseMsg]);
     }
   };
 
@@ -910,15 +900,11 @@ export default function App() {
   const completedHabitsCount = habits.filter(h => h.completed).length;
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark' : ''} bg-[#FAFAFE] dark:bg-[#0D0B14] text-zinc-800 dark:text-zinc-100 flex flex-col transition-colors duration-300 relative overflow-x-hidden font-sans pb-18 md:pb-6`}>
-      {/* Clean Geometric Lines & Subtle Atmospheric Gradient (No bubbles/hearts) */}
+    <div className={`min-h-screen ${darkMode ? 'dark' : ''} bg-gradient-mesh text-[#1A1A1F] dark:text-[#FAF7FF] flex flex-col transition-colors duration-300 relative overflow-x-hidden font-sans ${activeTab === 'chat' ? 'h-screen overflow-hidden pb-0' : 'pb-18 md:pb-6'}`}>
+      {/* Subtle Atmospheric Gradient */}
       <ParticleBackground mood={partnerMood.status} />
 
-      {/* Decorative subtle ambient glowing orbs */}
-      <div className="fixed -top-40 -left-40 w-96 h-96 rounded-full bg-purple-500/5 blur-3xl pointer-events-none -z-10" />
-      <div className="fixed top-1/2 -right-40 w-96 h-96 rounded-full bg-violet-500/5 blur-3xl pointer-events-none -z-10" />
-
-      {/* Modern Minimal Header */}
+      {/* Modern Minimal Header - Permanently Sticky */}
       <Header
         userProfile={userProfile}
         partnerMood={partnerMood}
@@ -933,10 +919,12 @@ export default function App() {
         onSignOut={handleSignOut}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        completedHabitsCount={completedHabitsCount}
+        totalHabitsCount={habits.length}
       />
 
       {/* Main View Area */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-4 py-3 sm:py-5">
+      <main className={`flex-1 max-w-5xl w-full mx-auto px-3 sm:px-4 ${activeTab === 'chat' ? 'py-1 sm:py-2 flex flex-col h-[calc(100dvh-4.25rem)] overflow-hidden' : 'py-3 sm:py-5'}`}>
         {/* 0. DASHBOARD VIEW (Matching Page 3 of PDF) */}
         {activeTab === 'dashboard' && (
           <DashboardView
@@ -1064,15 +1052,15 @@ export default function App() {
         )}
       </main>
 
-      {/* Modern Minimal Mobile Bottom Navigation Bar with Enhanced Touch Targets & Clear Active State */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#110E1C]/95 backdrop-blur-xl border-t border-purple-100/70 dark:border-purple-900/40 px-2 py-1.5 flex items-center justify-around shadow-lg">
+      {/* Modern Minimal Mobile Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0B0F19]/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around shadow-lg">
         <button
           id="mobile-nav-home"
           onClick={() => setActiveTab('dashboard')}
-          className={`flex-1 min-h-[48px] min-w-[48px] py-1.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-200 active:scale-95 ${
+          className={`flex-1 min-h-[48px] py-1.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-150 active:scale-95 ${
             activeTab === 'dashboard'
-              ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 font-bold shadow-2xs'
-              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+              ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
           title="Home Dashboard"
         >
@@ -1083,10 +1071,10 @@ export default function App() {
         <button
           id="mobile-nav-chat"
           onClick={() => setActiveTab('chat')}
-          className={`flex-1 min-h-[48px] min-w-[48px] py-1.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-200 active:scale-95 ${
+          className={`flex-1 min-h-[48px] py-1.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-150 active:scale-95 ${
             activeTab === 'chat'
-              ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 font-bold shadow-2xs'
-              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+              ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
           title="Chat with Lexi"
         >
@@ -1097,17 +1085,17 @@ export default function App() {
         <button
           id="mobile-nav-todos"
           onClick={() => setActiveTab('todos')}
-          className={`flex-1 min-h-[48px] min-w-[48px] py-1.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-200 relative active:scale-95 ${
+          className={`flex-1 min-h-[48px] py-1.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-150 relative active:scale-95 ${
             activeTab === 'todos'
-              ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 font-bold shadow-2xs'
-              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+              ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
           title="Habits & Accountability"
         >
           <div className="relative">
             <CheckSquare className={`w-5 h-5 ${activeTab === 'todos' ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
             {completedHabitsCount < habits.length && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-purple-600 ring-2 ring-white dark:ring-[#110E1C]" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white dark:ring-[#0B0F19]" />
             )}
           </div>
           <span className="text-[11px] leading-tight">Habits</span>
@@ -1116,24 +1104,24 @@ export default function App() {
         <button
           id="mobile-nav-stats"
           onClick={() => setActiveTab('stats')}
-          className={`flex-1 min-h-[48px] min-w-[48px] py-1.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-200 active:scale-95 ${
+          className={`flex-1 min-h-[48px] py-1.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-150 active:scale-95 ${
             activeTab === 'stats'
-              ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 font-bold shadow-2xs'
-              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+              ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
-          title="Progress & Mood Stats"
+          title="Habit Trends"
         >
           <TrendingUp className={`w-5 h-5 ${activeTab === 'stats' ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-          <span className="text-[11px] leading-tight">Stats</span>
+          <span className="text-[11px] leading-tight">Trends</span>
         </button>
 
         <button
           id="mobile-nav-calls"
           onClick={() => setActiveTab('calls')}
-          className={`flex-1 min-h-[48px] min-w-[48px] py-1.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-200 active:scale-95 ${
+          className={`flex-1 min-h-[48px] py-1.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-150 active:scale-95 ${
             activeTab === 'calls'
-              ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 font-bold shadow-2xs'
-              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+              ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
           title="Voice Calls"
         >
@@ -1150,7 +1138,7 @@ export default function App() {
             setIsCallOpen(false);
             if (summary) {
               const newRecord: CallRecord = {
-                id: `call-${Date.now()}`,
+                id: generateUniqueId('call'),
                 partnerName: userProfile.partnerName,
                 type: 'outgoing',
                 timestamp: 'Today, Just now',
@@ -1163,7 +1151,7 @@ export default function App() {
               setMessages(prev => [
                 ...prev,
                 {
-                  id: Date.now().toString(),
+                  id: generateUniqueId('msg'),
                   sender: 'system',
                   text: summary,
                   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

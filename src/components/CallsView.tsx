@@ -1,19 +1,15 @@
 import React, { useState } from 'react';
 import { CallRecord, UserProfile, PartnerMood } from '../types';
+import { AexoMascot } from './AexoMascot';
 import {
   Phone,
   PhoneCall,
   PhoneIncoming,
   PhoneOutgoing,
   PhoneMissed,
-  Clock,
-  Heart,
   Volume2,
+  Smile,
   Sparkles,
-  Play,
-  RotateCcw,
-  CheckCircle2,
-  Smile
 } from 'lucide-react';
 
 interface CallsViewProps {
@@ -33,7 +29,6 @@ export const CallsView: React.FC<CallsViewProps> = ({
   partnerMood,
   voiceEnabled,
   onToggleVoice,
-  onClearHistory,
 }) => {
   const [callFilter, setCallFilter] = useState<'all' | 'missed'>('all');
 
@@ -67,38 +62,32 @@ export const CallsView: React.FC<CallsViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-4 pb-12">
-      {/* Top Hero Call Launcher Card (WhatsApp / Telegram Calling Header) */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#1e2520] border border-[#CFD6C4]/60 dark:border-white/10 shadow-sm relative overflow-hidden">
-        {/* Subtle decorative background tint */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#99CDD8]/10 rounded-full blur-2xl pointer-events-none -z-0" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#DAEBE3]/20 rounded-full blur-2xl pointer-events-none -z-0" />
-
+    <div className="w-full max-w-4xl mx-auto space-y-5 pb-12 select-none animate-in fade-in duration-200">
+      {/* Top Hero Call Launcher Card with Lexi Purple Branding */}
+      <div className="p-6 sm:p-7 glass shadow-[0_8px_32px_rgba(124,58,237,0.08)] relative overflow-hidden">
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
-            {/* Avatar with live pulse dot */}
-            <div className="relative">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#DAEBE3] dark:bg-[#24352b] border border-[#99CDD8]/40 flex items-center justify-center text-3xl shadow-xs">
-                {userProfile.partnerGender === 'male' ? '🧑‍💼' : '👩‍💼'}
+            {/* Mascot Avatar with live pulse dot */}
+            <div className="relative shrink-0">
+              <div className="w-16 h-16 rounded-[16px] bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.2)] flex items-center justify-center shadow-xs">
+                <AexoMascot size="md" isListening={true} />
               </div>
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-[#1e2520] animate-pulse" />
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#4CB782] border-2 border-white dark:border-[#0F0B1A] animate-pulse" />
             </div>
 
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#2b382d] dark:text-[#e5ede7]">
+                <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF]">
                   {userProfile.partnerName}
                 </h2>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#DAEBE3] text-[#2b382d] font-semibold dark:bg-[#24352b] dark:text-[#99CDD8]">
-                  Live Voice Call
-                </span>
+                <span className="pill-pro">Pro</span>
               </div>
-              <p className="text-xs sm:text-sm text-[#657166] dark:text-[#a0aba1] mt-0.5">
-                Ready to talk in Hinglish & English • Interactive accountability
+              <p className="text-xs sm:text-sm text-[#6B6B76] dark:text-[#C4B5FD] mt-0.5">
+                Ready to talk in Hinglish & English • Real-time emotional accountability
               </p>
-              <div className="flex items-center gap-2 mt-2 text-xs text-[#657166]">
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#2b382d] dark:text-[#e5ede7] px-2 py-0.5 rounded-lg bg-[#F8FAF8] dark:bg-[#151a17] border border-[#CFD6C4]/40">
-                  <Smile className="w-3 h-3 text-[#99CDD8]" />
+              <div className="flex items-center gap-2 mt-2 text-xs">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#7C3AED] dark:text-[#C4B5FD] px-2.5 py-0.5 rounded-full bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.2)]">
+                  <Smile className="w-3 h-3 text-[#7C3AED]" />
                   Mood: {partnerMood.status} ({partnerMood.score}%)
                 </span>
               </div>
@@ -106,15 +95,15 @@ export const CallsView: React.FC<CallsViewProps> = ({
           </div>
 
           {/* Call Trigger Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               id="calls-voice-toggle-btn"
               onClick={onToggleVoice}
               title={voiceEnabled ? 'Speech Output Enabled' : 'Speech Output Muted'}
-              className={`p-3 rounded-2xl border transition-all ${
+              className={`p-3 rounded-[12px] border transition-all cursor-pointer ${
                 voiceEnabled
-                  ? 'bg-[#DAEBE3] text-[#2b382d] border-[#99CDD8]/50'
-                  : 'bg-[#F8FAF8] dark:bg-[#151a17] text-zinc-400 border-[#CFD6C4]/50'
+                  ? 'bg-[#F3EBFF] text-[#7C3AED] border-[rgba(124,58,237,0.3)] shadow-xs'
+                  : 'glass text-[#9A9AA5]'
               }`}
             >
               <Volume2 className="w-5 h-5" />
@@ -123,29 +112,29 @@ export const CallsView: React.FC<CallsViewProps> = ({
             <button
               id="calls-start-live-call-btn"
               onClick={onStartCall}
-              className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-[#99CDD8] hover:bg-[#85c1cc] text-[#2b382d] font-bold text-sm shadow-md transition-all hover:scale-103 active:scale-97"
+              className="flex items-center gap-2 px-6 py-3.5 rounded-[12px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white font-bold text-sm shadow-[0_4px_20px_rgba(124,58,237,0.35)] transition-all hover:scale-102 active:scale-95 cursor-pointer"
             >
-              <PhoneCall className="w-4 h-4 text-[#2b382d] animate-bounce" />
+              <PhoneCall className="w-4 h-4 animate-bounce" />
               <span>Call {userProfile.partnerName}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* WhatsApp style Calls Filter & Title bar */}
-      <div className="flex items-center justify-between pt-2">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-[#657166] dark:text-[#a0aba1]">
-          Recent Calls
+      {/* Calls Filter & Title bar */}
+      <div className="flex items-center justify-between pt-1">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#6B6B76] dark:text-[#A78BFA]">
+          Recent Voice Calls
         </h3>
 
-        <div className="flex items-center gap-1 bg-white/80 dark:bg-[#1e2520] p-0.5 rounded-xl border border-[#CFD6C4]/40 text-xs">
+        <div className="flex items-center gap-1 bg-white/50 dark:bg-white/5 p-1 rounded-[12px] border border-[rgba(124,58,237,0.12)] text-xs">
           <button
             id="call-filter-all"
             onClick={() => setCallFilter('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+            className={`px-3 py-1 rounded-[8px] text-xs font-semibold transition-all cursor-pointer ${
               callFilter === 'all'
-                ? 'bg-[#657166] text-white shadow-xs'
-                : 'text-[#657166] dark:text-[#a0aba1] hover:text-[#2b382d]'
+                ? 'bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.25)] text-[#7C3AED] dark:text-[#C4B5FD] shadow-2xs font-bold'
+                : 'text-[#6B6B76] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF]'
             }`}
           >
             All Calls
@@ -153,10 +142,10 @@ export const CallsView: React.FC<CallsViewProps> = ({
           <button
             id="call-filter-missed"
             onClick={() => setCallFilter('missed')}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+            className={`px-3 py-1 rounded-[8px] text-xs font-semibold transition-all cursor-pointer ${
               callFilter === 'missed'
-                ? 'bg-[#F3C3B2] text-[#2b382d] font-semibold shadow-xs'
-                : 'text-[#657166] dark:text-[#a0aba1] hover:text-[#2b382d]'
+                ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-bold shadow-2xs'
+                : 'text-[#6B6B76] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF]'
             }`}
           >
             Missed
@@ -164,56 +153,56 @@ export const CallsView: React.FC<CallsViewProps> = ({
         </div>
       </div>
 
-      {/* Call History List like WhatsApp / Telegram Calls tab */}
+      {/* Call History List */}
       <div className="space-y-2.5">
         {filteredCalls.length === 0 ? (
-          <div className="p-8 text-center rounded-3xl bg-white dark:bg-[#1e2520] border border-[#CFD6C4]/40 text-[#657166]">
-            <PhoneMissed className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
-            <p className="text-sm font-medium">No calls logged in this section.</p>
+          <div className="p-8 text-center rounded-[20px] glass text-[#9A9AA5]">
+            <PhoneMissed className="w-8 h-8 text-[#A78BFA] mx-auto mb-2 opacity-60" />
+            <p className="text-sm font-semibold text-[#1A1A1F] dark:text-[#FAF7FF]">No calls logged in this section.</p>
           </div>
         ) : (
-          filteredCalls.map(record => {
+          filteredCalls.map((record, index) => {
             const isMissed = record.type === 'missed';
             const isOutgoing = record.type === 'outgoing';
 
             return (
               <div
-                key={record.id}
+                key={record.id ? `${record.id}-${index}` : `call-${index}`}
                 id={`call-record-${record.id}`}
-                className="p-4 rounded-2xl bg-white dark:bg-[#1e2520] border border-[#CFD6C4]/60 dark:border-white/10 shadow-xs hover:border-[#99CDD8] transition-all flex items-center justify-between gap-3"
+                className="p-4 rounded-[20px] glass hover:border-[#7C3AED]/40 shadow-xs transition-all flex items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-3.5 flex-1 min-w-0">
                   {/* Call Type Icon indicator */}
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    className={`w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 ${
                       isMissed
-                        ? 'bg-[#F3C3B2]/25 text-[#7a483a]'
+                        ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400'
                         : isOutgoing
-                        ? 'bg-[#99CDD8]/25 text-[#2b382d]'
-                        : 'bg-[#DAEBE3]/50 text-[#657166]'
+                        ? 'bg-[#F3EBFF] text-[#7C3AED] dark:bg-[rgba(124,58,237,0.2)] dark:text-[#C4B5FD]'
+                        : 'bg-[#4CB782]/10 text-[#4CB782]'
                     }`}
                   >
                     {isMissed ? (
-                      <PhoneMissed className="w-4 h-4 text-[#F3C3B2]" />
+                      <PhoneMissed className="w-4 h-4" />
                     ) : isOutgoing ? (
-                      <PhoneOutgoing className="w-4 h-4 text-[#657166]" />
+                      <PhoneOutgoing className="w-4 h-4" />
                     ) : (
-                      <PhoneIncoming className="w-4 h-4 text-[#99CDD8]" />
+                      <PhoneIncoming className="w-4 h-4" />
                     )}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-[#2b382d] dark:text-[#e5ede7]">
+                      <span className="font-bold text-sm text-[#1A1A1F] dark:text-[#FAF7FF]">
                         {record.partnerName}
                       </span>
-                      <span className="text-[10px] px-2 py-0.2 rounded-md bg-[#F8FAF8] dark:bg-[#151a17] text-[#657166] border border-[#CFD6C4]/40">
+                      <span className="text-[10px] px-2 py-0.2 rounded-full bg-[#F3EBFF] dark:bg-white/10 text-[#7C3AED] dark:text-[#C4B5FD] font-semibold border border-[rgba(124,58,237,0.15)]">
                         {getMoodEmoji(record.moodDuringCall)}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3 mt-0.5 text-xs text-[#657166] dark:text-[#a0aba1]">
-                      <span className={isMissed ? 'text-[#F3C3B2] font-semibold' : ''}>
+                    <div className="flex items-center gap-3 mt-0.5 text-xs text-[#6B6B76] dark:text-[#9A9AA5]">
+                      <span className={isMissed ? 'text-rose-500 font-semibold' : ''}>
                         {record.timestamp}
                       </span>
                       <span>•</span>
@@ -221,8 +210,8 @@ export const CallsView: React.FC<CallsViewProps> = ({
                     </div>
 
                     {record.summary && (
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-1 italic">
-                        "{record.summary}"
+                      <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] mt-1 line-clamp-1 italic">
+                        &ldquo;{record.summary}&rdquo;
                       </p>
                     )}
                   </div>
@@ -233,7 +222,7 @@ export const CallsView: React.FC<CallsViewProps> = ({
                   id={`redial-btn-${record.id}`}
                   onClick={onStartCall}
                   title={`Call ${record.partnerName} again`}
-                  className="p-2.5 rounded-xl bg-[#DAEBE3] hover:bg-[#99CDD8] text-[#2b382d] transition-all active:scale-95 shadow-xs shrink-0"
+                  className="p-2.5 rounded-[12px] bg-[#F3EBFF] hover:bg-[#7C3AED] hover:text-white text-[#7C3AED] dark:bg-white/10 dark:text-[#C4B5FD] transition-all active:scale-95 shadow-xs shrink-0 cursor-pointer"
                 >
                   <Phone className="w-4 h-4" />
                 </button>

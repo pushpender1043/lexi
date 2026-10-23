@@ -5,7 +5,6 @@ import {
   X,
   Volume2,
   Sparkles,
-  Heart,
   Save,
   CheckCircle,
   Play,
@@ -17,9 +16,8 @@ import {
   Sliders,
   Bell,
   MapPin,
-  User,
   LogOut,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react';
 import { playCompanionVoice } from '../utils/speech';
 
@@ -121,48 +119,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
       <div
         id="settings-modal-card"
-        className="relative w-full max-w-xl max-h-[90vh] flex flex-col bg-white dark:bg-[#151124] rounded-3xl border border-purple-100 dark:border-purple-900/40 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-xl max-h-[90vh] flex flex-col glass-strong rounded-[28px] border border-[rgba(124,58,237,0.18)] shadow-[0_16px_48px_rgba(124,58,237,0.18)] overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-purple-100 dark:border-purple-900/30 bg-purple-50/40 dark:bg-purple-950/20">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[rgba(124,58,237,0.12)] bg-[#FAF7FF]/60 dark:bg-white/5">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-purple-600 text-white shadow-xs">
+            <div className="p-2 rounded-[12px] bg-[#7C3AED] text-white shadow-xs">
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <h2 className="text-base font-extrabold text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-2">
                 Settings & Preferences
               </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Personalize {partnerName}'s voice, theme, routine & notifications
+              <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD]">
+                Personalize {partnerName}&apos;s voice, theme, routine & notifications
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-full text-[#9A9AA5] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF] hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs sm:text-sm">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5 text-xs sm:text-sm no-scrollbar">
           
           {/* 1. THEME MODE (LIGHT & DARK) */}
-          <div className="p-4 rounded-2xl bg-purple-50/40 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
-                  Appearance / Theme
-                </h4>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                  Switch between clean daylight or cozy night atmosphere
-                </p>
-              </div>
+          <div className="p-4 rounded-[16px] glass space-y-3">
+            <div>
+              <h4 className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                Appearance / Theme
+              </h4>
+              <p className="text-[11px] text-[#6B6B76] dark:text-[#C4B5FD]">
+                Switch between clean daylight lavender or cozy dark night
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
@@ -170,18 +166,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 id="theme-option-light"
                 onClick={() => onSetTheme(false)}
-                className={`p-3 rounded-2xl border flex items-center gap-3 transition-all ${
+                className={`p-3 rounded-[12px] border flex items-center gap-3 transition-all cursor-pointer ${
                   !darkMode
-                    ? 'bg-white text-purple-700 border-purple-400 shadow-sm ring-2 ring-purple-400/20'
-                    : 'bg-white/40 dark:bg-zinc-900/40 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300'
+                    ? 'bg-white text-[#7C3AED] border-[#7C3AED] shadow-sm ring-2 ring-[#7C3AED]/20 font-bold'
+                    : 'bg-white/40 dark:bg-white/5 text-[#6B6B76] dark:text-[#C4B5FD] border-white/60 dark:border-white/10 hover:border-[#7C3AED]/30'
                 }`}
               >
-                <div className="p-2 rounded-xl bg-amber-100 text-amber-600">
+                <div className="p-2 rounded-[10px] bg-amber-100 text-amber-600">
                   <Sun className="w-4 h-4" />
                 </div>
                 <div className="text-left">
                   <div className="font-bold text-xs">Light Mode</div>
-                  <div className="text-[10px] text-zinc-400">Crisp & bright</div>
+                  <div className="text-[10px] text-[#9A9AA5]">Crisp lavender</div>
                 </div>
               </button>
 
@@ -189,199 +185,167 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 id="theme-option-dark"
                 onClick={() => onSetTheme(true)}
-                className={`p-3 rounded-2xl border flex items-center gap-3 transition-all ${
+                className={`p-3 rounded-[12px] border flex items-center gap-3 transition-all cursor-pointer ${
                   darkMode
-                    ? 'bg-purple-950/60 text-purple-300 border-purple-500 shadow-sm ring-2 ring-purple-500/20'
-                    : 'bg-white/40 dark:bg-zinc-900/40 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300'
+                    ? 'bg-[rgba(124,58,237,0.3)] text-[#FAF7FF] border-[#7C3AED] shadow-sm ring-2 ring-[#7C3AED]/30 font-bold'
+                    : 'bg-white/40 dark:bg-white/5 text-[#6B6B76] dark:text-[#C4B5FD] border-white/60 dark:border-white/10 hover:border-[#7C3AED]/30'
                 }`}
               >
-                <div className="p-2 rounded-xl bg-purple-900/60 text-purple-300">
+                <div className="p-2 rounded-[10px] bg-[#7C3AED]/30 text-[#C4B5FD]">
                   <Moon className="w-4 h-4" />
                 </div>
                 <div className="text-left">
                   <div className="font-bold text-xs">Dark Mode</div>
-                  <div className="text-[10px] text-zinc-400">Atmospheric & eye-safe</div>
+                  <div className="text-[10px] text-[#9A9AA5]">Eye-safe dark</div>
                 </div>
               </button>
             </div>
           </div>
 
           {/* 2. NOTIFICATIONS & PROACTIVE NUDGES */}
-          <div className="p-4 rounded-2xl bg-purple-50/40 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 flex items-center justify-between">
+          <div className="p-4 rounded-[16px] glass flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-purple-600 text-white shadow-xs">
+              <div className="p-2 rounded-[10px] bg-[#7C3AED] text-white shadow-xs">
                 <Bell className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                <h4 className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
                   Notifications & Proactive Nudges
                 </h4>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                <p className="text-[11px] text-[#6B6B76] dark:text-[#C4B5FD]">
                   Allow {partnerName} to send cute reminders, hydration check-ins & wake-up calls
                 </p>
               </div>
             </div>
 
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={notificationsEnabled}
-                onChange={(e) => setNotificationsEnabled(e.target.checked)}
-                className="sr-only peer"
+            <button
+              type="button"
+              onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+              className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                notificationsEnabled ? 'bg-[#7C3AED]' : 'bg-zinc-300 dark:bg-zinc-700'
+              }`}
+            >
+              <span
+                className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${
+                  notificationsEnabled ? 'translate-x-5' : 'translate-x-0'
+                }`}
               />
-              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-hidden rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-            </label>
+            </button>
           </div>
 
-          {/* 3. DEDICATED VOICE SETTINGS PANEL */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-purple-50/80 to-violet-50/40 dark:from-purple-950/40 dark:to-indigo-950/20 border border-purple-200 dark:border-purple-800/40 space-y-4">
+          {/* 3. VOICE ENGINE & AUDIO PREVIEW */}
+          <div className="p-4 rounded-[16px] glass space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Volume2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                  Companion Voice & Tone
-                </h3>
+                <div className="p-1.5 rounded-[8px] bg-[#F3EBFF] dark:bg-white/10 text-[#7C3AED]">
+                  <Volume2 className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                  Voice Engine & Audio Tone
+                </h4>
               </div>
 
-              {/* Test Voice Sample Button */}
               <button
-                id="test-voice-btn"
+                type="button"
                 onClick={handleTestVoice}
                 disabled={isPlayingPreview}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all ${
-                  isPlayingPreview
-                    ? 'bg-purple-400 text-white animate-pulse'
-                    : 'bg-purple-600 hover:bg-purple-700 text-white'
-                }`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-60"
               >
-                <Play className="w-3 h-3 fill-current" />
+                <Play className="w-3.5 h-3.5 fill-current" />
                 <span>{isPlayingPreview ? 'Speaking...' : 'Test Voice'}</span>
               </button>
             </div>
 
-            {/* Voice Tone Selector */}
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Companion Voice Tone
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {[
-                  { key: 'playful', label: 'Playful', desc: 'Witty, upbeat & teasing' },
-                  { key: 'serious', label: 'Serious', desc: 'Direct, focused & disciplined' },
-                  { key: 'comforting', label: 'Comforting', desc: 'Gentle, soft & empathetic' },
-                  { key: 'sweet', label: 'Sweet', desc: 'Loving, tender & caring' },
-                  { key: 'sassy', label: 'Sassy', desc: 'Spicy banter & feisty nakhre' },
-                ].map((tone) => (
-                  <button
-                    key={tone.key}
-                    type="button"
-                    onClick={() => setVoiceToneStyle(tone.key as any)}
-                    className={`p-2.5 rounded-xl border text-left transition-all ${
-                      voiceToneStyle === tone.key
-                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                        : 'bg-white dark:bg-[#1A1428] text-zinc-700 dark:text-zinc-300 border-purple-100 dark:border-purple-900/40 hover:border-purple-300'
-                    }`}
-                  >
-                    <div className="font-bold text-xs">{tone.label}</div>
-                    <div className={`text-[10px] mt-0.5 ${voiceToneStyle === tone.key ? 'text-purple-100' : 'text-zinc-400'}`}>
-                      {tone.desc}
-                    </div>
-                  </button>
-                ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Voice Gender</label>
+                <select
+                  value={voiceGender}
+                  onChange={(e) => setVoiceGender(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                >
+                  <option value="female">Female (Lexi)</option>
+                  <option value="male">Male (Leo)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Emotion / Tone Style</label>
+                <select
+                  value={voiceToneStyle}
+                  onChange={(e) => setVoiceToneStyle(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                >
+                  <option value="playful">Playful & Lively</option>
+                  <option value="sweet">Sweet & Caring</option>
+                  <option value="comforting">Soft & Comforting</option>
+                  <option value="serious">Focused & Direct</option>
+                  <option value="sassy">Feisty & Teasing</option>
+                </select>
               </div>
             </div>
 
-            {/* Playback Speed Controller */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1">
-                  <Gauge className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Playback Speed</span>
-                </label>
-                <span className="text-xs font-mono font-bold text-purple-600 dark:text-purple-400">
-                  {voiceSpeed.toFixed(1)}x
-                </span>
+              <div className="flex items-center justify-between text-xs text-[#6B6B76] dark:text-[#C4B5FD] mb-1">
+                <span>Speaking Speed</span>
+                <span className="font-bold text-[#7C3AED]">{voiceSpeed.toFixed(1)}x</span>
               </div>
-
               <input
                 type="range"
-                min="0.7"
-                max="1.5"
+                min="0.8"
+                max="1.4"
                 step="0.1"
                 value={voiceSpeed}
                 onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
-                className="w-full accent-purple-600 cursor-pointer"
+                className="w-full accent-[#7C3AED] cursor-pointer"
               />
-
-              <div className="flex items-center justify-between mt-2 gap-1.5">
-                {[
-                  { speed: 0.8, label: '0.8x Slow' },
-                  { speed: 1.0, label: '1.0x Normal' },
-                  { speed: 1.2, label: '1.2x Lively' },
-                  { speed: 1.5, label: '1.5x Fast' },
-                ].map((preset) => (
-                  <button
-                    key={preset.speed}
-                    type="button"
-                    onClick={() => setVoiceSpeed(preset.speed)}
-                    className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all ${
-                      Math.abs(voiceSpeed - preset.speed) < 0.05
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-white dark:bg-[#1A1428] text-zinc-600 dark:text-zinc-400 border border-purple-100 dark:border-purple-900/30'
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
-          {/* 4. USER IDENTITY & COMPANION CUSTOMIZATION */}
-          <div className="space-y-3">
-            <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-              <Heart className="w-4 h-4 text-rose-500" />
-              <span>Identity & Customization</span>
-            </h3>
+          {/* 4. IDENTITY & LOCATION */}
+          <div className="p-4 rounded-[16px] glass space-y-3">
+            <h4 className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+              Identity & Profile
+            </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                  Companion Name (Default Lexi)
+                <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">
+                  Companion Name
                 </label>
                 <input
                   type="text"
                   value={partnerName}
                   onChange={(e) => setPartnerName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-purple-50/40 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 text-zinc-900 dark:text-zinc-100 text-xs focus:outline-hidden"
+                  className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
                   placeholder="e.g. Lexi"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">
                   Your Nickname
                 </label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-purple-50/40 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 text-zinc-900 dark:text-zinc-100 text-xs focus:outline-hidden"
+                  className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
                   placeholder="e.g. Deepu"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-rose-500" />
+              <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1 flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-[#7C3AED]" />
                 <span>Your Location</span>
               </label>
               <input
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-purple-50/40 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 text-zinc-900 dark:text-zinc-100 text-xs focus:outline-hidden"
+                className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
                 placeholder="e.g. Delhi, India"
               />
             </div>
@@ -393,28 +357,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onClose();
                   onOpenOnboarding();
                 }}
-                className="w-full py-2.5 rounded-xl bg-purple-100/60 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full py-2.5 rounded-[12px] bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] text-[#7C3AED] dark:text-[#C4B5FD] hover:bg-[#E9D8FD] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Re-train {partnerName}'s Personality (Onboarding Quiz)</span>
+                <span>Re-train {partnerName}&apos;s Personality (Onboarding Quiz)</span>
               </button>
             )}
           </div>
 
           {/* 5. ACCOUNT / LOGIN STATUS */}
-          <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+          <div className="p-3.5 rounded-[16px] glass flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs">
+              <div className="w-8 h-8 rounded-full bg-[#7C3AED] text-white flex items-center justify-center font-bold text-xs">
                 {(userProfile.name || 'D')[0].toUpperCase()}
               </div>
               <div>
-                <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                <div className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-1.5">
                   <span>{userProfile.name || 'Deepu'}</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-medium">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.3)] text-[#7C3AED] dark:text-[#C4B5FD] font-semibold">
                     {userProfile.loginProvider || 'Google'}
                   </span>
                 </div>
-                <div className="text-[11px] text-zinc-400">
+                <div className="text-[11px] text-[#9A9AA5]">
                   {userProfile.userEmail || 'deepumuku645@gmail.com'}
                 </div>
               </div>
@@ -428,7 +392,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     onClose();
                     onSignOut();
                   }}
-                  className="px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold text-rose-600 dark:text-rose-400 transition-colors flex items-center gap-1"
+                  className="px-2.5 py-1.5 rounded-[12px] border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold text-rose-600 dark:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
                   title="Sign out of your account"
                 >
                   <LogOut className="w-3 h-3" />
@@ -442,7 +406,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     onClose();
                     onOpenLogin();
                   }}
-                  className="px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:border-purple-400 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:text-purple-600 transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-[12px] border border-[rgba(124,58,237,0.2)] hover:border-[#7C3AED] text-xs font-semibold text-[#7C3AED] dark:text-[#C4B5FD] hover:bg-[#F3EBFF] transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <span>{userProfile.isAuthenticated ? 'Switch' : 'Sign In'}</span>
                 </button>
@@ -453,10 +417,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-purple-100 dark:border-purple-900/30 bg-purple-50/30 dark:bg-purple-950/20">
-          <span className="text-xs text-zinc-500">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[rgba(124,58,237,0.12)] bg-[#FAF7FF]/60 dark:bg-white/5">
+          <span className="text-xs text-[#6B6B76] dark:text-[#C4B5FD]">
             {savedSuccess ? (
-              <span className="text-emerald-600 font-bold flex items-center gap-1">
+              <span className="text-[#4CB782] font-bold flex items-center gap-1">
                 <CheckCircle className="w-4 h-4" /> Preferences Saved!
               </span>
             ) : (
@@ -467,14 +431,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className="px-4 py-2 rounded-[12px] text-xs font-semibold text-[#6B6B76] dark:text-[#C4B5FD] hover:bg-white/60 cursor-pointer"
             >
               Cancel
             </button>
             <button
               id="settings-save-btn"
               onClick={handleSave}
-              className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs shadow-md flex items-center gap-1.5 transition-transform active:scale-95"
+              className="px-5 py-2 rounded-[12px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white font-semibold text-xs shadow-[0_4px_16px_rgba(124,58,237,0.3)] flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               <span>Save</span>

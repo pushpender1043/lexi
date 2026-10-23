@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Habit, HabitCategory, UserProfile } from '../types';
+import { StreakBadge } from './StreakBadge';
 import confetti from 'canvas-confetti';
 import { 
   CheckCircle2, Circle, Droplets, Dumbbell, Pill, BookOpen, 
-  Sparkles, Plus, X, Flame, AlertCircle, TrendingUp, RefreshCw 
+  Sparkles, Plus, X, Flame, Check, Trophy
 } from 'lucide-react';
 
 interface HabitsCardProps {
@@ -31,18 +32,16 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
   const [newUnit, setNewUnit] = useState('times');
   const [newTime, setNewTime] = useState('10:00 AM');
 
-  // Trigger joyful confetti
+  // Trigger celebration
   const triggerCelebration = () => {
     try {
       confetti({
-        particleCount: 80,
-        spread: 70,
+        particleCount: 60,
+        spread: 60,
         origin: { y: 0.65 },
-        colors: ['#f43f5e', '#ec4899', '#38bdf8', '#fbbf24']
+        colors: ['#A78BFA', '#7C3AED', '#4CB782', '#F3EBFF']
       });
-    } catch {
-      // fallback
-    }
+    } catch {}
   };
 
   const handleToggle = (id: string, currentlyCompleted: boolean) => {
@@ -74,45 +73,12 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
     : habits.filter(h => h.category === selectedCategory);
 
   const completedCount = habits.filter(h => h.completed).length;
-  const progressPercent = Math.round((completedCount / (habits.length || 1)) * 100);
+  const totalHabits = habits.length;
+  const progressPercent = Math.round((completedCount / (totalHabits || 1)) * 100);
 
   // Gamified streak calculations
   const longestStreak = habits.reduce((max, h) => Math.max(max, h.streak || 0), 0);
   const totalStreakPoints = habits.reduce((sum, h) => sum + (h.streak || 0), 0);
-
-  // Gamified streak badge renderer
-  const renderGamifiedStreakBadge = (streak: number) => {
-    if (streak >= 7) {
-      return (
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white shadow-xs shadow-orange-500/30 animate-pulse border border-amber-300/40">
-          <Flame className="w-3.5 h-3.5 fill-white text-white" />
-          <span>{streak}d Streak • ON FIRE!</span>
-        </div>
-      );
-    }
-    if (streak >= 3) {
-      return (
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/10 border border-orange-400/50 text-orange-700 dark:text-orange-300 shadow-2xs">
-          <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-500 animate-bounce [animation-duration:2s]" />
-          <span>{streak}d Streak</span>
-        </div>
-      );
-    }
-    if (streak >= 1) {
-      return (
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/40 border border-amber-300/70 text-amber-700 dark:text-amber-300">
-          <Flame className="w-3 h-3 fill-amber-500 text-amber-500" />
-          <span>{streak}d Streak</span>
-        </div>
-      );
-    }
-    return (
-      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-400">
-        <Flame className="w-3 h-3 text-zinc-400" />
-        <span>Start Today</span>
-      </div>
-    );
-  };
 
   // Water habit specific quick helper
   const waterHabit = habits.find(h => h.category === 'hydration');
@@ -120,46 +86,46 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
   const getCategoryIcon = (category: HabitCategory) => {
     switch (category) {
       case 'fitness':
-        return <Dumbbell className="w-4 h-4 text-orange-500" />;
+        return <Dumbbell className="w-4 h-4 text-[#7C3AED]" />;
       case 'hydration':
         return <Droplets className="w-4 h-4 text-sky-500" />;
       case 'health':
-        return <Pill className="w-4 h-4 text-emerald-500" />;
+        return <Pill className="w-4 h-4 text-[#4CB782]" />;
       case 'study':
-        return <BookOpen className="w-4 h-4 text-violet-500" />;
+        return <BookOpen className="w-4 h-4 text-[#A78BFA]" />;
       case 'mindset':
-        return <Sparkles className="w-4 h-4 text-pink-500" />;
+        return <Sparkles className="w-4 h-4 text-[#7C3AED]" />;
       default:
-        return <CheckCircle2 className="w-4 h-4 text-zinc-500" />;
+        return <CheckCircle2 className="w-4 h-4 text-[#6B6B76]" />;
     }
   };
 
   return (
-    <div className="w-full glass-card rounded-3xl p-5 sm:p-7 shadow-xl border border-white/70 dark:border-white/10 relative">
-      {/* Title & Top Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div className="w-full glass p-5 sm:p-7 shadow-[0_8px_32px_rgba(124,58,237,0.08)] relative overflow-visible">
+      {/* Top Header & Overview */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
-              <span>Daily Accountability Ledger</span>
-              <Sparkles className="w-5 h-5 text-rose-500 animate-pulse" />
+            <h2 className="text-xl font-extrabold tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-2">
+              <span>Habit Accountability Ledger</span>
+              <Sparkles className="w-4 h-4 text-[#7C3AED]" />
             </h2>
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            {userProfile.partnerName} monitors your daily habits closely. Don't skip!
+          <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] mt-0.5">
+            {userProfile.partnerName} monitors your consistency. Hover streak flame to view streak history!
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Progress Pill */}
-          <div className="px-3.5 py-1.5 rounded-2xl bg-white/60 dark:bg-zinc-800/60 border border-white/80 shadow-sm flex items-center gap-2.5">
+          {/* Progress Badge */}
+          <div className="px-3.5 py-1.5 rounded-[12px] glass shadow-xs flex items-center gap-2.5">
             <div className="text-right">
-              <div className="text-[10px] uppercase font-bold text-zinc-400">Day Target</div>
-              <div className="text-xs font-bold text-zinc-800 dark:text-zinc-100">
-                {completedCount} of {habits.length} Done
+              <div className="text-[10px] uppercase font-bold text-[#9A9AA5]">Day Target</div>
+              <div className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF] tabular-nums">
+                {completedCount} of {totalHabits} Done
               </div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-rose-50 border-2 border-rose-500/30 flex items-center justify-center font-bold text-xs text-rose-600">
+            <div className="w-9 h-9 rounded-full bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.25)] border border-[rgba(124,58,237,0.2)] flex items-center justify-center font-extrabold text-xs text-[#7C3AED] dark:text-[#C4B5FD] tabular-nums">
               {progressPercent}%
             </div>
           </div>
@@ -167,7 +133,7 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
           <button
             id="add-habit-open-btn"
             onClick={() => setIsAddingHabit(!isAddingHabit)}
-            className="p-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white shadow-md transition-transform hover:scale-105 active:scale-95 flex items-center gap-1.5 text-xs font-medium"
+            className="px-3.5 py-2 rounded-[12px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white shadow-[0_4px_16px_rgba(124,58,237,0.3)] transition-all hover:scale-102 active:scale-95 flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Add Habit</span>
@@ -175,56 +141,56 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
         </div>
       </div>
 
-      {/* Gamified Streak Leader Strip */}
-      <div className="mb-5 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-300/40 dark:border-amber-700/40 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-xs">
-            <Flame className="w-4 h-4 fill-white animate-pulse" />
+      {/* Prominent Streak Leader Strip */}
+      <div className="mb-5 p-3.5 rounded-[16px] glass border border-[rgba(124,58,237,0.15)] flex flex-wrap items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-[12px] bg-gradient-to-tr from-[#7C3AED] to-[#A78BFA] text-white flex items-center justify-center shadow-xs">
+            <Flame className="w-5 h-5 fill-white animate-pulse" />
           </div>
           <div>
-            <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-              <span>Streak Power: <strong className="text-orange-600 dark:text-orange-400">{longestStreak} Days Best</strong></span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 font-extrabold">
-                {totalStreakPoints} Total Flames
+            <div className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-2">
+              <span>Active Peak: <strong className="text-[#7C3AED] dark:text-[#A78BFA] tabular-nums">{longestStreak} Days</strong></span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] text-[#7C3AED] dark:text-[#C4B5FD] font-extrabold border border-[rgba(124,58,237,0.2)]">
+                {totalStreakPoints} Total Streak Flames 🔥
               </span>
             </div>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-              {userProfile.partnerName}: "Consistency is hot! Har habit ka flame streak maintain rakhna hai baby!"
+            <p className="text-[11px] text-[#6B6B76] dark:text-[#C4B5FD] mt-0.5">
+              {userProfile.partnerName}: &ldquo;Consistency is key! Har habit ka flame streak maintain rakhna hai baby!&rdquo;
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs font-extrabold text-orange-600 dark:text-orange-400">
-          <Flame className="w-4 h-4 fill-orange-500 animate-bounce" />
-          <span>Keep the Flames Burning!</span>
+        <div className="flex items-center gap-1.5 text-xs font-bold text-[#7C3AED] dark:text-[#C4B5FD] bg-[#F3EBFF] dark:bg-white/10 px-3 py-1 rounded-[12px] border border-[rgba(124,58,237,0.15)]">
+          <Trophy className="w-3.5 h-3.5 text-[#7C3AED]" />
+          <span>Keep the Flames Burning</span>
         </div>
       </div>
 
-      {/* Water Quick Tracker Widget (Paani Tracker) */}
+      {/* Hydration Water Drop Quick Tracker */}
       {waterHabit && (
-        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-blue-500/10 border border-sky-200 dark:border-sky-800/40">
+        <div className="mb-5 p-4 rounded-[16px] glass border border-sky-300/40 dark:border-sky-800/40">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-md">
+              <div className="w-9 h-9 rounded-[12px] bg-gradient-to-tr from-sky-400 to-blue-600 text-white flex items-center justify-center shadow-sm shadow-sky-500/20">
                 <Droplets className="w-5 h-5 fill-white" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                  Hydration Sync (Paani Tracker)
+                <h4 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-2">
+                  <span>Hydration Sync (Paani Tracker)</span>
                   {waterHabit.completed && (
-                    <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#4CB782]/20 text-[#4CB782] font-semibold border border-[#4CB782]/40">
                       Goal Met! 💧
                     </span>
                   )}
                 </h4>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {userProfile.partnerName}: "Skin glow aur energy ke liye kam se kam {waterHabit.targetValue} glass zaroori hai!"
+                <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD]">
+                  {userProfile.partnerName}: &ldquo;Stay hydrated for pure energy and skin glow!&rdquo;
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-sky-700 dark:text-sky-300">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-extrabold text-sky-700 dark:text-sky-300 tabular-nums">
                 {waterHabit.currentValue} / {waterHabit.targetValue} Glasses
               </span>
               <button
@@ -233,10 +199,10 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
                   triggerCelebration();
                   onIncrementHabit(waterHabit.id, 1);
                 }}
-                className="px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-medium shadow-sm transition-all hover:scale-102 flex items-center gap-1"
+                className="px-3 py-1.5 rounded-[12px] bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold shadow-sm transition-all hover:scale-102 active:scale-95 flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Drink +1 Glass (250ml)</span>
+                <span>+1 Glass</span>
               </button>
             </div>
           </div>
@@ -254,10 +220,10 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
                       onIncrementHabit(waterHabit.id, idx + 1 - waterHabit.currentValue);
                     }
                   }}
-                  className={`flex-1 min-w-[28px] h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                  className={`flex-1 min-w-[32px] h-8 rounded-[12px] border flex items-center justify-center transition-all cursor-pointer ${
                     isFilled
-                      ? 'bg-sky-500 border-sky-400 text-white shadow-sm scale-102'
-                      : 'bg-white/40 border-sky-200 text-sky-300 hover:border-sky-400'
+                      ? 'bg-gradient-to-t from-sky-500 to-sky-400 border-sky-300 text-white shadow-xs scale-102'
+                      : 'bg-white/40 dark:bg-white/5 border-sky-200/60 dark:border-sky-800/40 text-sky-300 hover:border-sky-400'
                   }`}
                   title={`Glass #${idx + 1}`}
                 >
@@ -269,35 +235,35 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
         </div>
       )}
 
-      {/* Add New Habit Drawer Form */}
+      {/* Add New Habit Form */}
       {isAddingHabit && (
-        <form onSubmit={handleCreateHabit} className="mb-6 p-4 rounded-2xl bg-white/70 dark:bg-zinc-800/80 border border-rose-200 shadow-md animate-fade-in">
+        <form onSubmit={handleCreateHabit} className="mb-5 p-5 rounded-[20px] glass-strong shadow-lg animate-in fade-in duration-200">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Add New Daily Accountability Habit</h4>
-            <button type="button" onClick={() => setIsAddingHabit(false)} className="text-zinc-400 hover:text-zinc-600">
+            <h4 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">Add New Habit</h4>
+            <button type="button" onClick={() => setIsAddingHabit(false)} className="text-[#9A9AA5] hover:text-[#1A1A1F] cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 mb-1">Habit Title</label>
+              <label className="block text-[11px] font-semibold text-[#6B6B76] mb-1">Habit Title</label>
               <input
                 id="new-habit-title-input"
                 type="text"
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
                 placeholder="e.g. Read 20 pages"
-                className="w-full px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs bg-white dark:bg-zinc-900"
+                className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF]"
                 required
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 mb-1">Category</label>
+              <label className="block text-[11px] font-semibold text-[#6B6B76] mb-1">Category</label>
               <select
                 id="new-habit-category-select"
                 value={newCategory}
                 onChange={e => setNewCategory(e.target.value as HabitCategory)}
-                className="w-full px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs bg-white dark:bg-zinc-900"
+                className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF]"
               >
                 <option value="fitness">Gym / Fitness 💪</option>
                 <option value="hydration">Water / Hydration 💧</option>
@@ -307,7 +273,7 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 mb-1">Target & Unit</label>
+              <label className="block text-[11px] font-semibold text-[#6B6B76] mb-1">Target & Unit</label>
               <div className="flex gap-1.5">
                 <input
                   id="new-habit-target-input"
@@ -315,7 +281,7 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
                   min="1"
                   value={newTarget}
                   onChange={e => setNewTarget(Number(e.target.value))}
-                  className="w-1/2 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs bg-white dark:bg-zinc-900"
+                  className="w-1/2 px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF]"
                 />
                 <input
                   id="new-habit-unit-input"
@@ -323,19 +289,19 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
                   value={newUnit}
                   onChange={e => setNewUnit(e.target.value)}
                   placeholder="e.g. mins"
-                  className="w-1/2 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs bg-white dark:bg-zinc-900"
+                  className="w-1/2 px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF]"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 mb-1">Time Reminder</label>
+              <label className="block text-[11px] font-semibold text-[#6B6B76] mb-1">Time Reminder</label>
               <input
                 id="new-habit-time-input"
                 type="text"
                 value={newTime}
                 onChange={e => setNewTime(e.target.value)}
                 placeholder="e.g. 06:00 PM"
-                className="w-full px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs bg-white dark:bg-zinc-900"
+                className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF]"
               />
             </div>
           </div>
@@ -343,14 +309,14 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
             <button
               type="button"
               onClick={() => setIsAddingHabit(false)}
-              className="px-3 py-1.5 rounded-xl text-xs text-zinc-600 hover:bg-zinc-100"
+              className="px-3 py-1.5 rounded-[12px] text-xs text-[#6B6B76] hover:bg-white/60 cursor-pointer"
             >
               Cancel
             </button>
             <button
               id="save-new-habit-btn"
               type="submit"
-              className="px-4 py-1.5 rounded-xl bg-rose-500 text-white text-xs font-semibold hover:bg-rose-600 shadow-sm"
+              className="px-4 py-1.5 rounded-[12px] bg-[#7C3AED] text-white text-xs font-semibold hover:bg-[#5B21B6] shadow-sm cursor-pointer active:scale-95"
             >
               Commit to Habit
             </button>
@@ -358,24 +324,24 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
         </form>
       )}
 
-      {/* Category Pills Filter */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-4 text-xs font-medium">
+      {/* Category Tabs Filter */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2.5 mb-3 text-xs font-medium">
         {[
           { id: 'all', label: 'All Habits', icon: null },
-          { id: 'fitness', label: 'Gym & Fitness', icon: <Dumbbell className="w-3.5 h-3.5 text-orange-500" /> },
+          { id: 'fitness', label: 'Gym & Fitness', icon: <Dumbbell className="w-3.5 h-3.5 text-[#7C3AED]" /> },
           { id: 'hydration', label: 'Water Intake', icon: <Droplets className="w-3.5 h-3.5 text-sky-500" /> },
-          { id: 'health', label: 'Meds & Health', icon: <Pill className="w-3.5 h-3.5 text-emerald-500" /> },
-          { id: 'study', label: 'Study & Coding', icon: <BookOpen className="w-3.5 h-3.5 text-violet-500" /> },
-          { id: 'mindset', label: 'Mindset', icon: <Sparkles className="w-3.5 h-3.5 text-pink-500" /> },
+          { id: 'health', label: 'Meds & Health', icon: <Pill className="w-3.5 h-3.5 text-[#4CB782]" /> },
+          { id: 'study', label: 'Study & Coding', icon: <BookOpen className="w-3.5 h-3.5 text-[#A78BFA]" /> },
+          { id: 'mindset', label: 'Mindset', icon: <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" /> },
         ].map(tab => (
           <button
             key={tab.id}
             id={`filter-habits-${tab.id}-btn`}
             onClick={() => setSelectedCategory(tab.id)}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-[12px] whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
               selectedCategory === tab.id
-                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm'
-                : 'bg-white/50 text-zinc-600 dark:text-zinc-400 hover:bg-white/80'
+                ? 'bg-[#7C3AED] text-white shadow-xs font-bold'
+                : 'glass text-[#6B6B76] dark:text-[#C4B5FD] hover:bg-[#F3EBFF] dark:hover:bg-white/10'
             }`}
           >
             {tab.icon}
@@ -384,77 +350,85 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
         ))}
       </div>
 
-      {/* Habits List Grid */}
-      <div className="space-y-3">
-        {filteredHabits.map(habit => {
+      {/* Habits List Grid with StreakBadge & Hover History */}
+      <div className="space-y-2.5">
+        {filteredHabits.map((habit, index) => {
           return (
             <div
-              key={habit.id}
+              key={habit.id ? `${habit.id}-${index}` : `habit-card-${index}`}
               id={`habit-item-${habit.id}`}
-              className={`p-4 rounded-2xl border transition-all duration-300 flex flex-wrap items-center justify-between gap-3 ${
+              className={`p-3.5 sm:p-4 rounded-[20px] transition-all duration-200 flex flex-wrap items-center justify-between gap-3 relative overflow-visible ${
                 habit.completed
-                  ? 'bg-emerald-500/5 border-emerald-500/30'
-                  : 'bg-white/60 dark:bg-zinc-800/40 border-white/80 dark:border-white/10 hover:border-rose-300'
+                  ? 'bg-[#4CB782]/5 dark:bg-[#4CB782]/10 border border-[#4CB782]/25'
+                  : 'glass hover:border-[#7C3AED]/40 shadow-xs'
               }`}
             >
               {/* Checkbox and Details */}
-              <div className="flex items-center gap-3.5 min-w-[240px]">
+              <div className="flex items-center gap-3 min-w-[240px]">
                 <button
                   id={`habit-checkbox-${habit.id}`}
                   onClick={() => handleToggle(habit.id, habit.completed)}
-                  className="transition-transform active:scale-90"
+                  className="transition-transform active:scale-90 shrink-0 cursor-pointer"
+                  title={habit.completed ? 'Mark incomplete' : 'Complete habit'}
                 >
                   {habit.completed ? (
-                    <CheckCircle2 className="w-6 h-6 text-emerald-500 fill-emerald-100" />
+                    <CheckCircle2 className="w-5 h-5 text-[#4CB782] fill-[#4CB782]/20" />
                   ) : (
-                    <Circle className="w-6 h-6 text-zinc-300 dark:text-zinc-600 hover:text-rose-400" />
+                    <Circle className="w-5 h-5 text-[#9A9AA5] hover:text-[#7C3AED]" />
                   )}
                 </button>
 
-                <div>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="p-1 rounded-lg bg-zinc-100 dark:bg-zinc-700/50">
+                    <span className="p-1 rounded-[8px] bg-[#F3EBFF] dark:bg-white/10">
                       {getCategoryIcon(habit.category)}
                     </span>
-                    <h4 className={`text-sm font-semibold tracking-tight ${
-                      habit.completed ? 'text-zinc-500 line-through' : 'text-zinc-900 dark:text-zinc-100'
+                    <h4 className={`text-sm font-bold tracking-tight truncate ${
+                      habit.completed ? 'text-[#9A9AA5] line-through' : 'text-[#1A1A1F] dark:text-[#FAF7FF]'
                     }`}>
                       {habit.title}
                     </h4>
                     {habit.importance === 'crucial' && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 font-semibold">
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 font-semibold">
                         Strict!
                       </span>
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2.5 mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-                    <span className="font-mono text-[11px] bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded-md">
+                  <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-[#6B6B76] dark:text-[#9A9AA5]">
+                    <span className="text-[11px] font-medium text-[#9A9AA5]">
                       ⏰ {habit.scheduledTime}
                     </span>
-                    {renderGamifiedStreakBadge(habit.streak)}
+                    <span aria-hidden="true" className="opacity-40">·</span>
+                    
+                    {/* Prominent Streak Badge with Hover Streak History */}
+                    <StreakBadge habit={habit} partnerName={userProfile.partnerName} size="sm" />
+
                     {habit.notes && (
-                      <span className="hidden md:inline italic text-zinc-400">
-                        • {habit.notes}
-                      </span>
+                      <>
+                        <span aria-hidden="true" className="opacity-40">·</span>
+                        <span className="hidden md:inline italic text-[#9A9AA5] text-[11px] truncate max-w-[140px]">
+                          {habit.notes}
+                        </span>
+                      </>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons & Value Controls */}
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 shrink-0">
                 {habit.category !== 'hydration' && habit.targetValue > 1 && (
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[12px] glass text-xs font-bold text-[#7C3AED] dark:text-[#C4B5FD] tabular-nums">
                     <span>{habit.currentValue} / {habit.targetValue} {habit.unit}</span>
                     {!habit.completed && (
                       <button
                         id={`habit-step-inc-${habit.id}`}
                         onClick={() => {
                           triggerCelebration();
-                          onIncrementHabit(habit.id, 15);
+                          onIncrementHabit(habit.id, 1);
                         }}
-                        className="px-2 py-0.5 rounded bg-white text-rose-600 font-bold hover:bg-rose-50 shadow-xs"
+                        className="px-2 py-0.5 rounded-[8px] bg-white dark:bg-white/10 text-[#7C3AED] font-bold hover:bg-[#F3EBFF] shadow-xs cursor-pointer"
                       >
                         +
                       </button>
@@ -467,24 +441,24 @@ export const HabitsCard: React.FC<HabitsCardProps> = ({
                     <button
                       id={`habit-complete-btn-${habit.id}`}
                       onClick={() => handleToggle(habit.id, false)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium shadow-sm transition-all hover:scale-102 flex items-center gap-1"
+                      className="px-3.5 py-1.5 rounded-[12px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white text-xs font-semibold shadow-xs transition-all hover:scale-102 flex items-center gap-1 cursor-pointer active:scale-95"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <Check className="w-3.5 h-3.5" />
                       <span>Done</span>
                     </button>
                     <button
                       id={`habit-skip-btn-${habit.id}`}
                       onClick={() => onSkipHabit(habit.id)}
-                      title="Skip today (Careful: Partner might get angry!)"
-                      className="px-2.5 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 text-zinc-500 hover:text-red-500 hover:border-red-300 text-xs font-medium transition-all"
+                      title="Skip today"
+                      className="px-2.5 py-1.5 rounded-[12px] glass text-[#6B6B76] hover:text-rose-500 text-xs font-medium transition-all cursor-pointer"
                     >
                       Skip
                     </button>
                   </div>
                 ) : (
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <span className="text-xs font-bold text-[#4CB782] flex items-center gap-1 bg-[#4CB782]/10 px-2.5 py-1 rounded-[12px] border border-[#4CB782]/25">
                     <Sparkles className="w-3.5 h-3.5" />
-                    Completed!
+                    Completed
                   </span>
                 )}
               </div>

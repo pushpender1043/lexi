@@ -12,10 +12,9 @@ import {
   Search,
   X,
   Trash2,
-  Sparkles,
-  RotateCcw,
   Play,
-  Pause
+  Pause,
+  Sparkles,
 } from 'lucide-react';
 import { createSpeechRecognizer, playCompanionVoice } from '../utils/speech';
 
@@ -84,7 +83,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         }
       },
       (err) => {
-        console.warn("Speech recognition notice:", err);
+        console.warn('Speech recognition notice:', err);
         setIsRecording(false);
       }
     );
@@ -95,11 +94,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
         recognitionRef.current = recognizer;
         setIsRecording(true);
       } catch (err) {
-        console.error("Recognizer error:", err);
+        console.error('Recognizer error:', err);
         setIsRecording(false);
       }
-    } else {
-      alert("Microphone recognition not supported in this browser.");
     }
   };
 
@@ -144,14 +141,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
     });
   };
 
-  // Real human companion starter prompts
   const companionPrompts = [
-    'Hey baby, how was your day? ❤️',
-    'Did you miss me today? 🥰',
-    'Tell me something that made you smile today ✨',
-    'I drank 3 glasses of water already, proud of me? 💧',
-    'Can you hold me accountable for my workout today? 💪',
-    'I feel a bit overwhelmed today, cheer me up? 🥺',
+    'Hey Lexi, how was your day? ❤️',
+    'Hold me accountable for my habits today 💪',
+    'I just finished my focus session! ✨',
+    'Need a quick mood boost, talk to me? 🥺',
   ];
 
   const trimmedQuery = searchQuery.trim().toLowerCase();
@@ -160,199 +154,158 @@ export const ChatView: React.FC<ChatViewProps> = ({
     : messages;
 
   return (
-    <div className="flex-1 flex flex-col h-full max-w-3xl mx-auto w-full select-none relative">
+    <div className="flex-1 flex flex-col h-full max-w-4xl mx-auto w-full select-none relative overflow-hidden glass rounded-[24px] shadow-[0_12px_40px_rgba(124,58,237,0.12)] border border-[rgba(124,58,237,0.15)] animate-in fade-in duration-200">
       
-      {/* Top Bar: Clean, Minimal Header with Prominent Back Button & Actions */}
-      <div className="px-3 sm:px-4 py-3 bg-white/90 dark:bg-[#110E1C]/90 backdrop-blur-xl border-b border-purple-100/60 dark:border-purple-900/30 flex items-center justify-between z-20 transition-colors">
+      {/* Top Bar: Clean Header with Prominent, Always-Visible Back to Home Button */}
+      <div className="px-3 sm:px-5 py-3 bg-white/80 dark:bg-[#150F28]/85 backdrop-blur-2xl border-b border-[rgba(124,58,237,0.12)] flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* Clear, Prominent Back Button */}
+          {/* ALWAYS VISIBLE Back to Home Button */}
           <button
             id="chat-back-button"
             onClick={() => {
               if (onBack) onBack();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-2xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/70 dark:hover:bg-purple-900/80 text-purple-700 dark:text-purple-300 text-xs font-bold transition-all hover:scale-102 active:scale-95 border border-purple-200/80 dark:border-purple-800/60 shadow-2xs shrink-0"
-            title="Return to Dashboard"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] hover:bg-[#7C3AED] hover:text-white text-[#7C3AED] dark:text-[#C4B5FD] text-xs font-bold transition-all border border-[rgba(124,58,237,0.2)] shadow-xs shrink-0 cursor-pointer active:scale-95"
+            title="Return to Home Dashboard"
           >
-            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
-            <span className="hidden xs:inline">Back to Home</span>
-            <span className="xs:hidden">Home</span>
+            <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+            <span>Home</span>
           </button>
 
           <div className="flex items-center gap-2.5">
             <div className="relative shrink-0">
               <AexoMascot size="sm" isSpeaking={isLoading} />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#110E1C]" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#4CB782] ring-2 ring-white dark:ring-[#150F28]" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 leading-tight">
-                <span>{partnerName}</span>
-                <span className="text-[10px] text-purple-700 dark:text-purple-300 font-bold px-2 py-0.5 rounded-full bg-purple-100/80 dark:bg-purple-950/80 border border-purple-200/50 dark:border-purple-800/40">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF] leading-tight">
+                  {partnerName}
+                </span>
+                <span className="text-[10px] text-[#4CB782] font-bold px-1.5 py-0.2 rounded-full bg-[#4CB782]/10 border border-[#4CB782]/30">
                   Online
                 </span>
-              </h2>
-
-              {/* Real-time typing status in header */}
+              </div>
               {isLoading ? (
-                <div className="flex items-center gap-1.5 mt-0.5 animate-pulse">
-                  <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400">
-                    {partnerName} is typing
-                  </span>
-                  <span className="flex items-center gap-0.5">
-                    <span className="w-1 h-1 rounded-full bg-purple-500 animate-bounce" />
-                    <span className="w-1 h-1 rounded-full bg-purple-500 animate-bounce [animation-delay:0.15s]" />
-                    <span className="w-1 h-1 rounded-full bg-purple-500 animate-bounce [animation-delay:0.3s]" />
-                  </span>
-                </div>
+                <span className="text-[10px] font-semibold text-[#7C3AED] animate-pulse block">
+                  typing...
+                </span>
               ) : (
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                <span className="text-[10px] text-[#6B6B76] dark:text-[#A78BFA] block">
                   Always here for you
-                </p>
+                </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Right Header Actions: Search, Clear Conversation, and Voice Call */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          {/* Search Toggle Button */}
+        {/* Right Header Actions: Search, Clear Conversation, Call */}
+        <div className="flex items-center gap-1.5">
           <button
             id="chat-top-search-btn"
             onClick={() => setIsSearchOpen((prev) => !prev)}
-            className={`p-2 rounded-full transition-all active:scale-95 ${
+            className={`p-2 rounded-[12px] transition-all cursor-pointer active:scale-95 ${
               isSearchOpen || searchQuery
-                ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:text-purple-600'
+                ? 'bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.3)] text-[#7C3AED] dark:text-[#C4B5FD]'
+                : 'text-[#6B6B76] hover:text-[#1A1A1F] dark:text-[#9A9AA5] dark:hover:text-[#FAF7FF] hover:bg-white/60 dark:hover:bg-white/10'
             }`}
-            title={isSearchOpen ? 'Close search' : 'Search messages'}
+            title="Search messages"
           >
             <Search className="w-4 h-4" />
           </button>
 
-          {/* Clear Conversation Action */}
           <button
             id="chat-top-clear-btn"
             onClick={() => setShowClearConfirm(true)}
-            className="p-2 rounded-full text-zinc-600 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all active:scale-95"
+            className="p-2 rounded-[12px] text-[#6B6B76] hover:text-rose-600 dark:text-[#9A9AA5] dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer active:scale-95"
             title="Clear conversation"
           >
             <Trash2 className="w-4 h-4" />
           </button>
 
-          {/* Voice Call Button */}
           <button
             id="chat-top-call-btn"
             onClick={onStartCall}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-2xs transition-all hover:scale-102 active:scale-95 ml-1"
-            title={`Voice Call ${partnerName}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 ml-1 cursor-pointer"
+            title={`Voice call ${partnerName}`}
           >
             <Phone className="w-3.5 h-3.5 stroke-[2.2]" />
-            <span>Call</span>
+            <span className="hidden sm:inline">Call</span>
           </button>
         </div>
       </div>
 
-      {/* TOP SEARCH BAR (Quick filter and find past messages) */}
+      {/* Search Input Bar (when opened) */}
       {isSearchOpen && (
         <div
           id="chat-search-bar"
-          className="px-4 py-2 bg-purple-50/80 dark:bg-[#161224] border-b border-purple-100 dark:border-purple-900/40 flex items-center gap-2 animate-in slide-in-from-top-2 duration-200"
+          className="px-4 py-2 bg-[#FAF7FF]/90 dark:bg-[#150F28]/90 border-b border-[rgba(124,58,237,0.12)] flex items-center gap-2 animate-in slide-in-from-top-1 duration-150 shrink-0"
         >
           <div className="relative flex-1 flex items-center">
-            <Search className="w-3.5 h-3.5 text-purple-500 absolute left-3 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-[#9A9AA5] absolute left-3 pointer-events-none" />
             <input
               ref={searchInputRef}
-              id="chat-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={`Search messages in conversation with ${partnerName}...`}
-              className="w-full bg-white dark:bg-[#1C162E] border border-purple-200/80 dark:border-purple-800/60 rounded-xl pl-9 pr-8 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-purple-400 shadow-2xs"
+              placeholder={`Search messages with ${partnerName}...`}
+              className="w-full glass-input pl-9 pr-8 py-1.5 text-xs text-[#1A1A1F] dark:text-[#FAF7FF] placeholder-[#9A9AA5] focus:outline-hidden"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 p-1 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-                title="Clear search text"
+                className="absolute right-2.5 p-1 rounded-full text-[#9A9AA5] hover:text-[#1A1A1F]"
               >
                 <X className="w-3 h-3" />
               </button>
             )}
           </div>
 
-          {searchQuery && (
-            <span className="text-[11px] font-semibold text-purple-700 dark:text-purple-300 whitespace-nowrap bg-purple-100/80 dark:bg-purple-950/80 px-2 py-0.5 rounded-full">
-              {filteredMessages.length} found
-            </span>
-          )}
-
           <button
             onClick={() => {
               setIsSearchOpen(false);
               setSearchQuery('');
             }}
-            className="text-xs font-semibold text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 px-2 py-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="text-xs font-semibold text-[#6B6B76] hover:text-[#1A1A1F] dark:text-[#C4B5FD] px-2 py-1 cursor-pointer"
           >
             Close
           </button>
         </div>
       )}
 
-      {/* Message Feed Area with Generous Bubble Padding & Readable Typography */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-4 no-scrollbar">
-        {/* If conversation is empty, show welcoming partner starter */}
+      {/* Message Feed Area - Independent Scrolling */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3.5 no-scrollbar">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center my-auto py-10 animate-in fade-in duration-300">
-            <AexoMascot size="lg" showAura={true} className="mb-3" />
-            <h3 className="text-base font-bold text-zinc-800 dark:text-zinc-200 mb-1">
-              Talk with {partnerName}
+          <div className="h-full flex flex-col items-center justify-center text-center py-12">
+            <AexoMascot size="lg" className="mb-3" />
+            <h3 className="text-base font-bold text-[#1A1A1F] dark:text-[#FAF7FF] mb-1">
+              Chat with {partnerName}
             </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 max-w-xs">
-              Tell me about your day, celebrate completed habits, or just chat.
+            <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] mb-5 max-w-xs">
+              Talk about your habits, your day, or just check in.
             </p>
 
-            {/* Quick Starter Prompts */}
             <div className="w-full max-w-sm space-y-2">
               {companionPrompts.map((prompt, idx) => (
                 <button
                   key={idx}
                   onClick={() => onSendMessage(prompt)}
-                  className="w-full py-2.5 px-4 rounded-2xl bg-white dark:bg-[#161224] hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-purple-100/80 dark:border-purple-900/30 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:text-purple-600 dark:hover:text-purple-300 shadow-2xs transition-all text-center block active:scale-98"
+                  className="w-full py-2.5 px-3.5 rounded-[12px] glass hover:border-[#7C3AED] hover:bg-[#F3EBFF] dark:hover:bg-white/10 text-xs font-semibold text-[#1A1A1F] dark:text-[#FAF7FF] hover:text-[#7C3AED] shadow-2xs transition-all text-left block cursor-pointer active:scale-[0.99]"
                 >
                   {prompt}
                 </button>
               ))}
             </div>
           </div>
-        ) : trimmedQuery && filteredMessages.length === 0 ? (
-          /* Search Empty State */
-          <div className="h-full flex flex-col items-center justify-center text-center py-16 animate-in fade-in">
-            <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 flex items-center justify-center mb-3 shadow-2xs">
-              <Search className="w-6 h-6" />
-            </div>
-            <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-1">
-              No matching messages
-            </h4>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4 max-w-xs">
-              No messages found containing &ldquo;{searchQuery}&rdquo;.
-            </p>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="px-3.5 py-1.5 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-xs font-bold hover:bg-purple-200 dark:hover:bg-purple-900 transition-all shadow-2xs"
-            >
-              Clear Search
-            </button>
-          </div>
         ) : (
-          filteredMessages.map((msg) => {
+          filteredMessages.map((msg, index) => {
             const isUser = msg.sender === 'user';
             const isPlaying = playingMessageId === msg.id;
 
             return (
               <div
-                key={msg.id}
-                className={`flex items-end gap-2.5 ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in duration-150`}
+                key={msg.id ? `${msg.id}-${index}` : `msg-${index}`}
+                className={`flex items-end gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!isUser && (
                   <div className="shrink-0 mb-1">
@@ -360,31 +313,30 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   </div>
                 )}
 
-                {/* Refined Message Bubble with Generous Padding for Better Readability */}
                 <div
-                  className={`max-w-[85%] sm:max-w-[75%] px-4.5 py-3 sm:px-5 sm:py-3.5 leading-relaxed text-sm ${
+                  className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 leading-relaxed text-xs sm:text-sm ${
                     isUser
-                      ? 'bg-purple-600 text-white rounded-2xl rounded-br-xs shadow-xs'
-                      : 'bg-white dark:bg-[#181326] text-zinc-900 dark:text-zinc-100 border border-purple-100/80 dark:border-purple-900/40 rounded-2xl rounded-bl-xs shadow-2xs'
+                      ? 'chat-bubble-out'
+                      : 'chat-bubble-in'
                   }`}
                 >
                   {/* Voice Note Player */}
                   {msg.type === 'voice_note' && (
-                    <div className="mb-2.5 p-2 rounded-xl bg-black/10 dark:bg-white/10 flex items-center gap-2">
+                    <div className="mb-2 p-2 rounded-xl bg-black/10 dark:bg-white/10 flex items-center gap-2">
                       <button
                         onClick={() => handlePlayVoice(msg)}
-                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-                          isUser ? 'bg-white text-purple-600 shadow-xs' : 'bg-purple-600 text-white shadow-xs'
+                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                          isUser ? 'bg-white text-[#7C3AED] shadow-xs' : 'bg-[#7C3AED] text-white shadow-xs'
                         }`}
                       >
                         {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
                       </button>
                       <div className="flex items-center gap-1 h-3 flex-1">
-                        {[10, 22, 14, 26, 12, 18, 8, 16].map((h, i) => (
+                        {[10, 20, 14, 24, 12, 16, 8, 14].map((h, i) => (
                           <span
                             key={i}
-                            style={{ height: `${isPlaying ? (h * 1.3) % 22 + 4 : h}px` }}
-                            className="w-0.5 bg-current rounded-full transition-all duration-200 opacity-80"
+                            style={{ height: `${isPlaying ? ((h * 1.3) % 20) + 4 : h}px` }}
+                            className="w-0.5 bg-current rounded-full opacity-80"
                           />
                         ))}
                       </div>
@@ -394,14 +346,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     </div>
                   )}
 
-                  {/* Message Content */}
+                  {/* Text Content */}
                   <div className="break-words">
                     <span className="whitespace-pre-wrap">{msg.text}</span>
 
-                    {/* Meta info / timestamp */}
-                    <div className={`flex items-center justify-end gap-1.5 mt-1 text-[10px] select-none ${isUser ? 'text-purple-200' : 'text-zinc-400'}`}>
+                    <div
+                      className={`flex items-center justify-end gap-1.5 mt-1 text-[10px] select-none ${
+                        isUser ? 'text-[#FAF7FF]/80' : 'text-[#9A9AA5]'
+                      }`}
+                    >
                       <span>{msg.timestamp}</span>
-                      
                       {isUser ? (
                         <CheckCheck className="w-3.5 h-3.5 stroke-[2.4]" title="Delivered & Read" />
                       ) : (
@@ -409,9 +363,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           <button
                             onClick={() => handlePlayVoice(msg)}
                             title="Listen aloud"
-                            className="hover:text-purple-600 transition-colors ml-0.5"
+                            className="hover:text-[#7C3AED] transition-colors ml-0.5 cursor-pointer"
                           >
-                            <Volume2 className="w-3.5 h-3.5 text-zinc-400 hover:text-purple-500" />
+                            <Volume2 className="w-3.5 h-3.5 text-[#9A9AA5] hover:text-[#7C3AED]" />
                           </button>
                         )
                       )}
@@ -422,75 +376,43 @@ export const ChatView: React.FC<ChatViewProps> = ({
             );
           })
         )}
-
-        {/* Real-time Typing Indicator in Bottom Message Area */}
-        {isLoading && (
-          <div id="lexi-typing-indicator" className="flex items-end gap-2.5 animate-in fade-in duration-200">
-            <div className="shrink-0 mb-1">
-              <AexoMascot size="sm" isSpeaking={true} />
-            </div>
-            <div className="px-4 py-2.5 rounded-2xl rounded-bl-xs bg-white dark:bg-[#181326] border border-purple-100/90 dark:border-purple-900/40 shadow-xs flex items-center gap-2.5">
-              <span className="text-xs text-purple-700 dark:text-purple-300 font-medium">
-                {partnerName} is typing
-              </span>
-              <span className="flex items-center gap-1 h-3 pt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce [animation-duration:0.9s]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce [animation-duration:0.9s] [animation-delay:0.15s]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce [animation-duration:0.9s] [animation-delay:0.3s]" />
-              </span>
-            </div>
-          </div>
-        )}
-
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Subtle Bottom Typing Notice when AI is thinking */}
-      {isLoading && (
-        <div className="px-4 py-1 text-center bg-transparent">
-          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-medium text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 border border-purple-200/50 dark:border-purple-800/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping" />
-            {partnerName} is preparing a thoughtful reply...
-          </span>
-        </div>
-      )}
-
-      {/* Streamlined, Minimal Input Area */}
-      <div className="p-3 sm:p-4 border-t border-purple-100/40 dark:border-purple-900/20 bg-white/70 dark:bg-[#110E1C]/70 backdrop-blur-md">
-        <div className="bg-white dark:bg-[#181326] rounded-2xl p-1.5 pl-4 border border-purple-200/70 dark:border-purple-900/40 shadow-2xs flex items-center gap-2">
-          {/* Message input */}
+      {/* Input Composer (Pinned to bottom of Chat container) */}
+      <div className="p-3 sm:p-4 bg-white/80 dark:bg-[#150F28]/85 border-t border-[rgba(124,58,237,0.12)] backdrop-blur-2xl shrink-0">
+        <div className="flex items-center gap-2 max-w-3xl mx-auto">
           <input
+            id="chat-message-input"
             type="text"
-            placeholder={isRecording ? 'Listening to your voice...' : `Message ${partnerName}...`}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-hidden py-1.5"
+            placeholder={`Message ${partnerName}...`}
+            className="flex-1 glass-input px-4 py-2.5 text-xs sm:text-sm text-[#1A1A1F] dark:text-[#FAF7FF] placeholder-[#9A9AA5] focus:outline-hidden"
           />
 
-          {/* Send button */}
           <button
             id="chat-send-btn"
             onClick={handleSend}
             disabled={!inputText.trim()}
-            className={`p-2 rounded-xl transition-all ${
+            className={`p-2.5 rounded-[12px] transition-all cursor-pointer ${
               inputText.trim()
-                ? 'bg-purple-600 text-white shadow-xs hover:bg-purple-700 active:scale-95'
-                : 'text-zinc-300 dark:text-zinc-600'
+                ? 'bg-[#7C3AED] hover:bg-[#5B21B6] text-white shadow-[0_4px_16px_rgba(124,58,237,0.3)] active:scale-95'
+                : 'bg-[#F3EBFF] dark:bg-white/10 text-[#9A9AA5]'
             }`}
-            title="Send Message"
+            title="Send"
           >
             <Send className="w-4 h-4" />
           </button>
 
-          {/* Voice recording button */}
           <button
             id="chat-mic-record-btn"
             onClick={startVoiceRecording}
-            className={`p-2 rounded-xl transition-all active:scale-95 ${
+            className={`p-2.5 rounded-[12px] transition-all cursor-pointer ${
               isRecording
-                ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/80'
+                ? 'bg-[#7C3AED] text-white animate-pulse shadow-[0_0_16px_rgba(124,58,237,0.5)]'
+                : 'bg-[#F3EBFF] dark:bg-white/10 text-[#7C3AED] dark:text-[#C4B5FD] hover:bg-[#E9D8FD]'
             }`}
             title={isRecording ? 'Stop Recording' : 'Voice Input'}
           >
@@ -499,50 +421,31 @@ export const ChatView: React.FC<ChatViewProps> = ({
         </div>
       </div>
 
-      {/* CLEAR CONVERSATION CONFIRMATION MODAL */}
+      {/* Clear conversation confirmation modal */}
       {showClearConfirm && (
-        <div
-          id="clear-conversation-modal"
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
-        >
-          <div className="bg-white dark:bg-[#181326] border border-purple-100 dark:border-purple-900/50 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                  Clear Conversation?
-                </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Reset chat history with {partnerName}
-                </p>
-              </div>
-            </div>
-
-            <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
-              This will clear the current conversation history to refresh context. Your habits, daily streaks, memories, and profile data will remain completely intact.
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="glass-strong max-w-sm w-full p-6 space-y-3">
+            <h3 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+              Clear Conversation?
+            </h3>
+            <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] leading-relaxed">
+              This resets your current chat history with {partnerName}. Your habits, tags, and progress will remain untouched.
             </p>
-
-            <div className="flex items-center justify-end gap-2 pt-1">
+            <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowClearConfirm(false)}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="px-3.5 py-1.5 rounded-[12px] text-xs text-[#6B6B76] hover:bg-white/60 cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                id="confirm-clear-chat-btn"
                 onClick={() => {
                   if (onClearConversation) onClearConversation();
                   setShowClearConfirm(false);
-                  setSearchQuery('');
-                  setIsSearchOpen(false);
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-xs transition-colors active:scale-95 flex items-center gap-1.5"
+                className="px-4 py-1.5 rounded-[12px] text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-xs cursor-pointer active:scale-95"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Clear Chat</span>
+                Clear
               </button>
             </div>
           </div>

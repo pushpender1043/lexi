@@ -31,6 +31,7 @@ export const DEFAULT_HABITS: Habit[] = [
     id: "habit-1",
     title: "Morning Gym & Weight Training",
     category: "fitness",
+    tags: ["Health", "Fitness"],
     targetValue: 45,
     currentValue: 45,
     unit: "mins",
@@ -39,12 +40,13 @@ export const DEFAULT_HABITS: Habit[] = [
     completed: true,
     importance: "crucial",
     lastCompletedAt: "Today, 8:20 AM",
-    notes: "Chest & Triceps day completed! Lexi was super impressed."
+    notes: "Chest & Triceps day completed!"
   },
   {
     id: "habit-2",
     title: "Hydration Goal (8 Glasses of Water)",
     category: "hydration",
+    tags: ["Health", "Hydration"],
     targetValue: 8,
     currentValue: 5,
     unit: "glasses",
@@ -58,6 +60,7 @@ export const DEFAULT_HABITS: Habit[] = [
     id: "habit-3",
     title: "Afternoon Vitamins & Meds",
     category: "health",
+    tags: ["Health", "Wellness"],
     targetValue: 1,
     currentValue: 0,
     unit: "dose",
@@ -71,6 +74,7 @@ export const DEFAULT_HABITS: Habit[] = [
     id: "habit-4",
     title: "Deep Focus Study / Skill Coding",
     category: "study",
+    tags: ["Productivity", "Coding"],
     targetValue: 120,
     currentValue: 60,
     unit: "mins",
@@ -78,12 +82,28 @@ export const DEFAULT_HABITS: Habit[] = [
     streak: 4,
     completed: false,
     importance: "crucial",
-    notes: "Focus session for machine learning concepts."
+    notes: "Focus session for algorithmic thinking."
   },
   {
     id: "habit-5",
+    title: "Evening Call with Family & Friends",
+    category: "social",
+    tags: ["Social", "Connection"],
+    targetValue: 1,
+    currentValue: 1,
+    unit: "call",
+    scheduledTime: "08:00 PM",
+    streak: 5,
+    completed: true,
+    importance: "medium",
+    lastCompletedAt: "Today, 8:15 PM",
+    notes: "Caught up with close friends and parents."
+  },
+  {
+    id: "habit-6",
     title: "Night Wind-down & Screen Off",
     category: "mindset",
+    tags: ["Productivity", "Mindset"],
     targetValue: 30,
     currentValue: 0,
     unit: "mins",
@@ -91,7 +111,7 @@ export const DEFAULT_HABITS: Habit[] = [
     streak: 2,
     completed: false,
     importance: "medium",
-    notes: "No Instagram reels before sleep."
+    notes: "Relax and read before sleep."
   }
 ];
 
