@@ -53,7 +53,7 @@ export const AexoMascot: React.FC<AexoMascotProps> = ({
             ? 'animate-bounce'
             : isListening
             ? 'animate-pulse scale-105'
-            : 'hover:scale-105'
+            : 'animate-mascot-float hover:scale-105'
         }`}
         style={{ animationDuration: isSpeaking ? '1.2s' : '3s' }}
       >
@@ -123,7 +123,7 @@ export const AexoMascot: React.FC<AexoMascotProps> = ({
         <ellipse cx="50" cy="32" rx="20" ry="7" fill="url(#aexoHighlight)" />
 
         {/* Left Eye */}
-        <g className={isSpeaking ? 'animate-pulse' : ''}>
+        <g className={isSpeaking ? 'animate-pulse' : 'animate-mascot-blink'}>
           <ellipse cx="38" cy="51" rx="8" ry="11" fill="url(#aexoEyeGrad)" stroke="#3B0764" strokeWidth="0.75" />
           {/* Eye Star / Sparkle Highlight */}
           <circle cx="36" cy="47" r="3.2" fill="#FFFFFF" />
@@ -133,7 +133,7 @@ export const AexoMascot: React.FC<AexoMascotProps> = ({
         </g>
 
         {/* Right Eye */}
-        <g className={isSpeaking ? 'animate-pulse' : ''}>
+        <g className={isSpeaking ? 'animate-pulse' : 'animate-mascot-blink'}>
           <ellipse cx="62" cy="51" rx="8" ry="11" fill="url(#aexoEyeGrad)" stroke="#3B0764" strokeWidth="0.75" />
           {/* Eye Star / Sparkle Highlight */}
           <circle cx="60" cy="47" r="3.2" fill="#FFFFFF" />

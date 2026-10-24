@@ -73,7 +73,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF]">
                 {partnerName} & {name}
               </h2>
-              <span className="pill-pro">Pro</span>
             </div>
             <p className="text-xs sm:text-sm text-[#6B6B76] dark:text-[#C4B5FD] mt-0.5">
               Personalized AI Virtual Sidekick • Emotional & Routine Accountability

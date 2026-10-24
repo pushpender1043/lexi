@@ -14,6 +14,7 @@ import {
   DEFAULT_CALL_RECORDS 
 } from './data/defaults';
 import { Header } from './components/Header';
+import { BottomTabBar } from './components/BottomTabBar';
 import { HabitsCard } from './components/HabitsCard';
 import { ChatView } from './components/ChatView';
 import { DashboardView } from './components/DashboardView';
@@ -900,11 +901,11 @@ export default function App() {
   const completedHabitsCount = habits.filter(h => h.completed).length;
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark' : ''} bg-gradient-mesh text-[#1A1A1F] dark:text-[#FAF7FF] flex flex-col transition-colors duration-300 relative overflow-x-hidden font-sans ${activeTab === 'chat' ? 'h-screen overflow-hidden pb-0' : 'pb-18 md:pb-6'}`}>
+    <div className={`h-[100dvh] ${darkMode ? 'dark' : ''} bg-gradient-mesh text-[#1A1A1F] dark:text-[#FAF7FF] flex flex-col transition-colors duration-300 relative overflow-hidden font-sans`}>
       {/* Subtle Atmospheric Gradient */}
       <ParticleBackground mood={partnerMood.status} />
 
-      {/* Modern Minimal Header - Permanently Sticky */}
+      {/* Modern Minimal Header - Floating Desktop Pill & Mobile Header */}
       <Header
         userProfile={userProfile}
         partnerMood={partnerMood}
@@ -923,9 +924,15 @@ export default function App() {
         totalHabitsCount={habits.length}
       />
 
-      {/* Main View Area */}
-      <main className={`flex-1 max-w-5xl w-full mx-auto px-3 sm:px-4 ${activeTab === 'chat' ? 'py-1 sm:py-2 flex flex-col h-[calc(100dvh-4.25rem)] overflow-hidden' : 'py-3 sm:py-5'}`}>
-        {/* 0. DASHBOARD VIEW (Matching Page 3 of PDF) */}
+      {/* Main View Area - Only the content area scrolls */}
+      <main
+        className={`flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 min-h-0 ${
+          activeTab === 'chat'
+            ? 'pt-16 sm:pt-22 pb-20 md:pb-4 flex flex-col h-full overflow-hidden'
+            : 'pt-20 sm:pt-24 pb-24 md:pb-8 overflow-y-auto'
+        }`}
+      >
+        {/* 0. DASHBOARD VIEW */}
         {activeTab === 'dashboard' && (
           <DashboardView
             userProfile={userProfile}
@@ -955,7 +962,7 @@ export default function App() {
           />
         )}
 
-        {/* 1. CHATS SECTION (Continuous conversation without separate history sessions) */}
+        {/* 1. CHATS SECTION */}
         {activeTab === 'chat' && (
           <ChatView
             messages={messages}
@@ -998,7 +1005,7 @@ export default function App() {
           />
         )}
 
-        {/* 4. PROFILE SECTION (Matching Page 2 of PDF) */}
+        {/* 4. PROFILE SECTION */}
         {activeTab === 'profile' && (
           <ProfileView
             userProfile={userProfile}
@@ -1013,7 +1020,7 @@ export default function App() {
           />
         )}
 
-        {/* 5. STATS VIEW (Recharts Analytics) */}
+        {/* 5. STATS VIEW */}
         {activeTab === 'stats' && (
           <StatsView
             userProfile={userProfile}
@@ -1052,83 +1059,14 @@ export default function App() {
         )}
       </main>
 
-      {/* Modern Minimal Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0B0F19]/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around shadow-lg">
-        <button
-          id="mobile-nav-home"
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex-1 min-h-[48px] py-1.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-150 active:scale-95 ${
-            activeTab === 'dashboard'
-              ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-          title="Home Dashboard"
-        >
-          <Home className={`w-5 h-5 ${activeTab === 'dashboard' ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-          <span className="text-[11px] leading-tight">Home</span>
-        </button>
-
-        <button
-          id="mobile-nav-chat"
-          onClick={() => setActiveTab('chat')}
-          className={`flex-1 min-h-[48px] py-1.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-150 active:scale-95 ${
-            activeTab === 'chat'
-              ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-          title="Chat with Lexi"
-        >
-          <MessageSquare className={`w-5 h-5 ${activeTab === 'chat' ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-          <span className="text-[11px] leading-tight">Chat</span>
-        </button>
-
-        <button
-          id="mobile-nav-todos"
-          onClick={() => setActiveTab('todos')}
-          className={`flex-1 min-h-[48px] py-1.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-150 relative active:scale-95 ${
-            activeTab === 'todos'
-              ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-          title="Habits & Accountability"
-        >
-          <div className="relative">
-            <CheckSquare className={`w-5 h-5 ${activeTab === 'todos' ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-            {completedHabitsCount < habits.length && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white dark:ring-[#0B0F19]" />
-            )}
-          </div>
-          <span className="text-[11px] leading-tight">Habits</span>
-        </button>
-
-        <button
-          id="mobile-nav-stats"
-          onClick={() => setActiveTab('stats')}
-          className={`flex-1 min-h-[48px] py-1.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-150 active:scale-95 ${
-            activeTab === 'stats'
-              ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-          title="Habit Trends"
-        >
-          <TrendingUp className={`w-5 h-5 ${activeTab === 'stats' ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-          <span className="text-[11px] leading-tight">Trends</span>
-        </button>
-
-        <button
-          id="mobile-nav-calls"
-          onClick={() => setActiveTab('calls')}
-          className={`flex-1 min-h-[48px] py-1.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-150 active:scale-95 ${
-            activeTab === 'calls'
-              ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-          title="Voice Calls"
-        >
-          <Phone className={`w-5 h-5 ${activeTab === 'calls' ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-          <span className="text-[11px] leading-tight">Calls</span>
-        </button>
-      </nav>
+      {/* Modern Fixed Bottom Tab Bar for Mobile (<768px) with Raised Center Call Button */}
+      <BottomTabBar
+        activeTab={activeTab}
+        onSelectTab={(tab) => setActiveTab(tab)}
+        onStartCall={() => setIsCallOpen(true)}
+        completedHabitsCount={completedHabitsCount}
+        totalHabitsCount={habits.length}
+      />
 
       {/* Live Voice Call Modal */}
       {isCallOpen && (

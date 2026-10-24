@@ -11,6 +11,7 @@ import {
   Home,
   TrendingUp,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface HeaderProps {
   userProfile: UserProfile;
@@ -57,126 +58,131 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/75 dark:bg-[#0F0B1A]/85 backdrop-blur-2xl border-b border-[rgba(124,58,237,0.12)] select-none shadow-[0_4px_24px_rgba(124,58,237,0.06)] transition-all">
-      <div className="max-w-6xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-3">
+    <header className="fixed top-0 left-0 right-0 z-40 w-full pt-safe px-3 sm:px-6 pointer-events-none select-none transition-all">
+      <div className="max-w-6xl mx-auto h-16 sm:h-20 flex items-center justify-between gap-3">
         
-        {/* Brand / Companion identity (clicks back to Home Dashboard) */}
+        {/* Left: Brand Identity (clickable to Home) */}
         <button
           onClick={() => setActiveTab('dashboard')}
-          className="flex items-center gap-2.5 group text-left focus:outline-hidden cursor-pointer"
+          className="pointer-events-auto flex items-center gap-2.5 p-1.5 sm:px-3 sm:py-2 rounded-2xl glass hover:border-[#7C3AED]/30 transition-all text-left focus:outline-hidden cursor-pointer active:scale-98"
           title="Go to Home Dashboard"
         >
           <div className="relative shrink-0">
             <AexoMascot size="sm" isListening={true} />
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#4CB782] ring-2 ring-white dark:ring-[#0F0B1A]" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#4CB782] ring-2 ring-white dark:ring-[#0B0814]" />
           </div>
           <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="text-sm sm:text-base font-extrabold text-[#1A1A1F] dark:text-[#FAF7FF] group-hover:text-[#7C3AED] transition-colors tracking-tight">
-                {companionName}
-              </span>
-              {/* Pro Pill from Screenshot 1 */}
-              <span className="pill-pro">Pro</span>
-            </div>
+            <span className="text-sm font-extrabold text-[#1A1A1F] dark:text-[#FAF7FF] tracking-tight">
+              {companionName}
+            </span>
             <span className="text-[10px] text-[#6B6B76] dark:text-[#A78BFA] -mt-0.5 font-medium hidden sm:inline">
-              Soul Companion
+              AI Companion
             </span>
           </div>
         </button>
 
-        {/* Center: Clean Glass Navigation Tabs */}
-        <nav className="flex items-center gap-1 bg-white/50 dark:bg-white/5 p-1 rounded-2xl border border-[rgba(124,58,237,0.12)] backdrop-blur-md">
+        {/* Center: Desktop Floating Pill Navigation Bar (≥768px) with Gliding Active Pill */}
+        <nav
+          aria-label="Desktop Navigation"
+          className="pointer-events-auto hidden md:flex items-center gap-1 glass p-1.5 rounded-full border border-white/80 dark:border-white/10 shadow-[0_8px_32px_rgba(124,58,237,0.12)]"
+        >
           {navLinks.map((link) => {
             const Icon = link.icon;
             const isActive = activeTab === link.id;
             return (
               <button
                 key={link.id}
-                id={`nav-link-${link.id}`}
+                id={`desktop-nav-${link.id}`}
                 onClick={() => setActiveTab(link.id)}
-                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                className={`relative px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer ${
                   isActive
-                    ? 'bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.25)] text-[#7C3AED] dark:text-[#C4B5FD] shadow-xs font-bold scale-[1.02]'
-                    : 'text-[#6B6B76] dark:text-[#9A9AA5] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF] hover:bg-white/60 dark:hover:bg-white/10'
+                    ? 'text-white'
+                    : 'text-[#6B6B76] dark:text-[#C4B5FD] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF]'
                 }`}
-                title={`Go to ${link.label}`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-                <span className={link.id === 'calls' ? 'hidden sm:inline' : ''}>{link.label}</span>
-                {link.badge && (
-                  <span
-                    className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ml-0.5 tabular-nums ${
-                      isActive
-                        ? 'bg-[#7C3AED] text-white'
-                        : 'bg-[#F3EBFF] dark:bg-white/10 text-[#7C3AED] dark:text-[#C4B5FD]'
-                    }`}
-                  >
-                    {link.badge}
-                  </span>
+                {isActive && (
+                  <motion.div
+                    layoutId="desktop-active-nav-pill"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    className="absolute inset-0 bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] rounded-full shadow-[0_2px_12px_rgba(124,58,237,0.4)]"
+                  />
                 )}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'stroke-[2.4]' : 'stroke-[1.8]'}`} />
+                  <span>{link.label}</span>
+                  {link.badge && (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono tabular-nums ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-black/5 dark:bg-white/10 text-current'
+                      }`}
+                    >
+                      {link.badge}
+                    </span>
+                  )}
+                </span>
               </button>
             );
           })}
         </nav>
 
-        {/* Right side: Action Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Right: Actions Controls */}
+        <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
           {/* Audio voice toggle */}
           <button
             id="header-voice-toggle"
             onClick={onToggleVoice}
-            className={`p-2 rounded-xl transition-all cursor-pointer ${
+            className={`p-2 sm:p-2.5 rounded-xl glass hover:border-[#7C3AED]/30 transition-all cursor-pointer ${
               voiceEnabled
                 ? 'text-[#7C3AED] dark:text-[#A78BFA] bg-[#F3EBFF] dark:bg-white/10'
-                : 'text-[#9A9AA5] hover:text-[#6B6B76] hover:bg-white/40 dark:hover:bg-white/5'
+                : 'text-[#9A9AA5] hover:text-[#6B6B76]'
             }`}
-            title={voiceEnabled ? 'Companion voice enabled' : 'Companion voice muted'}
+            title={voiceEnabled ? 'Companion Voice On' : 'Companion Voice Muted'}
           >
             {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
-          {/* Quick Voice Call Button */}
+          {/* Quick Voice Call (Desktop icon button) */}
           <button
-            id="header-call-btn"
+            id="header-call-shortcut-btn"
             onClick={onStartCall}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#5B21B6] text-white text-xs font-semibold shadow-[0_4px_16px_rgba(124,58,237,0.3)] transition-all active:scale-95 cursor-pointer"
-            title={`Start live call with ${companionName}`}
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#7C3AED] hover:bg-[#5B21B6] text-white text-xs font-semibold shadow-[0_4px_16px_rgba(124,58,237,0.32)] transition-all active:scale-95 cursor-pointer"
+            title={`Live Call with ${companionName}`}
           >
             <Phone className="w-3.5 h-3.5 stroke-[2.2]" />
-            <span className="hidden sm:inline">Call</span>
+            <span>Call</span>
           </button>
 
           {/* Settings modal trigger */}
           <button
             id="header-settings-trigger"
             onClick={onOpenSettings}
-            className="p-2 rounded-xl text-[#6B6B76] hover:text-[#1A1A1F] dark:text-[#9A9AA5] dark:hover:text-[#FAF7FF] hover:bg-white/60 dark:hover:bg-white/10 transition-all cursor-pointer"
-            title="Settings & Preferences"
+            className="p-2 sm:p-2.5 rounded-xl glass text-[#6B6B76] hover:text-[#1A1A1F] dark:text-[#9A9AA5] dark:hover:text-[#FAF7FF] transition-all cursor-pointer"
+            title="Settings"
           >
             <Settings className="w-4 h-4" />
           </button>
 
-          {/* Profile / Account button */}
+          {/* Account profile trigger */}
           {isAuthenticated ? (
             <button
-              id="header-profile-account"
+              id="header-profile-btn"
               onClick={onOpenSettings}
-              className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1 rounded-xl bg-white/60 dark:bg-white/10 hover:bg-[#F3EBFF] dark:hover:bg-white/20 text-[#1A1A1F] dark:text-[#FAF7FF] text-xs font-semibold transition-all border border-[rgba(124,58,237,0.12)] cursor-pointer"
+              className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1 rounded-xl glass text-[#1A1A1F] dark:text-[#FAF7FF] text-xs font-semibold cursor-pointer active:scale-95"
               title={`Account: ${userProfile.name || userProfile.userEmail}`}
             >
               {userProfile.userAvatar ? (
                 <img
                   src={userProfile.userAvatar}
                   alt={userProfile.name}
-                  className="w-5 h-5 rounded-full object-cover ring-1 ring-[#7C3AED]"
+                  className="w-6 h-6 rounded-full object-cover ring-1 ring-[#7C3AED]"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <span className="w-5 h-5 rounded-full bg-[#7C3AED] text-white flex items-center justify-center text-[10px] font-bold">
+                <span className="w-6 h-6 rounded-full bg-[#7C3AED] text-white flex items-center justify-center text-[11px] font-bold">
                   {userInitial}
                 </span>
               )}
-              <span className="hidden sm:inline max-w-[75px] truncate font-medium">
+              <span className="hidden sm:inline max-w-[80px] truncate">
                 {userProfile.name || 'Deepu'}
               </span>
             </button>
@@ -184,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="header-signin-btn"
               onClick={onOpenLogin}
-              className="px-3.5 py-1.5 rounded-xl bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] hover:bg-[#7C3AED] hover:text-white text-[#7C3AED] dark:text-[#C4B5FD] text-xs font-semibold border border-[rgba(124,58,237,0.2)] transition-all cursor-pointer active:scale-95"
+              className="px-3.5 py-1.5 rounded-xl bg-[#F3EBFF] dark:bg-white/10 hover:bg-[#7C3AED] hover:text-white text-[#7C3AED] dark:text-[#C4B5FD] text-xs font-semibold border border-[rgba(124,58,237,0.2)] transition-all cursor-pointer active:scale-95"
             >
               Sign In
             </button>

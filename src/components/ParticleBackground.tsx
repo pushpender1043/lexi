@@ -2,47 +2,49 @@ import React from 'react';
 import { MoodStatus } from '../types';
 
 interface ParticleBackgroundProps {
-  mood: MoodStatus;
+  mood?: MoodStatus;
 }
 
-/**
- * Minimal, modern, clean background with subtle lines and soft atmospheric gradient.
- * Absolutely NO hearts, NO bubbles, NO messy distractions - clean and elegant.
- */
-export const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ mood }) => {
-  const getGlowColor = () => {
+export const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ mood = 'loving' }) => {
+  const getMoodAura = () => {
     switch (mood) {
       case 'ecstatic':
-      case 'loving':
-        return 'from-violet-400/10 via-purple-300/10 to-transparent';
-      case 'annoyed':
+        return 'from-pink-500/20 via-purple-500/20 to-indigo-500/15';
       case 'angry':
-        return 'from-amber-400/10 via-orange-300/10 to-transparent';
+      case 'annoyed':
+        return 'from-amber-500/20 via-rose-500/15 to-purple-600/15';
       default:
-        return 'from-purple-400/8 via-indigo-300/8 to-transparent';
+        return 'from-[#7C3AED]/20 via-[#A78BFA]/15 to-[#F3EBFF]/20';
     }
   };
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10 select-none">
-      {/* Soft centered radial aura behind content (matching PDF page 1 & 3) */}
-      <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full bg-gradient-radial ${getGlowColor()} blur-3xl opacity-75`} />
+    <div
+      aria-hidden="true"
+      className="fixed inset-0 pointer-events-none overflow-hidden -z-10 select-none"
+    >
+      {/* Aurora Blob 1: Top-center primary brand purple */}
+      <div
+        className={`absolute -top-24 left-1/2 -translate-x-1/2 w-[520px] sm:w-[720px] h-[440px] rounded-full bg-gradient-to-br ${getMoodAura()} blur-[90px] opacity-80 aurora-blob-1`}
+      />
 
-      {/* Subtle fine geometric horizontal and vertical alignment lines */}
-      <div 
-        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+      {/* Aurora Blob 2: Top-left soft lavender */}
+      <div className="absolute top-1/4 -left-32 w-[380px] sm:w-[500px] h-[400px] rounded-full bg-[#A78BFA]/18 dark:bg-[#7C3AED]/20 blur-[80px] aurora-blob-2" />
+
+      {/* Aurora Blob 3: Bottom-right pinkish purple */}
+      <div className="absolute bottom-10 -right-28 w-[420px] sm:w-[560px] h-[460px] rounded-full bg-fuchsia-400/14 dark:bg-purple-900/25 blur-[95px] aurora-blob-3" />
+
+      {/* Subtle Noise / Grid Accent Texture */}
+      <div
+        className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
         style={{
           backgroundImage: `
             linear-gradient(to right, #7C3AED 1px, transparent 1px),
             linear-gradient(to bottom, #7C3AED 1px, transparent 1px)
           `,
-          backgroundSize: '48px 48px',
+          backgroundSize: '40px 40px',
         }}
       />
-
-      {/* Soft corner gradient accents */}
-      <div className="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-purple-300/10 dark:bg-purple-900/10 blur-3xl" />
-      <div className="absolute top-1/3 -right-32 w-96 h-96 rounded-full bg-indigo-300/10 dark:bg-indigo-900/10 blur-3xl" />
     </div>
   );
 };

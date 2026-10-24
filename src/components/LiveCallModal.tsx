@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, PartnerMood, Habit } from '../types';
-import { PhoneOff, Mic, MicOff, Volume2, X, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { PhoneOff, Mic, MicOff, Volume2, X, Sparkles } from 'lucide-react';
 import { createSpeechRecognizer, playCompanionVoice, stopCompanionVoice } from '../utils/speech';
 import { AexoMascot } from './AexoMascot';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface LiveCallModalProps {
   isOpen: boolean;
@@ -31,20 +32,20 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
   const recognizerRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
 
-  // Call timer counter
+  const companionName = userProfile.partnerName || 'Lexi';
+
   useEffect(() => {
     if (!isOpen) return;
 
     timerRef.current = setInterval(() => {
-      setCallSeconds(prev => prev + 1);
+      setCallSeconds((prev) => prev + 1);
     }, 1000);
 
-    // Initial greeting when call connects
     const connectTimer = setTimeout(() => {
       setCallStatus('speaking');
-      const greeting = `Hello ${userProfile.name}! Bolo na baby, main sun rahi hoon. Aaj sab theek chal raha hai?`;
+      const greeting = `Hello ${userProfile.name}! Bolo na baby, main sun rahi hoon. Aaj din kaisa jaa raha hai?`;
       setPartnerSpeechText(greeting);
-      setCallHistory([{ sender: userProfile.partnerName, text: greeting }]);
+      setCallHistory([{ sender: companionName, text: greeting }]);
 
       playCompanionVoice(greeting, {
         gender: userProfile.voiceGender,
@@ -54,7 +55,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
           startListening();
         },
       });
-    }, 900);
+    }, 800);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -66,7 +67,6 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Speech recognition listener
   const startListening = () => {
     if (isMuted) return;
     stopListening();
@@ -78,9 +78,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
           handleUserUtterance(transcript.trim());
         }
       },
-      () => {
-        // Recognition ended
-      }
+      () => {}
     );
 
     if (recognizer) {
@@ -93,14 +91,11 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
     if (recognizerRef.current) {
       try {
         recognizerRef.current.stop();
-      } catch {
-        // ignore
-      }
+      } catch {}
       recognizerRef.current = null;
     }
   };
 
-  // Process user's spoken sentence
   const handleUserUtterance = async (utterance: string) => {
     stopListening();
     setCallStatus('processing');
@@ -125,7 +120,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
       const data = await res.json();
       const reply = data.callReply || "Main sun rahi hoon jaan, bolo!";
       setPartnerSpeechText(reply);
-      setCallHistory(prev => [...prev, { sender: userProfile.partnerName, text: reply }]);
+      setCallHistory((prev) => [...prev, { sender: companionName, text: reply }]);
 
       if (data.detectedHabitAction) {
         onHabitDetectedInCall(data.detectedHabitAction);
@@ -142,7 +137,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
         },
       });
     } catch {
-      const fallbackReply = "Baby, signal thoda weak hai par main yahin hoon tumhare sath!";
+      const fallbackReply = "Baby, connection thoda slow hai par main yahin hoon tumhare sath!";
       setPartnerSpeechText(fallbackReply);
       setCallStatus('speaking');
       playCompanionVoice(fallbackReply, {
@@ -160,13 +155,8 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
     stopListening();
     stopCompanionVoice();
     const duration = `${Math.floor(callSeconds / 60)}m ${callSeconds % 60}s`;
-    const summary = `Voice Call with ${userProfile.partnerName} (${duration}) - Last topic: "${partnerSpeechText.slice(0, 45) || 'Checked in'}"`;
+    const summary = `Voice Call with ${companionName} (${duration}) - Topic: "${partnerSpeechText.slice(0, 45) || 'Daily Check-in'}"`;
     onClose(summary);
-  };
-
-  const triggerQuickSpeech = (txt: string) => {
-    setUserSpokenText(txt);
-    handleUserUtterance(txt);
   };
 
   const formatTimer = (totalSec: number) => {
@@ -176,54 +166,50 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-md animate-in fade-in select-none">
-      {/* Lexi Translucent Glass Modal (Radius: 28px) */}
-      <div className="relative w-full max-w-sm sm:max-w-md h-[580px] rounded-[28px] glass-strong p-6 flex flex-col justify-between overflow-hidden shadow-[var(--shadow-glass)] border border-[var(--border)]">
-        
-        {/* Soft lavender decorative background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-44 bg-[var(--soft-lavender)]/25 rounded-full blur-3xl pointer-events-none -z-10" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/65 backdrop-blur-xl animate-in fade-in select-none">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.94 }}
+        className="relative w-full max-w-md h-[580px] rounded-[32px] glass-strong p-6 flex flex-col justify-between overflow-hidden shadow-[0_24px_64px_rgba(124,58,237,0.22)] border border-[rgba(124,58,237,0.2)]"
+      >
+        {/* Soft atmospheric gradient glow behind orb */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-gradient-to-tr from-[#7C3AED]/25 via-[#A78BFA]/20 to-transparent blur-3xl pointer-events-none -z-10" />
 
-        {/* Top Bar */}
+        {/* Top Header Row */}
         <div className="flex items-center justify-between z-10">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[var(--success-green)] animate-pulse shadow-[0_0_8px_var(--success-green)]" />
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#4CB782] animate-pulse" />
             <div>
-              <h3 className="text-xs sm:text-sm font-semibold text-[var(--text-primary)]">
-                Live with {userProfile.partnerName || 'Lexi'}
+              <h3 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                Live with {companionName}
               </h3>
-              <p className="text-[11px] text-[var(--text-muted)] font-mono">
+              <p className="text-[11px] text-[#6B6B76] dark:text-[#A78BFA] font-mono">
                 {formatTimer(callSeconds)}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => {
-                if (window.speechSynthesis.speaking) stopCompanionVoice();
-              }}
-              className="p-2 rounded-[12px] glass-button text-[var(--text-secondary)] hover:text-[var(--primary-purple)]"
-              title="Silence audio"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-            </button>
-            <button
-              id="close-call-btn"
-              onClick={handleEndCall}
-              className="p-2 rounded-[12px] glass-button text-[var(--text-secondary)] hover:text-[var(--primary-purple)]"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            onClick={handleEndCall}
+            className="p-2 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 text-[#6B6B76] dark:text-[#FAF7FF] transition-colors cursor-pointer"
+            title="End Call"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Center: Mascot + Soft Glowing Aura */}
+        {/* Center: Reactive Companion Orb + Aura */}
         <div className="flex-1 flex flex-col items-center justify-center my-auto z-10">
-          <div className="relative flex items-center justify-center mb-5">
-            {/* Glowing circular aura */}
-            <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-gradient-to-tr from-[var(--soft-lavender)]/35 via-[var(--primary-purple)]/20 to-[var(--soft-lavender)]/25 blur-2xl absolute -z-10" />
-            <div className="w-40 h-40 sm:w-44 sm:h-44 rounded-full border border-[var(--border)] flex items-center justify-center bg-white/40 dark:bg-white/5 backdrop-blur-sm shadow-inner">
+          <div className="relative flex items-center justify-center mb-6">
+            <motion.div
+              animate={{
+                scale: callStatus === 'speaking' ? [1, 1.08, 1] : callStatus === 'listening' ? [1, 1.04, 1] : 1,
+              }}
+              transition={{ repeat: Infinity, duration: callStatus === 'speaking' ? 1.6 : 3, ease: 'easeInOut' }}
+              className="w-44 h-44 rounded-full bg-gradient-to-tr from-[#7C3AED]/30 via-[#A78BFA]/25 to-purple-400/20 blur-2xl absolute -z-10"
+            />
+            <div className="w-36 h-36 rounded-full border border-white/60 dark:border-white/15 flex items-center justify-center bg-white/50 dark:bg-white/5 backdrop-blur-md shadow-inner">
               <AexoMascot
                 size="lg"
                 isListening={callStatus === 'listening'}
@@ -234,45 +220,56 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
           </div>
 
           {/* Equalizer Frequency Bars */}
-          <div className="flex items-center gap-1.5 h-10 mb-3 px-4">
-            {[14, 26, 38, 20, 32, 18, 42, 28, 36, 16, 44, 24, 30, 20, 12].map((height, idx) => (
+          <div className="flex items-center gap-1.5 h-8 mb-3 px-4">
+            {[12, 24, 34, 18, 28, 16, 38, 26, 32, 14, 40, 22, 28, 18, 10].map((h, i) => (
               <div
-                key={idx}
+                key={i}
                 style={{
-                  height: callStatus === 'speaking' || callStatus === 'listening' 
-                    ? `${Math.max(6, (height * ((idx + callSeconds * 3) % 5 + 1)) / 4)}px`
-                    : '6px',
+                  height:
+                    callStatus === 'speaking' || callStatus === 'listening'
+                      ? `${Math.max(6, (h * ((i + callSeconds * 3) % 4 + 1)) / 3.5)}px`
+                      : '5px',
                 }}
-                className="w-1 rounded-full bg-[var(--primary-purple)] transition-all duration-200"
+                className="w-1 rounded-full bg-[#7C3AED] transition-all duration-200"
               />
             ))}
           </div>
 
-          {/* Status Badge */}
-          <div className="px-4 py-1.5 rounded-full glass border border-[var(--border)] shadow-xs text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${
-              callStatus === 'speaking' ? 'bg-[var(--primary-purple)] animate-ping' :
-              callStatus === 'listening' ? 'bg-[var(--success-green)] animate-pulse' :
-              'bg-[var(--soft-lavender)]'
-            }`} />
+          {/* State Pill */}
+          <div className="px-4 py-1.5 rounded-full bg-white/70 dark:bg-white/10 border border-white/80 dark:border-white/15 text-xs font-semibold text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-2 shadow-xs">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                callStatus === 'speaking'
+                  ? 'bg-[#7C3AED] animate-ping'
+                  : callStatus === 'listening'
+                  ? 'bg-[#4CB782] animate-pulse'
+                  : 'bg-[#A78BFA]'
+              }`}
+            />
             <span className="capitalize">
-              {callStatus === 'speaking' ? 'Speaking...' : callStatus === 'listening' ? 'Listening' : callStatus === 'processing' ? 'Thinking...' : 'Connecting...'}
+              {callStatus === 'speaking'
+                ? 'Speaking...'
+                : callStatus === 'listening'
+                ? 'Listening'
+                : callStatus === 'processing'
+                ? 'Thinking...'
+                : 'Connecting...'}
             </span>
           </div>
 
-          {/* Subtitle / Live Transcript preview */}
-          <div className="mt-3 px-4 py-1 text-center max-w-xs min-h-[44px] flex items-center justify-center">
+          {/* Live Subtitle Transcript */}
+          <div className="mt-3 px-4 text-center max-w-xs min-h-[44px] flex items-center justify-center">
             {callStatus === 'speaking' && partnerSpeechText ? (
-              <p className="text-xs text-[var(--primary-purple)] font-medium leading-relaxed animate-fade-in line-clamp-2">
-                "{partnerSpeechText}"
+              <p className="text-xs text-[#7C3AED] dark:text-[#A78BFA] font-medium leading-relaxed line-clamp-2">
+                &ldquo;{partnerSpeechText}&rdquo;
               </p>
             ) : userSpokenText ? (
-              <p className="text-xs text-[var(--text-secondary)] italic line-clamp-2">
-                "{userSpokenText}"
+              <p className="text-xs text-[#6B6B76] dark:text-[#FAF7FF] italic line-clamp-2">
+                &ldquo;{userSpokenText}&rdquo;
               </p>
             ) : (
-              <p className="text-[11px] text-[var(--text-muted)] flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-[var(--soft-lavender)]" />
+              <p className="text-[11px] text-[#9A9AA5] flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-[#A78BFA]" />
                 <span>Speak naturally or tap a quick prompt</span>
               </p>
             )}
@@ -280,68 +277,64 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
         </div>
 
         {/* Quick Voice Prompts */}
-        <div className="z-10 mb-3 flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar">
+        <div className="z-10 mb-3 flex items-center gap-2 overflow-x-auto py-1 no-scrollbar">
           {[
-            "Maine gym complete kar liya! 💪",
-            "Dawai time pe li thi 💊",
-            "Next schedule kya hai?",
-            "Thoda tired feel kar raha hoon",
+            'Maine gym complete kar liya! 💪',
+            'Dawai time pe le li 💊',
+            'Aaj ka schedule kya hai?',
+            'Thoda low feel ho raha hai',
           ].map((prompt, idx) => (
             <button
               key={idx}
-              onClick={() => triggerQuickSpeech(prompt)}
-              className="px-3 py-1 rounded-full text-[11px] whitespace-nowrap glass-button text-[var(--text-secondary)] hover:text-[var(--primary-purple)] border border-[var(--border)] shrink-0 transition-transform active:scale-95"
+              onClick={() => {
+                setUserSpokenText(prompt);
+                handleUserUtterance(prompt);
+              }}
+              className="px-3 py-1 rounded-full text-[11px] whitespace-nowrap bg-white/70 dark:bg-white/10 hover:bg-[#F3EBFF] text-[#6B6B76] dark:text-[#C4B5FD] hover:text-[#7C3AED] border border-[rgba(124,58,237,0.15)] shrink-0 transition-transform active:scale-95 cursor-pointer font-medium"
             >
               {prompt}
             </button>
           ))}
         </div>
 
-        {/* Call Controls Footer */}
-        <div className="flex items-center justify-center gap-5 pt-3 border-t border-[var(--border)] z-10">
-          {/* Mute Mic toggle */}
+        {/* Floating Controls Footer */}
+        <div className="flex items-center justify-center gap-6 pt-3 border-t border-[rgba(124,58,237,0.14)] z-10">
           <button
-            id="call-mute-mic-btn"
             onClick={() => {
               setIsMuted(!isMuted);
               if (!isMuted) stopListening();
               else startListening();
             }}
-            className={`p-3 rounded-full border transition-all hover:scale-105 active:scale-95 ${
+            className={`p-3 rounded-full transition-all cursor-pointer ${
               isMuted
-                ? 'bg-rose-500/10 text-rose-500 border-rose-300'
-                : 'glass-button text-[var(--text-primary)] border-[var(--border)]'
+                ? 'bg-rose-500/15 text-rose-500 border border-rose-300'
+                : 'glass text-[#1A1A1F] dark:text-[#FAF7FF]'
             }`}
             title={isMuted ? 'Unmute Mic' : 'Mute Mic'}
           >
             {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
 
-          {/* Large Hangup Button */}
+          {/* Hangup Button */}
           <button
-            id="call-hangup-btn"
             onClick={handleEndCall}
-            className="w-14 h-14 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/30 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+            className="w-14 h-14 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer"
             title="End Call"
           >
             <PhoneOff className="w-6 h-6" />
           </button>
 
-          {/* Voice Output Stop / Speaker */}
           <button
-            id="call-speaker-btn"
             onClick={() => {
-              if (window.speechSynthesis.speaking) {
-                stopCompanionVoice();
-              }
+              if (window.speechSynthesis.speaking) stopCompanionVoice();
             }}
-            className="p-3 rounded-full glass-button text-[var(--text-primary)] border border-[var(--border)] transition-transform hover:scale-105 active:scale-95"
-            title="Silence Audio"
+            className="p-3 rounded-full glass text-[#1A1A1F] dark:text-[#FAF7FF] transition-all cursor-pointer"
+            title="Mute Audio Output"
           >
             <Volume2 className="w-5 h-5" />
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

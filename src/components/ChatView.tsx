@@ -14,9 +14,10 @@ import {
   Trash2,
   Play,
   Pause,
-  Sparkles,
+  ChevronDown,
 } from 'lucide-react';
 import { createSpeechRecognizer, playCompanionVoice } from '../utils/speech';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface ChatViewProps {
   messages: ChatMessage[];
@@ -47,19 +48,35 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const partnerName = userProfile.partnerName || 'Lexi';
 
-  // Auto-scroll on new message or loading state change
+  // Scroll to bottom helper
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  // Auto-scroll on new message or loading change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom();
   }, [messages, isLoading]);
 
-  // Focus search input when toggled open
+  // Monitor scroll offset to show floating scroll-to-bottom button
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const isUp = scrollHeight - scrollTop - clientHeight > 180;
+    setShowScrollBottom(isUp);
+  };
+
+  // Focus search input when opened
   useEffect(() => {
     if (isSearchOpen) {
       setTimeout(() => searchInputRef.current?.focus(), 100);
@@ -115,13 +132,23 @@ export const ChatView: React.FC<ChatViewProps> = ({
     onSendMessage(inputText.trim(), isRecording ? 'voice_note' : 'text');
     setInputText('');
     stopVoiceRecording();
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputText(e.target.value);
+    // Auto-grow height up to 120px
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
   };
 
   const handlePlayVoice = (msg: ChatMessage) => {
@@ -145,7 +172,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
     'Hey Lexi, how was your day? ❤️',
     'Hold me accountable for my habits today 💪',
     'I just finished my focus session! ✨',
-    'Need a quick mood boost, talk to me? 🥺',
+    'Need a quick boost of positive energy 🥺',
   ];
 
   const trimmedQuery = searchQuery.trim().toLowerCase();
@@ -156,21 +183,19 @@ export const ChatView: React.FC<ChatViewProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full max-w-4xl mx-auto w-full select-none relative overflow-hidden glass rounded-[24px] shadow-[0_12px_40px_rgba(124,58,237,0.12)] border border-[rgba(124,58,237,0.15)] animate-in fade-in duration-200">
       
-      {/* Top Bar: Clean Header with Prominent, Always-Visible Back to Home Button */}
-      <div className="px-3 sm:px-5 py-3 bg-white/80 dark:bg-[#150F28]/85 backdrop-blur-2xl border-b border-[rgba(124,58,237,0.12)] flex items-center justify-between shrink-0 z-20">
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* ALWAYS VISIBLE Back to Home Button */}
-          <button
-            id="chat-back-button"
-            onClick={() => {
-              if (onBack) onBack();
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] hover:bg-[#7C3AED] hover:text-white text-[#7C3AED] dark:text-[#C4B5FD] text-xs font-bold transition-all border border-[rgba(124,58,237,0.2)] shadow-xs shrink-0 cursor-pointer active:scale-95"
-            title="Return to Home Dashboard"
-          >
-            <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
-            <span>Home</span>
-          </button>
+      {/* 1. Single Compact Glass Header (NO redundant "Home" button on desktop; mobile back arrow only) */}
+      <div className="px-3.5 sm:px-5 py-3 bg-white/80 dark:bg-[#150F28]/85 backdrop-blur-2xl border-b border-[rgba(124,58,237,0.12)] flex items-center justify-between shrink-0 z-20">
+        <div className="flex items-center gap-2.5">
+          {/* Mobile Back Button Only */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="md:hidden p-2 rounded-xl bg-black/5 dark:bg-white/10 text-[#6B6B76] dark:text-[#FAF7FF] hover:bg-black/10 cursor-pointer active:scale-95"
+              aria-label="Back to Home"
+            >
+              <ArrowLeft className="w-4 h-4 stroke-[2.4]" />
+            </button>
+          )}
 
           <div className="flex items-center gap-2.5">
             <div className="relative shrink-0">
@@ -182,7 +207,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <span className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF] leading-tight">
                   {partnerName}
                 </span>
-                <span className="text-[10px] text-[#4CB782] font-bold px-1.5 py-0.2 rounded-full bg-[#4CB782]/10 border border-[#4CB782]/30">
+                <span className="text-[10px] text-[#4CB782] font-semibold">
                   Online
                 </span>
               </div>
@@ -199,15 +224,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </div>
         </div>
 
-        {/* Right Header Actions: Search, Clear Conversation, Call */}
-        <div className="flex items-center gap-1.5">
+        {/* Right Header Actions */}
+        <div className="flex items-center gap-1">
           <button
-            id="chat-top-search-btn"
             onClick={() => setIsSearchOpen((prev) => !prev)}
-            className={`p-2 rounded-[12px] transition-all cursor-pointer active:scale-95 ${
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${
               isSearchOpen || searchQuery
-                ? 'bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.3)] text-[#7C3AED] dark:text-[#C4B5FD]'
-                : 'text-[#6B6B76] hover:text-[#1A1A1F] dark:text-[#9A9AA5] dark:hover:text-[#FAF7FF] hover:bg-white/60 dark:hover:bg-white/10'
+                ? 'bg-[#F3EBFF] dark:bg-white/10 text-[#7C3AED] dark:text-[#C4B5FD]'
+                : 'text-[#6B6B76] hover:text-[#1A1A1F] dark:text-[#9A9AA5] dark:hover:text-[#FAF7FF]'
             }`}
             title="Search messages"
           >
@@ -215,32 +239,27 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </button>
 
           <button
-            id="chat-top-clear-btn"
             onClick={() => setShowClearConfirm(true)}
-            className="p-2 rounded-[12px] text-[#6B6B76] hover:text-rose-600 dark:text-[#9A9AA5] dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer active:scale-95"
+            className="p-2 rounded-xl text-[#6B6B76] hover:text-rose-600 dark:text-[#9A9AA5] dark:hover:text-rose-400 transition-colors cursor-pointer"
             title="Clear conversation"
           >
             <Trash2 className="w-4 h-4" />
           </button>
 
+          {/* Compact call icon in Chat header */}
           <button
-            id="chat-top-call-btn"
             onClick={onStartCall}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 ml-1 cursor-pointer"
-            title={`Voice call ${partnerName}`}
+            className="p-2 rounded-xl bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.25)] text-[#7C3AED] dark:text-[#C4B5FD] hover:bg-[#7C3AED] hover:text-white transition-all cursor-pointer active:scale-95 ml-1"
+            title={`Live Call with ${partnerName}`}
           >
-            <Phone className="w-3.5 h-3.5 stroke-[2.2]" />
-            <span className="hidden sm:inline">Call</span>
+            <Phone className="w-4 h-4 stroke-[2.2]" />
           </button>
         </div>
       </div>
 
       {/* Search Input Bar (when opened) */}
       {isSearchOpen && (
-        <div
-          id="chat-search-bar"
-          className="px-4 py-2 bg-[#FAF7FF]/90 dark:bg-[#150F28]/90 border-b border-[rgba(124,58,237,0.12)] flex items-center gap-2 animate-in slide-in-from-top-1 duration-150 shrink-0"
-        >
+        <div className="px-4 py-2 bg-[#FAF7FF]/95 dark:bg-[#150F28]/95 border-b border-[rgba(124,58,237,0.12)] flex items-center gap-2 shrink-0 animate-in slide-in-from-top-1">
           <div className="relative flex-1 flex items-center">
             <Search className="w-3.5 h-3.5 text-[#9A9AA5] absolute left-3 pointer-events-none" />
             <input
@@ -260,21 +279,24 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </button>
             )}
           </div>
-
           <button
             onClick={() => {
               setIsSearchOpen(false);
               setSearchQuery('');
             }}
-            className="text-xs font-semibold text-[#6B6B76] hover:text-[#1A1A1F] dark:text-[#C4B5FD] px-2 py-1 cursor-pointer"
+            className="text-xs font-semibold text-[#6B6B76] dark:text-[#C4B5FD] px-2 py-1 cursor-pointer"
           >
-            Close
+            Done
           </button>
         </div>
       )}
 
-      {/* Message Feed Area - Independent Scrolling */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3.5 no-scrollbar">
+      {/* 2. Message List - The ONLY scroll area */}
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-3.5 sm:px-6 py-4 space-y-3.5 relative"
+      >
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center py-12">
             <AexoMascot size="lg" className="mb-3" />
@@ -282,7 +304,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               Chat with {partnerName}
             </h3>
             <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] mb-5 max-w-xs">
-              Talk about your habits, your day, or just check in.
+              Check in on your routine, reflect on your habits, or share how you&apos;re feeling.
             </p>
 
             <div className="w-full max-w-sm space-y-2">
@@ -290,7 +312,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <button
                   key={idx}
                   onClick={() => onSendMessage(prompt)}
-                  className="w-full py-2.5 px-3.5 rounded-[12px] glass hover:border-[#7C3AED] hover:bg-[#F3EBFF] dark:hover:bg-white/10 text-xs font-semibold text-[#1A1A1F] dark:text-[#FAF7FF] hover:text-[#7C3AED] shadow-2xs transition-all text-left block cursor-pointer active:scale-[0.99]"
+                  className="w-full py-2.5 px-3.5 rounded-xl glass hover:border-[#7C3AED] hover:bg-[#F3EBFF] dark:hover:bg-white/10 text-xs font-semibold text-[#1A1A1F] dark:text-[#FAF7FF] hover:text-[#7C3AED] shadow-2xs transition-all text-left block cursor-pointer active:scale-[0.99]"
                 >
                   {prompt}
                 </button>
@@ -300,8 +322,48 @@ export const ChatView: React.FC<ChatViewProps> = ({
         ) : (
           filteredMessages.map((msg, index) => {
             const isUser = msg.sender === 'user';
+            const isCallLog =
+              msg.type === 'call_log' ||
+              msg.sender === 'system' ||
+              msg.text.toLowerCase().includes('voice call with');
             const isPlaying = playingMessageId === msg.id;
 
+            // Distinct Custom Call Card Component
+            if (isCallLog) {
+              return (
+                <div key={msg.id || index} className="w-full my-3 flex justify-center">
+                  <div className="max-w-md w-full p-4 rounded-2xl glass-strong border border-[rgba(124,58,237,0.22)] shadow-md shadow-[rgba(124,58,237,0.08)] flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#7C3AED] to-[#A78BFA] text-white flex items-center justify-center shrink-0 shadow-sm shadow-[#7C3AED]/30">
+                        <Phone className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-extrabold text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-2">
+                          <span>Voice Call Summary</span>
+                          <span className="text-[10px] text-[#4CB782] font-semibold">Completed</span>
+                        </div>
+                        <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] truncate mt-0.5">
+                          {msg.text}
+                        </p>
+                        <span className="text-[10px] text-[#9A9AA5] block mt-0.5">
+                          {msg.timestamp}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={onStartCall}
+                      className="shrink-0 px-3 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#5B21B6] text-white text-xs font-semibold shadow-xs transition-transform active:scale-95 cursor-pointer flex items-center gap-1"
+                    >
+                      <Phone className="w-3 h-3" />
+                      <span>Call Again</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            // Normal User / Companion Chat Bubble
             return (
               <div
                 key={msg.id ? `${msg.id}-${index}` : `msg-${index}`}
@@ -315,9 +377,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
                 <div
                   className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 leading-relaxed text-xs sm:text-sm ${
-                    isUser
-                      ? 'chat-bubble-out'
-                      : 'chat-bubble-in'
+                    isUser ? 'chat-bubble-out' : 'chat-bubble-in'
                   }`}
                 >
                   {/* Voice Note Player */}
@@ -326,7 +386,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       <button
                         onClick={() => handlePlayVoice(msg)}
                         className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                          isUser ? 'bg-white text-[#7C3AED] shadow-xs' : 'bg-[#7C3AED] text-white shadow-xs'
+                          isUser ? 'bg-white text-[#7C3AED]' : 'bg-[#7C3AED] text-white'
                         }`}
                       >
                         {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
@@ -352,7 +412,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
                     <div
                       className={`flex items-center justify-end gap-1.5 mt-1 text-[10px] select-none ${
-                        isUser ? 'text-[#FAF7FF]/80' : 'text-[#9A9AA5]'
+                        isUser ? 'text-white/80' : 'text-[#9A9AA5]'
                       }`}
                     >
                       <span>{msg.timestamp}</span>
@@ -379,49 +439,69 @@ export const ChatView: React.FC<ChatViewProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Composer (Pinned to bottom of Chat container) */}
+      {/* Floating Scroll-to-Bottom Button */}
+      <AnimatePresence>
+        {showScrollBottom && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            onClick={() => scrollToBottom('smooth')}
+            className="absolute bottom-20 right-6 z-30 p-2.5 rounded-full bg-[#7C3AED] text-white shadow-lg shadow-[#7C3AED]/40 hover:bg-[#5B21B6] transition-transform active:scale-95 cursor-pointer"
+            title="Scroll to latest messages"
+          >
+            <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* 3. Fixed Bottom Glass Composer (Auto-grow textarea + Morphing mic/send button) */}
       <div className="p-3 sm:p-4 bg-white/80 dark:bg-[#150F28]/85 border-t border-[rgba(124,58,237,0.12)] backdrop-blur-2xl shrink-0">
-        <div className="flex items-center gap-2 max-w-3xl mx-auto">
-          <input
-            id="chat-message-input"
-            type="text"
+        <div className="flex items-end gap-2 max-w-3xl mx-auto">
+          <textarea
+            ref={textareaRef}
+            rows={1}
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder={`Message ${partnerName}...`}
-            className="flex-1 glass-input px-4 py-2.5 text-xs sm:text-sm text-[#1A1A1F] dark:text-[#FAF7FF] placeholder-[#9A9AA5] focus:outline-hidden"
+            className="flex-1 glass-input px-4 py-2.5 text-xs sm:text-sm text-[#1A1A1F] dark:text-[#FAF7FF] placeholder-[#9A9AA5] focus:outline-hidden resize-none max-h-32 leading-relaxed"
           />
 
-          <button
-            id="chat-send-btn"
-            onClick={handleSend}
-            disabled={!inputText.trim()}
-            className={`p-2.5 rounded-[12px] transition-all cursor-pointer ${
-              inputText.trim()
-                ? 'bg-[#7C3AED] hover:bg-[#5B21B6] text-white shadow-[0_4px_16px_rgba(124,58,237,0.3)] active:scale-95'
-                : 'bg-[#F3EBFF] dark:bg-white/10 text-[#9A9AA5]'
-            }`}
-            title="Send"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-
-          <button
-            id="chat-mic-record-btn"
-            onClick={startVoiceRecording}
-            className={`p-2.5 rounded-[12px] transition-all cursor-pointer ${
-              isRecording
-                ? 'bg-[#7C3AED] text-white animate-pulse shadow-[0_0_16px_rgba(124,58,237,0.5)]'
-                : 'bg-[#F3EBFF] dark:bg-white/10 text-[#7C3AED] dark:text-[#C4B5FD] hover:bg-[#E9D8FD]'
-            }`}
-            title={isRecording ? 'Stop Recording' : 'Voice Input'}
-          >
-            {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-          </button>
+          {/* Morphing Send / Mic Button */}
+          {inputText.trim() ? (
+            <motion.button
+              key="send-btn"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={handleSend}
+              className="p-3 rounded-xl bg-[#7C3AED] hover:bg-[#5B21B6] text-white shadow-md shadow-[#7C3AED]/30 transition-colors cursor-pointer"
+              title="Send message"
+            >
+              <Send className="w-4 h-4" />
+            </motion.button>
+          ) : (
+            <motion.button
+              key="mic-btn"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={startVoiceRecording}
+              className={`p-3 rounded-xl transition-all cursor-pointer ${
+                isRecording
+                  ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/40'
+                  : 'bg-[#F3EBFF] dark:bg-white/10 text-[#7C3AED] dark:text-[#C4B5FD] hover:bg-[#E9D8FD]'
+              }`}
+              title={isRecording ? 'Stop Recording' : 'Voice Input'}
+            >
+              {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </motion.button>
+          )}
         </div>
       </div>
 
-      {/* Clear conversation confirmation modal */}
+      {/* Clear conversation modal */}
       {showClearConfirm && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="glass-strong max-w-sm w-full p-6 space-y-3">
@@ -429,12 +509,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
               Clear Conversation?
             </h3>
             <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] leading-relaxed">
-              This resets your current chat history with {partnerName}. Your habits, tags, and progress will remain untouched.
+              This resets your active chat thread with {partnerName}. Your habits, tags, and progress will remain untouched.
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowClearConfirm(false)}
-                className="px-3.5 py-1.5 rounded-[12px] text-xs text-[#6B6B76] hover:bg-white/60 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl text-xs text-[#6B6B76] hover:bg-white/60 cursor-pointer"
               >
                 Cancel
               </button>
@@ -443,7 +523,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   if (onClearConversation) onClearConversation();
                   setShowClearConfirm(false);
                 }}
-                className="px-4 py-1.5 rounded-[12px] text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-xs cursor-pointer active:scale-95"
+                className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-xs cursor-pointer active:scale-95"
               >
                 Clear
               </button>

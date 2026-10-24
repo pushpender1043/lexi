@@ -26,7 +26,7 @@
   --primary-purple: #8B5CF6;
   --deep-purple: #7C3AED;
   --soft-lavender: #C4B5FD;
-  --lavender-tint-bg: #0F0B1A;
+  --lavender-tint-bg: #0B0814;
   --light-purple-surface: rgba(255, 255, 255, 0.06);
   --success-green: #4CB782;
   --text-primary: #FAF7FF;
@@ -35,13 +35,13 @@
   --border-subtle: rgba(167, 139, 250, 0.16);
   --border-glass: rgba(255, 255, 255, 0.12);
 
-  --glass-bg: rgba(22, 16, 38, 0.68);
-  --glass-strong-bg: rgba(26, 20, 44, 0.9);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --glass-bg: rgba(21, 15, 38, 0.68);
+  --glass-strong-bg: rgba(26, 18, 48, 0.92);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
 }
 
 @layer utilities {
-  /* 1. Page Background: Soft Gradient Mesh (Lavender blobs over tint bg) */
+  /* Animated Aurora / Mesh Background */
   .bg-gradient-mesh {
     background-color: var(--lavender-tint-bg);
     background-image: 
@@ -52,21 +52,21 @@
   }
 
   .dark .bg-gradient-mesh {
-    background-color: #0F0B1A;
+    background-color: #0B0814;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.22) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(91, 33, 182, 0.28) 0px, transparent 50%),
+      radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.24) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(91, 33, 182, 0.3) 0px, transparent 50%),
       radial-gradient(at 50% 50%, rgba(167, 139, 250, 0.08) 0px, transparent 60%);
   }
 
-  /* 2. Glassmorphism System Classes */
+  /* Glassmorphism System Classes */
   .glass {
     background: var(--glass-bg);
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
     border: 1px solid var(--border-glass);
     box-shadow: var(--glass-shadow), inset 0 1px 1px rgba(255, 255, 255, 0.6);
-    border-radius: 20px;
+    border-radius: 22px;
     transition: all 250ms ease;
   }
 
@@ -93,7 +93,7 @@
     background: var(--light-purple-surface);
     color: var(--primary-purple);
     border: 1px solid var(--border-subtle);
-    border-radius: 12px;
+    border-radius: 14px;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     transition: transform 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
@@ -106,13 +106,13 @@
     transform: scale(0.98);
   }
 
-  /* Glass input with 12px radius */
+  /* Glass input with 14px radius */
   .glass-input {
     background: rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border-subtle);
-    border-radius: 12px;
+    border-radius: 14px;
     transition: border-color 200ms ease, box-shadow 200ms ease;
   }
   .glass-input:focus {
@@ -125,30 +125,10 @@
     background: rgba(255, 255, 255, 0.06);
   }
 
-  /* 3. The "Pro" Pill (matching Screenshot 1: inner glow + gradient edge) */
-  .pill-pro {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3px 12px;
-    border-radius: 9999px;
-    font-weight: 700;
-    font-size: 11px;
-    color: #ffffff;
-    background: radial-gradient(circle at 50% 125%, rgba(124, 58, 237, 0.85) 0%, rgba(20, 15, 32, 0.95) 75%);
-    border: 1px solid rgba(167, 139, 250, 0.45);
-    box-shadow: 0 0 14px rgba(124, 58, 237, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5);
-    transition: transform 200ms ease, box-shadow 200ms ease;
-  }
-  .pill-pro:hover {
-    transform: scale(1.04);
-    box-shadow: 0 0 20px rgba(124, 58, 237, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.7);
-  }
-
   /* Dashed outline style for guest/secondary actions */
   .btn-guest-dashed {
     border: 1.5px dashed rgba(124, 58, 237, 0.35);
-    border-radius: 16px;
+    border-radius: 14px;
     background: transparent;
     transition: all 200ms ease;
   }
@@ -158,24 +138,6 @@
     transform: scale(1.01);
   }
   .btn-guest-dashed:active {
-    transform: scale(0.98);
-  }
-
-  /* Primary purple action button */
-  .btn-primary-purple {
-    background: var(--primary-purple);
-    color: #ffffff;
-    border-radius: 12px;
-    font-weight: 600;
-    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.28);
-    transition: all 200ms ease;
-  }
-  .btn-primary-purple:hover {
-    background: var(--deep-purple);
-    box-shadow: 0 6px 22px rgba(124, 58, 237, 0.38);
-    transform: scale(1.02);
-  }
-  .btn-primary-purple:active {
     transform: scale(0.98);
   }
 
@@ -197,38 +159,12 @@
     box-shadow: 0 4px 16px rgba(124, 58, 237, 0.06);
   }
 
-  /* Legacy aliases mapped to the Lexi design tokens */
-  .glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid var(--border-glass);
-    box-shadow: var(--glass-shadow);
-    border-radius: 20px;
+  /* Safe Area Utilities */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
   }
-
-  .glass-water {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid var(--border-glass);
-    box-shadow: var(--glass-shadow), inset 0 1px 1px rgba(255, 255, 255, 0.6);
-  }
-
-  .glass-water-drop {
-    background: var(--glass-strong-bg);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--glass-shadow), inset 0 1.5px 2px rgba(255, 255, 255, 0.85);
-  }
-
-  .glass-pill {
-    background: var(--light-purple-surface);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border-subtle);
-    border-radius: 9999px;
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 16px);
   }
 }
 
@@ -248,59 +184,84 @@
   background: rgba(124, 58, 237, 0.65);
 }
 
-/* Voice waveform & call animations */
-@keyframes orbGlow {
+/* Aurora drifting blob animation (GPU only: transform & opacity) */
+@keyframes auroraDrift1 {
   0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 40px rgba(124, 58, 237, 0.4), inset 0 0 30px rgba(167, 139, 250, 0.35);
+    transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: scale(1.06);
-    box-shadow: 0 0 70px rgba(91, 33, 182, 0.7), inset 0 0 50px rgba(167, 139, 250, 0.6);
+    transform: translate3d(40px, -30px, 0) scale(1.08);
   }
 }
 
-.animate-orb-glow {
-  animation: orbGlow 3.5s ease-in-out infinite;
-}
-
-@keyframes waveBar {
-  0%, 100% { height: 6px; }
-  50% { height: 24px; }
-}
-
-.wave-bar-1 { animation: waveBar 1.2s ease-in-out infinite; }
-.wave-bar-2 { animation: waveBar 0.9s ease-in-out infinite 0.2s; }
-.wave-bar-3 { animation: waveBar 1.4s ease-in-out infinite 0.4s; }
-.wave-bar-4 { animation: waveBar 0.8s ease-in-out infinite 0.1s; }
-
-/* CSS Floating Particles Animations */
-@keyframes floatParticle {
-  0% {
-    transform: translateY(105vh) translateX(0) scale(0.6);
-    opacity: 0;
-  }
-  15% {
-    opacity: var(--particle-opacity, 0.65);
+@keyframes auroraDrift2 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translateY(50vh) translateX(var(--particle-drift, 25px)) scale(1);
-  }
-  85% {
-    opacity: var(--particle-opacity, 0.65);
-  }
-  100% {
-    transform: translateY(-10vh) translateX(var(--particle-drift-end, -25px)) scale(0.8);
-    opacity: 0;
+    transform: translate3d(-35px, 35px, 0) scale(0.95);
   }
 }
 
-.floating-particle {
-  position: absolute;
-  pointer-events: none;
-  border-radius: 9999px;
-  will-change: transform, opacity;
-  animation-name: floatParticle;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
+@keyframes auroraDrift3 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(30px, 25px, 0) scale(1.12);
+  }
 }
+
+.aurora-blob-1 {
+  animation: auroraDrift1 22s ease-in-out infinite;
+  will-change: transform;
+}
+
+.aurora-blob-2 {
+  animation: auroraDrift2 28s ease-in-out infinite;
+  will-change: transform;
+}
+
+.aurora-blob-3 {
+  animation: auroraDrift3 24s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob-1,
+  .aurora-blob-2,
+  .aurora-blob-3,
+  .animate-mascot-float {
+    animation: none !important;
+  }
+}
+
+/* Mascot Idle Float & Blink Animations */
+@keyframes mascotFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes mascotBlink {
+  0%, 92%, 100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+.animate-mascot-float {
+  animation: mascotFloat 4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-mascot-blink {
+  animation: mascotBlink 5s ease-in-out infinite;
+  transform-origin: center;
+}
+

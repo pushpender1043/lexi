@@ -80,7 +80,6 @@ export const CallsView: React.FC<CallsViewProps> = ({
                 <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF]">
                   {userProfile.partnerName}
                 </h2>
-                <span className="pill-pro">Pro</span>
               </div>
               <p className="text-xs sm:text-sm text-[#6B6B76] dark:text-[#C4B5FD] mt-0.5">
                 Ready to talk in Hinglish & English • Real-time emotional accountability
