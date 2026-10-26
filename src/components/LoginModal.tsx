@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AexoMascot } from './AexoMascot';
 import { Sparkles, Mail, ArrowRight, ShieldCheck, User, X, AlertCircle } from 'lucide-react';
-import { signInWithGoogle } from '../lib/firebase';
+import { signInWithGoogle, signInGuestUser } from '../lib/firebase';
 import { generateUniqueId } from '../utils/id';
 
 interface LoginModalProps {
@@ -75,7 +75,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }, 400);
   };
 
-  const handleGuestLogin = () => {
+  const handleGuestLogin = async () => {
+    setIsSubmitting(true);
+    try {
+      const anonUser = await signInGuestUser();
+      if (anonUser) {
+        onLoginSuccess({
+          email: 'guest@companion.ai',
+          name: 'Deepu',
+          provider: 'guest',
+          userId: anonUser.uid,
+        });
+        return;
+      }
+    } catch {
+      // Fallback to local storage guest session
+    } finally {
+      setIsSubmitting(false);
+    }
+
     onLoginSuccess({
       email: 'guest@companion.ai',
       name: 'Deepu',

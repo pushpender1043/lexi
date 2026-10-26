@@ -2,7 +2,7 @@
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
-      "description": "User profile settings, personal information, and AI companion customization preferences.",
+      "description": "User profile settings, personal information, routine schedules, and AI companion customization preferences.",
       "type": "object",
       "properties": {
         "userId": {
@@ -38,11 +38,80 @@
         "partnerTone": {
           "type": "string",
           "description": "Conversational tone of the AI companion.",
-          "enum": ["playful_loving", "calm_grounding", "strict_accountability", "caring_sweet"]
+          "enum": ["playful_loving", "calm_grounding", "strict_caring", "sweet_clingy", "sassy_feisty"]
+        },
+        "voiceGender": {
+          "type": "string",
+          "description": "Voice gender for TTS speech synthesis.",
+          "enum": ["male", "female"]
+        },
+        "wakeUpTime": {
+          "type": "string",
+          "description": "Target wake up time (HH:MM).",
+          "maxLength": 10
+        },
+        "sleepTime": {
+          "type": "string",
+          "description": "Target sleep time (HH:MM).",
+          "maxLength": 10
+        },
+        "dailyWaterGoal": {
+          "type": "number",
+          "description": "Daily hydration goal count in glasses or ml."
+        },
+        "streakDays": {
+          "type": "number",
+          "description": "Current active daily habit streak in days."
+        },
+        "bestStreak": {
+          "type": "number",
+          "description": "All-time highest streak count in days."
+        },
+        "isOnboarded": {
+          "type": "boolean",
+          "description": "Whether user completed initial setup."
+        },
+        "dailyCheckInTime": {
+          "type": "string",
+          "description": "Daily scheduled check-in time (HH:MM).",
+          "maxLength": 10
+        },
+        "dailyCheckInEnabled": {
+          "type": "boolean",
+          "description": "Whether automated daily check-in is enabled."
+        },
+        "checkInType": {
+          "type": "string",
+          "description": "Delivery medium for check-ins.",
+          "enum": ["voice_and_text", "voice_only", "text_only"]
+        },
+        "lastCheckInDate": {
+          "type": "string",
+          "description": "YYYY-MM-DD date of last successful check-in.",
+          "maxLength": 20
+        },
+        "voiceSpeed": {
+          "type": "number",
+          "description": "Speaking rate multiplier between 0.8 and 1.5."
+        },
+        "voiceToneStyle": {
+          "type": "string",
+          "description": "Emotional voice style for speech synthesis.",
+          "enum": ["playful", "serious", "comforting", "sweet", "sassy"]
+        },
+        "themeMode": {
+          "type": "string",
+          "description": "Theme mode preference.",
+          "enum": ["dark", "light"]
+        },
+        "location": {
+          "type": "string",
+          "description": "User city or region.",
+          "maxLength": 128
         },
         "updatedAt": {
           "type": "string",
-          "description": "ISO timestamp of last update.",
+          "description": "ISO timestamp of last profile update.",
           "maxLength": 64
         }
       },
@@ -68,15 +137,14 @@
           "description": "Title of the habit.",
           "maxLength": 100
         },
-        "icon": {
-          "type": "string",
-          "description": "Icon identifier for the habit.",
-          "maxLength": 50
-        },
         "category": {
           "type": "string",
           "description": "Habit category.",
-          "enum": ["health", "fitness", "productivity", "mindset", "relationship"]
+          "enum": ["health", "fitness", "productivity", "mindset", "relationship", "social", "hydration", "study"]
+        },
+        "tags": {
+          "type": "array",
+          "description": "Category tags for filtering."
         },
         "targetValue": {
           "type": "number",
@@ -88,21 +156,36 @@
         },
         "unit": {
           "type": "string",
-          "description": "Measurement unit (e.g. glasses, mins).",
+          "description": "Measurement unit (e.g. glasses, mins, times).",
+          "maxLength": 30
+        },
+        "scheduledTime": {
+          "type": "string",
+          "description": "Preferred scheduled time for the habit.",
           "maxLength": 30
         },
         "completed": {
           "type": "boolean",
           "description": "Whether the habit was completed today."
         },
-        "streakDays": {
+        "streak": {
           "type": "number",
           "description": "Current active completion streak in days."
         },
-        "reminderTime": {
+        "importance": {
           "type": "string",
-          "description": "Optional reminder time.",
-          "maxLength": 10
+          "description": "Importance tier.",
+          "enum": ["crucial", "medium", "flexible"]
+        },
+        "lastCompletedAt": {
+          "type": "string",
+          "description": "Timestamp or human text of last completion.",
+          "maxLength": 64
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional habit notes or instructions.",
+          "maxLength": 500
         },
         "updatedAt": {
           "type": "string",
@@ -110,7 +193,7 @@
           "maxLength": 64
         }
       },
-      "required": ["id", "userId", "title", "category", "targetValue", "completed"]
+      "required": ["id", "userId", "title", "targetValue", "completed"]
     },
     "ChatMessage": {
       "title": "ChatMessage",
@@ -130,7 +213,7 @@
         "sender": {
           "type": "string",
           "description": "Sender of the message.",
-          "enum": ["user", "ai"]
+          "enum": ["user", "partner", "system"]
         },
         "text": {
           "type": "string",
@@ -140,7 +223,7 @@
         "type": {
           "type": "string",
           "description": "Format of the message.",
-          "enum": ["text", "voice_note", "system_nudge"]
+          "enum": ["text", "voice_note", "habit_alert", "taunt", "call_log"]
         },
         "timestamp": {
           "type": "string",
@@ -150,6 +233,16 @@
         "audioDurationSec": {
           "type": "number",
           "description": "Duration in seconds if this is a voice note."
+        },
+        "moodTag": {
+          "type": "string",
+          "description": "Mood associated with this message turn.",
+          "maxLength": 32
+        },
+        "habitTag": {
+          "type": "string",
+          "description": "Habit ID or title linked to this message.",
+          "maxLength": 100
         },
         "createdAt": {
           "type": "string",
@@ -182,9 +275,14 @@
           "type": "number",
           "description": "Playful drama level between 0 and 5."
         },
-        "lastInteraction": {
+        "lastReason": {
           "type": "string",
-          "description": "Timestamp of the last interaction.",
+          "description": "Explanation of the last mood transition.",
+          "maxLength": 500
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "Human readable or ISO timestamp of last update.",
           "maxLength": 64
         },
         "updatedAt": {
@@ -213,16 +311,12 @@
         "category": {
           "type": "string",
           "description": "Category of the remembered fact.",
-          "maxLength": 60
+          "enum": ["health", "exam", "preference", "relationship", "goal"]
         },
         "fact": {
           "type": "string",
           "description": "Content of the remembered fact.",
           "maxLength": 1000
-        },
-        "confidence": {
-          "type": "number",
-          "description": "Confidence score between 0 and 1."
         },
         "learnedAt": {
           "type": "string",
@@ -231,6 +325,111 @@
         }
       },
       "required": ["id", "userId", "category", "fact"]
+    },
+    "CallRecord": {
+      "title": "CallRecord",
+      "description": "History log of live voice calls between user and companion.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique call ID.",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID.",
+          "maxLength": 128
+        },
+        "partnerName": {
+          "type": "string",
+          "description": "Companion name at time of call.",
+          "maxLength": 64
+        },
+        "type": {
+          "type": "string",
+          "description": "Call direction.",
+          "enum": ["incoming", "outgoing", "missed"]
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Human readable or formatted timestamp.",
+          "maxLength": 64
+        },
+        "durationSec": {
+          "type": "number",
+          "description": "Call duration in seconds."
+        },
+        "moodDuringCall": {
+          "type": "string",
+          "description": "Companion emotional state during call.",
+          "maxLength": 32
+        },
+        "summary": {
+          "type": "string",
+          "description": "Brief summary of conversation topics.",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of call record.",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "type", "durationSec"]
+    },
+    "CalendarEvent": {
+      "title": "CalendarEvent",
+      "description": "Scheduled exam, workout, meeting or routine event synced to companion schedule.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique event ID.",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID.",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Event title.",
+          "maxLength": 120
+        },
+        "startTime": {
+          "type": "string",
+          "description": "Start time string (e.g. 09:00).",
+          "maxLength": 30
+        },
+        "endTime": {
+          "type": "string",
+          "description": "End time string (e.g. 10:30).",
+          "maxLength": 30
+        },
+        "category": {
+          "type": "string",
+          "description": "Event category.",
+          "enum": ["exam", "meeting", "gym", "personal", "routine"]
+        },
+        "syncedFrom": {
+          "type": "string",
+          "description": "Source of event.",
+          "enum": ["google_calendar", "device_alarm", "manual"]
+        },
+        "location": {
+          "type": "string",
+          "description": "Optional location.",
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of event update.",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "title", "startTime", "endTime"]
     }
   },
   "firestore": {
@@ -253,6 +452,14 @@
     "/users/{userId}/memories/{memoryId}": {
       "schema": "Memory",
       "description": "Subcollection of personalized memories learned about the user."
+    },
+    "/users/{userId}/calls/{callId}": {
+      "schema": "CallRecord",
+      "description": "Subcollection of call logs and duration records."
+    },
+    "/users/{userId}/events/{eventId}": {
+      "schema": "CalendarEvent",
+      "description": "Subcollection of calendar and alarm routine events."
     }
   }
 }

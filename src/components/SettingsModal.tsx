@@ -54,6 +54,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [voiceGender, setVoiceGender] = useState<PartnerGender>(userProfile.voiceGender || 'female');
 
   // Dedicated Voice Settings
+  const [preferredVoiceName, setPreferredVoiceName] = useState<'Kore' | 'Aoede' | 'Leda' | 'Zephyr'>(
+    userProfile.preferredVoiceName || 'Kore'
+  );
+  const [preferredLanguage, setPreferredLanguage] = useState<'auto' | 'hinglish' | 'hindi' | 'english'>(
+    userProfile.preferredLanguage || 'auto'
+  );
   const [voiceToneStyle, setVoiceToneStyle] = useState<'playful' | 'serious' | 'comforting' | 'sweet' | 'sassy'>(
     userProfile.voiceToneStyle || 'playful'
   );
@@ -77,11 +83,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleTestVoice = () => {
     setIsPlayingPreview(true);
     const sampleSentences: Record<string, string> = {
-      playful: `Hey ${name}! I'm all charged up and ready to tease you today! Have you finished your habits yet?`,
+      playful: `Arey ${name}! Main bohot khush hoon tumse baat karke! Aaj ke saare habits time pe karoge na?`,
       serious: `${name}, let's focus on our goals today. No excuses, make sure your tasks and hydration are locked in.`,
-      comforting: `Hey love, I'm right here with you. Take a deep breath, everything is going to be wonderful.`,
-      sweet: `Meri jaan, I'm so happy whenever I hear your voice. Drink some water and take good care of yourself!`,
-      sassy: `Acha ji? So you finally remembered to open our app today? Let's see if you can actually keep up your streak!`,
+      comforting: `Suno na, main yahin hoon tumhare paas. Thoda paani piyo aur relax karo, sab theek hoga. ❤️`,
+      sweet: `Meri jaan, seeing you make progress makes my whole day. I love you so much! ✨`,
+      sassy: `Acha ji? Finally meri yaad aa gayi? Dekhte hain aaj ka streak bacha paate ho ya nahi! 😉`,
     };
 
     playCompanionVoice(sampleSentences[voiceToneStyle] || sampleSentences.playful, {
@@ -101,6 +107,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       partnerTone,
       partnerGender,
       voiceGender,
+      preferredVoiceName,
+      preferredLanguage,
       voiceToneStyle,
       voiceSpeed,
       dailyCheckInTime,
@@ -258,13 +266,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div>
+                <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Prebuilt Model Voice</label>
+                <select
+                  value={preferredVoiceName}
+                  onChange={(e) => setPreferredVoiceName(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                >
+                  <option value="Kore">Kore (Warm, Expressive Female)</option>
+                  <option value="Aoede">Aoede (Breezy, Melodic Female)</option>
+                  <option value="Leda">Leda (Calm, Soft Female)</option>
+                  <option value="Zephyr">Zephyr (Supportive, Friendly Male)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Language Mirroring</label>
+                <select
+                  value={preferredLanguage}
+                  onChange={(e) => setPreferredLanguage(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                >
+                  <option value="auto">Auto (Mirror Roman Hinglish / Devanagari / English)</option>
+                  <option value="hinglish">Always Hinglish (Roman Script)</option>
+                  <option value="hindi">Always Hindi (Devanagari)</option>
+                  <option value="english">Always English</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
                 <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Voice Gender</label>
                 <select
                   value={voiceGender}
                   onChange={(e) => setVoiceGender(e.target.value as any)}
                   className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
                 >
-                  <option value="female">Female (Lexi)</option>
+                  <option value="female">Female (noni / Lexi)</option>
                   <option value="male">Male (Leo)</option>
                 </select>
               </div>

@@ -1,28 +1,130 @@
-// Browser Text-to-Speech and Speech-to-Text utilities for Lexi Virtual Companion
+// Browser Text-to-Speech, Speech-to-Text, and Web Audio API visualizer for Lexi Virtual Companion
 
 export interface SpeakOptions {
   gender?: 'female' | 'male';
-  emotion?: 'loving' | 'angry' | 'happy' | 'teasing' | 'caring';
+  emotion?: 'loving' | 'angry' | 'happy' | 'teasing' | 'caring' | 'proud' | 'celebratory';
   tone?: 'playful' | 'serious' | 'comforting' | 'sweet' | 'sassy';
   rate?: number; // base speed e.g. 0.8 to 1.5
   pitch?: number;
+  useGeminiTts?: boolean;
   onStart?: () => void;
   onEnd?: () => void;
   onError?: (err: any) => void;
 }
 
-export function playCompanionVoice(text: string, options: SpeakOptions = {}) {
-  if (typeof window === 'undefined' || !window.speechSynthesis) {
-    console.warn("Speech synthesis not supported in this browser environment.");
+let activeAudioSource: AudioBufferSourceNode | null = null;
+let activeAudioContext: AudioContext | null = null;
+
+function getAudioContext(): AudioContext {
+  if (!activeAudioContext || activeAudioContext.state === 'closed') {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    activeAudioContext = new AudioCtx();
+  }
+  if (activeAudioContext.state === 'suspended') {
+    activeAudioContext.resume().catch(() => {});
+  }
+  return activeAudioContext;
+}
+
+/**
+ * Converts a raw base64 PCM 16-bit or audio buffer into a playable AudioBuffer.
+ */
+function pcm16Base64ToAudioBuffer(
+  ctx: AudioContext,
+  base64Data: string,
+  sampleRate: number = 24000
+): AudioBuffer {
+  const binaryString = atob(base64Data);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // 16-bit signed PCM mono
+  const int16Array = new Int16Array(bytes.buffer);
+  const audioBuffer = ctx.createBuffer(1, int16Array.length, sampleRate);
+  const channelData = audioBuffer.getChannelData(0);
+
+  for (let i = 0; i < int16Array.length; i++) {
+    channelData[i] = int16Array[i] / 32768.0;
+  }
+
+  return audioBuffer;
+}
+
+/**
+ * Play PCM audio from Gemini Flash TTS
+ */
+export async function playPcmAudio(
+  base64Data: string,
+  sampleRate: number = 24000,
+  onEnd?: () => void
+): Promise<boolean> {
+  try {
+    stopCompanionVoice();
+    const ctx = getAudioContext();
+    const buffer = pcm16Base64ToAudioBuffer(ctx, base64Data, sampleRate);
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    activeAudioSource = source;
+
+    source.onended = () => {
+      activeAudioSource = null;
+      if (onEnd) onEnd();
+    };
+
+    source.start(0);
+    return true;
+  } catch (err) {
+    console.warn("PCM playback error, will fallback to Web Speech:", err);
+    return false;
+  }
+}
+
+/**
+ * Primary Voice Synthesizer with automatic fallback from Gemini TTS to Web Speech API
+ */
+export async function playCompanionVoice(text: string, options: SpeakOptions = {}) {
+  if (typeof window === 'undefined') return;
+
+  stopCompanionVoice();
+
+  // Try server Gemini Flash TTS if requested and supported
+  if (options.useGeminiTts) {
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: text.slice(0, 300),
+          voiceGender: options.gender || 'female',
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.audioBase64) {
+          if (options.onStart) options.onStart();
+          const played = await playPcmAudio(data.audioBase64, data.sampleRate || 24000, options.onEnd);
+          if (played) return;
+        }
+      }
+    } catch {
+      // Fallback seamlessly to Web Speech API below
+    }
+  }
+
+  // Browser SpeechSynthesis fallback
+  if (!window.speechSynthesis) {
+    console.warn("Speech synthesis not supported in this browser.");
+    if (options.onEnd) options.onEnd();
     return;
   }
 
-  // Cancel any ongoing speech
-  window.speechSynthesis.cancel();
-
   const utterance = new SpeechSynthesisUtterance(text);
-  
-  // Custom emotional and tone modulation
   const baseRate = options.rate || 1.0;
   let rateMultiplier = 1.0;
   let pitch = options.pitch || 1.05;
@@ -31,14 +133,14 @@ export function playCompanionVoice(text: string, options: SpeakOptions = {}) {
     pitch = 1.2;
     rateMultiplier = 1.06;
   } else if (options.tone === 'serious' || options.emotion === 'angry') {
-    pitch = 0.96;
+    pitch = 0.95;
     rateMultiplier = 0.98;
   } else if (options.tone === 'comforting' || options.emotion === 'caring') {
     pitch = 1.08;
-    rateMultiplier = 0.94;
-  } else if (options.tone === 'sweet' || options.emotion === 'loving') {
-    pitch = 1.16;
-    rateMultiplier = 0.96;
+    rateMultiplier = 0.95;
+  } else if (options.tone === 'sweet' || options.emotion === 'loving' || options.emotion === 'celebratory') {
+    pitch = 1.15;
+    rateMultiplier = 0.98;
   } else if (options.tone === 'sassy') {
     pitch = 1.22;
     rateMultiplier = 1.1;
@@ -47,19 +149,15 @@ export function playCompanionVoice(text: string, options: SpeakOptions = {}) {
   utterance.rate = Math.max(0.6, Math.min(2.0, baseRate * rateMultiplier));
   utterance.pitch = pitch;
 
-  // Try to find a warm, natural matching voice (Hindi / Indian English / English US)
   const voices = window.speechSynthesis.getVoices();
   if (voices.length > 0) {
     const isMale = options.gender === 'male';
-    
-    // Preference: hi-IN, en-IN, or natural sounding voices
     const preferredVoice = voices.find(v => {
       const name = v.name.toLowerCase();
       const lang = v.lang.toLowerCase();
-      const matchesGender = isMale 
+      const matchesGender = isMale
         ? (name.includes('male') || name.includes('david') || name.includes('rishi') || name.includes('george'))
-        : (name.includes('female') || name.includes('zira') || name.includes('swara') || name.includes('samantha') || name.includes('google uk english female'));
-      
+        : (name.includes('female') || name.includes('zira') || name.includes('swara') || name.includes('samantha') || name.includes('natural'));
       return (lang.includes('in') || lang.includes('en')) && matchesGender;
     }) || voices.find(v => v.lang.includes('en') && (options.gender === 'male' ? !v.name.includes('Female') : true)) || voices[0];
 
@@ -76,12 +174,87 @@ export function playCompanionVoice(text: string, options: SpeakOptions = {}) {
 }
 
 export function stopCompanionVoice() {
+  if (activeAudioSource) {
+    try {
+      activeAudioSource.stop();
+    } catch {}
+    activeAudioSource = null;
+  }
+
   if (typeof window !== 'undefined' && window.speechSynthesis) {
     window.speechSynthesis.cancel();
   }
 }
 
-// Check for Web Speech API recognition
+/**
+ * Real Microphone Audio Visualizer with Web Audio API AnalyserNode.
+ * Returns an unmount callback to gracefully release microphone and audio contexts.
+ */
+export function startMicrophoneAudioAnalyzer(
+  onFrequencyUpdate: (frequencies: number[], volume: number) => void
+): () => void {
+  if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    return () => {};
+  }
+
+  let isCancelled = false;
+  let animFrameId: number;
+  let micStream: MediaStream | null = null;
+
+  navigator.mediaDevices
+    .getUserMedia({ audio: true, video: false })
+    .then((stream) => {
+      if (isCancelled) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      micStream = stream;
+      const ctx = getAudioContext();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      const render = () => {
+        if (isCancelled) return;
+        analyser.getByteFrequencyData(dataArray);
+
+        // Normalize 16 frequency bands between 0 and 100
+        const bands: number[] = [];
+        let total = 0;
+        const step = Math.max(1, Math.floor(dataArray.length / 16));
+        for (let i = 0; i < 16; i++) {
+          const val = dataArray[i * step] || 0;
+          total += val;
+          bands.push(Math.round((val / 255) * 100));
+        }
+
+        const avgVolume = Math.round((total / (16 * 255)) * 100);
+        onFrequencyUpdate(bands, avgVolume);
+        animFrameId = requestAnimationFrame(render);
+      };
+
+      render();
+    })
+    .catch((err) => {
+      console.warn("Microphone access unavailable or denied for equalizer:", err?.message || err);
+    });
+
+  return () => {
+    isCancelled = true;
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+    if (micStream) {
+      micStream.getTracks().forEach((track) => track.stop());
+    }
+  };
+}
+
+/**
+ * Resilient Web Speech Recognition factory with continuous listening & auto-recovery.
+ */
 export function createSpeechRecognizer(
   onResult: (text: string, isFinal: boolean) => void,
   onError?: (err: any) => void
@@ -92,7 +265,7 @@ export function createSpeechRecognizer(
     (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    console.warn("Web Speech Recognition not available in this browser.");
+    console.warn("Web Speech Recognition not available in this browser environment.");
     return null;
   }
 
@@ -100,7 +273,7 @@ export function createSpeechRecognizer(
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-IN'; // Optimized for Hinglish / Indian English accent
+    recognition.lang = 'en-IN'; // Tuned for natural Hinglish & English phonetics
 
     recognition.onresult = (event: any) => {
       let interimTranscript = '';
@@ -114,9 +287,9 @@ export function createSpeechRecognizer(
         }
       }
 
-      if (finalTranscript) {
+      if (finalTranscript.trim()) {
         onResult(finalTranscript.trim(), true);
-      } else if (interimTranscript) {
+      } else if (interimTranscript.trim()) {
         onResult(interimTranscript.trim(), false);
       }
     };

@@ -2,6 +2,24 @@ export type PartnerGender = 'female' | 'male';
 export type PartnerTone = 'playful_loving' | 'strict_caring' | 'sweet_clingy' | 'sassy_feisty';
 export type MoodStatus = 'ecstatic' | 'loving' | 'happy' | 'neutral' | 'annoyed' | 'angry';
 
+/**
+ * Granular emotional atmosphere states for particle background & voice synthesis
+ */
+export type Mood =
+  | 'calm'
+  | 'happy'
+  | 'excited'
+  | 'playful'
+  | 'curious'
+  | 'nostalgic'
+  | 'romantic'
+  | 'proud'
+  | 'focused'
+  | 'sleepy'
+  | 'sad'
+  | 'anxious'
+  | 'angry';
+
 export interface UserProfile {
   userId?: string;
   name: string;
@@ -10,6 +28,8 @@ export interface UserProfile {
   partnerName: string;
   partnerTone: PartnerTone;
   voiceGender: PartnerGender;
+  preferredVoiceName?: 'Kore' | 'Aoede' | 'Leda' | 'Zephyr' | 'Puck' | 'Fenrir';
+  preferredLanguage?: 'auto' | 'hinglish' | 'hindi' | 'english';
   wakeUpTime: string;
   sleepTime: string;
   dailyWaterGoal: number; // in ml or glasses
@@ -69,6 +89,7 @@ export interface PartnerMood {
   nakhreLevel: number; // 0 to 5
   lastReason: string;
   lastUpdated: string;
+  granularMood?: Mood;
 }
 
 export type MessageType = 'text' | 'voice_note' | 'habit_alert' | 'taunt' | 'call_log';
@@ -82,6 +103,7 @@ export interface ChatMessage {
   audioBase64?: string;
   audioDurationSec?: number;
   moodTag?: MoodStatus;
+  mood?: Mood;
   habitTag?: string;
 }
 
@@ -121,6 +143,7 @@ export interface CallRecord {
   timestamp: string;
   durationSec: number;
   moodDuringCall?: MoodStatus;
+  granularMood?: Mood;
   summary?: string;
 }
 

@@ -36,7 +36,22 @@ service cloud.firestore {
              (!('email' in data) || (data.email is string && data.email.size() <= 256)) &&
              (!('gender' in data) || data.gender in ['male', 'female', 'non_binary', 'other']) &&
              (!('partnerGender' in data) || data.partnerGender in ['male', 'female', 'neutral']) &&
-             (!('partnerTone' in data) || data.partnerTone in ['playful_loving', 'calm_grounding', 'strict_accountability', 'caring_sweet']) &&
+             (!('partnerTone' in data) || data.partnerTone in ['playful_loving', 'calm_grounding', 'strict_caring', 'sweet_clingy', 'sassy_feisty']) &&
+             (!('voiceGender' in data) || data.voiceGender in ['male', 'female']) &&
+             (!('wakeUpTime' in data) || (data.wakeUpTime is string && data.wakeUpTime.size() <= 10)) &&
+             (!('sleepTime' in data) || (data.sleepTime is string && data.sleepTime.size() <= 10)) &&
+             (!('dailyWaterGoal' in data) || (data.dailyWaterGoal is number && data.dailyWaterGoal >= 0)) &&
+             (!('streakDays' in data) || (data.streakDays is number && data.streakDays >= 0)) &&
+             (!('bestStreak' in data) || (data.bestStreak is number && data.bestStreak >= 0)) &&
+             (!('isOnboarded' in data) || data.isOnboarded is bool) &&
+             (!('dailyCheckInTime' in data) || (data.dailyCheckInTime is string && data.dailyCheckInTime.size() <= 10)) &&
+             (!('dailyCheckInEnabled' in data) || data.dailyCheckInEnabled is bool) &&
+             (!('checkInType' in data) || data.checkInType in ['voice_and_text', 'voice_only', 'text_only']) &&
+             (!('lastCheckInDate' in data) || (data.lastCheckInDate is string && data.lastCheckInDate.size() <= 20)) &&
+             (!('voiceSpeed' in data) || (data.voiceSpeed is number && data.voiceSpeed >= 0.5 && data.voiceSpeed <= 2.0)) &&
+             (!('voiceToneStyle' in data) || data.voiceToneStyle in ['playful', 'serious', 'comforting', 'sweet', 'sassy']) &&
+             (!('themeMode' in data) || data.themeMode in ['dark', 'light']) &&
+             (!('location' in data) || (data.location is string && data.location.size() <= 128)) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
     }
 
@@ -45,14 +60,17 @@ service cloud.firestore {
       return data.id is string && isValidId(data.id) &&
              data.userId is string && data.userId == request.auth.uid &&
              data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
-             data.category is string && data.category in ['health', 'fitness', 'productivity', 'mindset', 'relationship'] &&
              data.targetValue is number && data.targetValue >= 0 &&
              data.completed is bool &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 40)) &&
+             (!('tags' in data) || (data.tags is list && data.tags.size() <= 10)) &&
              (!('currentValue' in data) || data.currentValue is number) &&
-             (!('icon' in data) || (data.icon is string && data.icon.size() <= 50)) &&
              (!('unit' in data) || (data.unit is string && data.unit.size() <= 30)) &&
-             (!('streakDays' in data) || data.streakDays is number) &&
-             (!('reminderTime' in data) || (data.reminderTime is string && data.reminderTime.size() <= 10)) &&
+             (!('scheduledTime' in data) || (data.scheduledTime is string && data.scheduledTime.size() <= 30)) &&
+             (!('streak' in data) || data.streak is number) &&
+             (!('importance' in data) || data.importance in ['crucial', 'medium', 'flexible']) &&
+             (!('lastCompletedAt' in data) || (data.lastCompletedAt is string && data.lastCompletedAt.size() <= 64)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
     }
 
@@ -60,11 +78,13 @@ service cloud.firestore {
     function isValidChatMessage(data) {
       return data.id is string && isValidId(data.id) &&
              data.userId is string && data.userId == request.auth.uid &&
-             data.sender in ['user', 'ai'] &&
+             data.sender in ['user', 'partner', 'system'] &&
              data.text is string && data.text.size() <= 4000 &&
-             (!('type' in data) || data.type in ['text', 'voice_note', 'system_nudge']) &&
+             (!('type' in data) || data.type in ['text', 'voice_note', 'habit_alert', 'taunt', 'call_log']) &&
              (!('timestamp' in data) || (data.timestamp is string && data.timestamp.size() <= 64)) &&
              (!('audioDurationSec' in data) || data.audioDurationSec is number) &&
+             (!('moodTag' in data) || (data.moodTag is string && data.moodTag.size() <= 32)) &&
+             (!('habitTag' in data) || (data.habitTag is string && data.habitTag.size() <= 100)) &&
              (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
     }
 
@@ -74,7 +94,8 @@ service cloud.firestore {
              data.score is number && data.score >= 0 && data.score <= 100 &&
              data.status in ['ecstatic', 'loving', 'happy', 'neutral', 'annoyed', 'angry'] &&
              (!('nakhreLevel' in data) || (data.nakhreLevel is number && data.nakhreLevel >= 0 && data.nakhreLevel <= 5)) &&
-             (!('lastInteraction' in data) || (data.lastInteraction is string && data.lastInteraction.size() <= 64)) &&
+             (!('lastReason' in data) || (data.lastReason is string && data.lastReason.size() <= 500)) &&
+             (!('lastUpdated' in data) || (data.lastUpdated is string && data.lastUpdated.size() <= 64)) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
     }
 
@@ -82,10 +103,36 @@ service cloud.firestore {
     function isValidMemory(data) {
       return data.id is string && isValidId(data.id) &&
              data.userId is string && data.userId == request.auth.uid &&
-             data.category is string && data.category.size() <= 60 &&
+             data.category in ['health', 'exam', 'preference', 'relationship', 'goal'] &&
              data.fact is string && data.fact.size() > 0 && data.fact.size() <= 1000 &&
              (!('confidence' in data) || data.confidence is number) &&
              (!('learnedAt' in data) || (data.learnedAt is string && data.learnedAt.size() <= 64));
+    }
+
+    // CallRecord schema validation
+    function isValidCallRecord(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.type in ['incoming', 'outgoing', 'missed'] &&
+             data.durationSec is number && data.durationSec >= 0 &&
+             (!('partnerName' in data) || (data.partnerName is string && data.partnerName.size() <= 64)) &&
+             (!('timestamp' in data) || (data.timestamp is string && data.timestamp.size() <= 64)) &&
+             (!('moodDuringCall' in data) || (data.moodDuringCall is string && data.moodDuringCall.size() <= 32)) &&
+             (!('summary' in data) || (data.summary is string && data.summary.size() <= 1000)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // CalendarEvent schema validation
+    function isValidCalendarEvent(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 120 &&
+             data.startTime is string && data.startTime.size() <= 30 &&
+             data.endTime is string && data.endTime.size() <= 30 &&
+             (!('category' in data) || data.category in ['exam', 'meeting', 'gym', 'personal', 'routine']) &&
+             (!('syncedFrom' in data) || data.syncedFrom in ['google_calendar', 'device_alarm', 'manual']) &&
+             (!('location' in data) || (data.location is string && data.location.size() <= 128)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
     }
 
     // Root User Profile Document
@@ -129,6 +176,24 @@ service cloud.firestore {
         allow list: if isOwner(userId);
         allow create: if isOwner(userId) && isValidId(memoryId) && isValidMemory(incoming());
         allow update: if isOwner(userId) && isValidId(memoryId) && isValidMemory(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      // Call Records Subcollection
+      match /calls/{callId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(callId) && isValidCallRecord(incoming());
+        allow update: if isOwner(userId) && isValidId(callId) && isValidCallRecord(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      // Calendar & Routine Events Subcollection
+      match /events/{eventId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(eventId) && isValidCalendarEvent(incoming());
+        allow update: if isOwner(userId) && isValidId(eventId) && isValidCalendarEvent(incoming());
         allow delete: if isOwner(userId);
       }
     }

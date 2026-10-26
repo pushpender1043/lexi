@@ -23,7 +23,7 @@ import { CallsView } from './components/CallsView';
 import { ProfileView } from './components/ProfileView';
 import { EcosystemSyncView } from './components/EcosystemSyncView';
 import { MemoryVaultView } from './components/MemoryVaultView';
-import { LiveCallModal } from './components/LiveCallModal';
+import { LiveCallModal, CallEndPayload } from './components/LiveCallModal';
 import { MoodDetailsModal } from './components/MoodDetailsModal';
 import { LoginModal } from './components/LoginModal';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -33,7 +33,7 @@ import { ParticleBackground } from './components/ParticleBackground';
 import { ProactiveNotificationBanner } from './components/ProactiveNotificationBanner';
 import { playCompanionVoice, stopCompanionVoice } from './utils/speech';
 import confetti from 'canvas-confetti';
-import { MessageSquare, CheckSquare, Phone, User, Home, TrendingUp } from 'lucide-react';
+import { MessageSquare, CheckSquare, Phone, User, Home, TrendingUp, Sparkles } from 'lucide-react';
 import {
   auth,
   db,
@@ -44,12 +44,19 @@ import {
   saveUserChatMessage,
   syncPartnerMood,
   saveUserMemory,
+  saveCallRecord,
 } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, doc, getDoc, getDocs } from 'firebase/firestore';
 import { generateUniqueId, deduplicateArrayIds } from './utils/id';
+import { MoodProvider, useMood, ALL_MOODS } from './lib/moods';
+import { Mood } from './types';
 
-export default function App() {
+function AppContent() {
+  const { currentMood, setMood, triggerTransientMood } = useMood();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showMoodPicker, setShowMoodPicker] = useState(false);
+
   // Local storage backed state with bulletproof ID deduplication
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('lexi_user_profile');
@@ -125,8 +132,8 @@ export default function App() {
 
   // 2. Real-time Firestore synchronization for authenticated users
   useEffect(() => {
-    const currentUid = userProfile.userId || auth.currentUser?.uid;
-    if (!userProfile.isAuthenticated || !currentUid) return;
+    const currentUid = auth.currentUser?.uid;
+    if (!userProfile.isAuthenticated || !currentUid || userProfile.userId !== currentUid) return;
 
     // Listen to remote habits
     const habitsUnsub = onSnapshot(
@@ -193,15 +200,17 @@ export default function App() {
     setUserProfile(updatedProfile);
     setIsLoginOpen(false);
 
-    // Synchronize to Firestore
-    try {
-      await syncUserProfile(assignedUid, updatedProfile);
-      for (const h of habits) {
-        await syncUserHabit(assignedUid, h);
+    // Synchronize to Firestore only if verified Firebase Auth session is active
+    if (auth.currentUser && auth.currentUser.uid === assignedUid) {
+      try {
+        await syncUserProfile(assignedUid, updatedProfile);
+        for (const h of habits) {
+          await syncUserHabit(assignedUid, h);
+        }
+        await syncPartnerMood(assignedUid, partnerMood);
+      } catch (err) {
+        console.warn('Initial cloud sync notice:', err);
       }
-      await syncPartnerMood(assignedUid, partnerMood);
-    } catch (err) {
-      console.warn('Initial cloud sync notice:', err);
     }
 
     if (!userProfile.isOnboarded) {
@@ -407,13 +416,16 @@ export default function App() {
         delta = 8;
         newNakhre = Math.max(0, newNakhre - 1);
         reason = `${userProfile.partnerName}: "Proud of you for finishing ${habitTitle}! Aise hi disciplined raho jaan ❤️"`;
+        triggerTransientMood('proud');
       } else if (action === 'incremented') {
         delta = 3;
         reason = `${userProfile.partnerName}: "Good progress on ${habitTitle}!"`;
+        triggerTransientMood('happy');
       } else if (action === 'skipped') {
         delta = -12;
         newNakhre = Math.min(5, newNakhre + 1);
         reason = `${userProfile.partnerName}: "Haww! ${habitTitle} skip kar diya? Ab toh main naraz hoon! 😤"`;
+        triggerTransientMood('angry');
       }
 
       const newScore = Math.max(10, Math.min(100, prev.score + delta));
@@ -618,6 +630,12 @@ export default function App() {
       const reply = data.reply || "Main sun rahi hoon jaan, sab theek hai na?";
 
       // Handle dynamic mood update from Gemini
+      if (data.mood) {
+        triggerTransientMood(data.mood);
+      } else if (data.moodUpdate?.newStatus) {
+        triggerTransientMood(data.moodUpdate.newStatus);
+      }
+
       if (data.moodUpdate) {
         setPartnerMood(prev => {
           const newScore = Math.max(10, Math.min(100, prev.score + (data.moodUpdate.scoreDelta || 0)));
@@ -900,12 +918,16 @@ export default function App() {
 
   const completedHabitsCount = habits.filter(h => h.completed).length;
 
+  const handleMainScroll = (e: React.UIEvent<HTMLElement>) => {
+    setIsScrolled(e.currentTarget.scrollTop > 8);
+  };
+
   return (
     <div className={`h-[100dvh] ${darkMode ? 'dark' : ''} bg-gradient-mesh text-[#1A1A1F] dark:text-[#FAF7FF] flex flex-col transition-colors duration-300 relative overflow-hidden font-sans`}>
-      {/* Subtle Atmospheric Gradient */}
-      <ParticleBackground mood={partnerMood.status} />
+      {/* Subtle Atmospheric Gradient & Canvas Particle Engine */}
+      <ParticleBackground />
 
-      {/* Modern Minimal Header - Floating Desktop Pill & Mobile Header */}
+      {/* Modern Fixed Header (Full width, no gap, elevated on scroll) */}
       <Header
         userProfile={userProfile}
         partnerMood={partnerMood}
@@ -922,15 +944,17 @@ export default function App() {
         setActiveTab={setActiveTab}
         completedHabitsCount={completedHabitsCount}
         totalHabitsCount={habits.length}
+        isScrolled={isScrolled}
       />
 
-      {/* Main View Area - Only the content area scrolls */}
+      {/* Main View Area - Only <main> scrolls; header & tabbar remain fixed */}
       <main
-        className={`flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 min-h-0 ${
+        onScroll={handleMainScroll}
+        className={
           activeTab === 'chat'
-            ? 'pt-16 sm:pt-22 pb-20 md:pb-4 flex flex-col h-full overflow-hidden'
-            : 'pt-20 sm:pt-24 pb-24 md:pb-8 overflow-y-auto'
-        }`}
+            ? 'app-chat-shell max-w-5xl w-full mx-auto px-3 sm:px-6'
+            : 'app-main-shell max-w-5xl w-full mx-auto px-3 sm:px-6'
+        }
       >
         {/* 0. DASHBOARD VIEW */}
         {activeTab === 'dashboard' && (
@@ -1002,6 +1026,7 @@ export default function App() {
               if (voiceEnabled) stopCompanionVoice();
               setVoiceEnabled(!voiceEnabled);
             }}
+            onClearHistory={() => setCallRecords([])}
           />
         )}
 
@@ -1072,26 +1097,34 @@ export default function App() {
       {isCallOpen && (
         <LiveCallModal
           isOpen={isCallOpen}
-          onClose={(summary) => {
+          onClose={(payload?: CallEndPayload | string) => {
             setIsCallOpen(false);
-            if (summary) {
+            if (payload) {
+              const durationSec = typeof payload === 'object' ? payload.durationSec : 60;
+              const summaryText = typeof payload === 'object' ? payload.summary : payload;
+              const mood = typeof payload === 'object' ? payload.moodDuringCall : partnerMood.status;
+
               const newRecord: CallRecord = {
                 id: generateUniqueId('call'),
                 partnerName: userProfile.partnerName,
                 type: 'outgoing',
                 timestamp: 'Today, Just now',
-                durationSec: 145,
-                moodDuringCall: partnerMood.status,
-                summary: summary,
+                durationSec,
+                moodDuringCall: mood,
+                summary: summaryText,
               };
               setCallRecords(prev => [newRecord, ...prev]);
+
+              if (userProfile.userId) {
+                saveCallRecord(userProfile.userId, newRecord).catch(console.warn);
+              }
 
               setMessages(prev => [
                 ...prev,
                 {
                   id: generateUniqueId('msg'),
                   sender: 'system',
-                  text: summary,
+                  text: summaryText,
                   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                   type: 'call_log',
                 },
@@ -1178,6 +1211,46 @@ export default function App() {
           userProfile={userProfile}
         />
       )}
+
+      {/* Floating Mood Tester for instant verification of all 13 states */}
+      <div className="fixed bottom-20 md:bottom-4 right-4 z-40 flex items-center gap-1.5 p-1 rounded-full glass border border-[rgba(124,58,237,0.2)] shadow-md">
+        <button
+          onClick={() => setShowMoodPicker(!showMoodPicker)}
+          className="flex items-center gap-1 px-3 py-1 text-[11px] font-semibold text-[#7C3AED] dark:text-[#C4B5FD] hover:opacity-80 transition cursor-pointer"
+          title="Click to preview all 13 emotional states and particle dynamics"
+        >
+          <Sparkles className="w-3 h-3 text-[#A78BFA]" />
+          <span className="capitalize">Mood: {currentMood}</span>
+        </button>
+        {showMoodPicker && (
+          <div className="absolute bottom-full right-0 mb-2 p-2 rounded-[16px] glass-strong border border-[rgba(124,58,237,0.2)] shadow-xl grid grid-cols-2 gap-1 w-56 text-[10px] z-50">
+            {ALL_MOODS.map((m) => (
+              <button
+                key={m}
+                onClick={() => {
+                  setMood(m);
+                  setShowMoodPicker(false);
+                }}
+                className={`px-2 py-1.5 rounded-[8px] text-left capitalize transition cursor-pointer ${
+                  currentMood === m
+                    ? 'bg-[#7C3AED] text-white font-bold'
+                    : 'hover:bg-white/40 dark:hover:bg-white/10 text-[#1A1A1F] dark:text-[#FAF7FF]'
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <MoodProvider>
+      <AppContent />
+    </MoodProvider>
   );
 }

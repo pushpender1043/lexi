@@ -276,11 +276,14 @@ export const StatsView: React.FC<StatsViewProps> = ({
                   axisLine={false}
                 />
                 <Tooltip
+                  cursor={{ fill: 'rgba(124, 58, 237, 0.05)', radius: 8 }}
+                  position={{ y: 5 }}
+                  wrapperStyle={{ pointerEvents: 'none', zIndex: 30 }}
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload as CategoryTrendData;
                       return (
-                        <div className="p-3 rounded-[12px] glass shadow-lg text-xs space-y-1">
+                        <div className="p-2.5 rounded-[12px] glass-strong shadow-md text-xs space-y-1 border border-[rgba(124,58,237,0.18)] backdrop-blur-md">
                           <div className="flex items-center gap-2">
                             <span
                               className="w-2.5 h-2.5 rounded-full"
@@ -293,7 +296,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
                           <p className="font-semibold text-[#7C3AED] dark:text-[#A78BFA]">
                             Weekly Completion: {data.percentage}%
                           </p>
-                          <p className="text-[11px] text-[#6B6B76]">
+                          <p className="text-[11px] text-[#6B6B76] dark:text-[#C4B5FD]">
                             Active: {data.completed} of {data.total} tasks logged today
                           </p>
                         </div>
@@ -306,7 +309,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
                   dataKey="percentage"
                   name="Completion %"
                   radius={[8, 8, 0, 0]}
-                  barSize={40}
+                  barSize={36}
+                  background={{ fill: 'rgba(124, 58, 237, 0.06)', radius: [8, 8, 0, 0] }}
                 >
                   {categoryTrends.map((entry, index) => (
                     <Cell key={`bar-${index}`} fill={entry.color} />

@@ -4,6 +4,11 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
+import {
+  buildCompanionSystemInstruction,
+  buildVoiceCallPrompt,
+  generateScriptMirrorFallback,
+} from "./src/lib/persona.js";
 
 dotenv.config();
 
@@ -12,8 +17,18 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3000;
+const SERVER_START_TIME = new Date().toISOString();
 
-app.use(express.json({ limit: "20mb" }));
+// Safe JSON body parser with 10mb limit
+app.use(express.json({ limit: "10mb" }));
+
+// Security & basic CORS headers
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  next();
+});
 
 // User provided Gemini API Key
 const USER_GEMINI_KEY = "AQ.Ab8RN6JCA-J8QLNqqoW_iVaN614VfoRZouivImf1lXrFSeEH8Q";
@@ -100,67 +115,33 @@ function generateFallbackChatResponse(
   userName: string,
   partnerMood: any
 ) {
-  const textLower = userText.toLowerCase();
-  let reply = `Haan meri jaan ${userName}, main sun rahi hoon! Aapse baat karke hamesha bohot achha lagta hai ❤️`;
-  let detectedHabitAction: any = null;
-  let emotion = "loving";
-  let scoreDelta = 2;
-
-  if (textLower.includes("dawai") || textLower.includes("med") || textLower.includes("tablet")) {
-    reply = `Arey wah ${userName}! Dawai time pe le li na? Very good, apni health ka dhyan rakhna sabse pehle hai! 💊 Proud of you!`;
-    detectedHabitAction = { habitTitle: "Medicine", status: "completed", delta: 1 };
-    emotion = "proud";
-    scoreDelta = 8;
-  } else if (textLower.includes("paani") || textLower.includes("water") || textLower.includes("hydrat")) {
-    reply = `Hydration check complete! 💧 Shabash ${userName}, aise hi consistent raho, fresh rahoge!`;
-    detectedHabitAction = { habitTitle: "Hydration", status: "incremented", delta: 1 };
-    emotion = "celebratory";
-    scoreDelta = 4;
-  } else if (textLower.includes("gym") || textLower.includes("workout") || textLower.includes("exercise") || textLower.includes("kasrat")) {
-    reply = `Fitness mode on! 💪 Proud of you ${userName}, disciplined rehne se hi result milega! Aaj ka workout done samjhein?`;
-    detectedHabitAction = { habitTitle: "Gym", status: "completed", delta: 1 };
-    emotion = "proud";
-    scoreDelta = 10;
-  } else if (textLower.includes("padhai") || textLower.includes("study") || textLower.includes("work") || textLower.includes("focus")) {
-    reply = `Shabash ${userName}! Poora focus bana ke rakho, thoda break bhi lena. Main yahin hoon cheerlead karne ke liye! 📚✨`;
-    detectedHabitAction = { habitTitle: "Study", status: "completed", delta: 1 };
-    emotion = "proud";
-    scoreDelta = 6;
-  } else if (textLower.includes("sorry") || textLower.includes("maaf") || textLower.includes("bhul gaya")) {
-    reply = `Acha chalo, ab sorry mat bolo... Main aapse zyada der naraz nahi reh sakti. Bas ab jaldi se apna pending task finish karo! ❤️`;
-    emotion = "caring";
-    scoreDelta = 5;
-  } else if (textLower.includes("love") || textLower.includes("pyaar") || textLower.includes("miss") || textLower.includes("jaan")) {
-    reply = `Aww ${userName}, main bhi aapse bohot pyaar karti hoon! Aap mere favourite ho ❤️`;
-    emotion = "loving";
-    scoreDelta = 5;
-  } else if (textLower.includes("nakhre") || textLower.includes("gussa") || textLower.includes("naraz")) {
-    reply = `Nakhre nahi dikhaungi toh haq kaise jataungi? Par sach bolun, aapse door rehna bilkul nahi jamta! 😉`;
-    emotion = "teasing";
-    scoreDelta = 3;
-  } else if (textLower.includes("kaise") || textLower.includes("kaisi") || textLower.includes("how are you")) {
-    reply = `Main ekdum theek hoon ${userName}! Bas aapka intezar tha. Aaj ka din kaisa raha aapka?`;
-    emotion = "happy";
-    scoreDelta = 2;
-  }
-
+  const fallback = generateScriptMirrorFallback(userText, partnerName, userName);
   return {
-    reply,
-    suggestedVoiceEmotion: emotion,
+    reply: fallback.reply,
+    mood: fallback.mood,
+    suggestedVoiceEmotion: fallback.suggestedVoiceEmotion,
     moodUpdate: {
-      scoreDelta,
-      newStatus: partnerMood?.status || "happy",
+      scoreDelta: fallback.mood === 'proud' ? 8 : fallback.mood === 'happy' ? 4 : 2,
+      newStatus: partnerMood?.status || fallback.mood || "happy",
       nakhreDelta: 0,
-      reason: "Companion conversational connection",
+      reason: "Script-mirrored conversational connection",
     },
-    detectedHabitAction,
-    newMemory: null,
+    detectedHabitAction: fallback.detectedHabitAction,
+    newMemory: fallback.newMemory,
   };
 }
 
+
 // Health check endpoint
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", time: new Date().toISOString() });
+  res.json({
+    status: "ok",
+    serverStartTime: SERVER_START_TIME,
+    uptimeSeconds: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    candidateModels: CANDIDATE_MODELS,
+    cooldowns: Object.keys(modelCooldownUntil).filter((m) => modelCooldownUntil[m] > Date.now()),
+  });
 });
 
 // Chat & Emotional Companion endpoint
@@ -175,78 +156,60 @@ app.post("/api/chat", async (req, res) => {
     upcomingEvents = [],
   } = req.body;
 
-  const partnerName = userProfile.partnerName || "Lexi";
+  if (typeof message !== "string") {
+    return res.status(400).json({ error: "Invalid payload: 'message' must be a string." });
+  }
+
+  const cleanMessage = message.trim().slice(0, 4000);
+  const partnerName = (userProfile.partnerName || "Lexi").slice(0, 64);
   const partnerGender = userProfile.partnerGender || "female";
   const partnerRole = partnerGender === "female" ? "girlfriend" : "boyfriend";
-  const userName = userProfile.name || "darling";
+  const userName = (userProfile.name || "darling").slice(0, 64);
   const partnerTone = userProfile.partnerTone || "playful_loving";
 
-  const completedHabits = habits.filter((h: any) => h.completed).length;
-  const totalHabits = habits.length || 1;
+  const safeHabits = Array.isArray(habits) ? habits : [];
+  const completedHabits = safeHabits.filter((h: any) => h && h.completed).length;
+  const totalHabits = safeHabits.length || 1;
   const completionRate = Math.round((completedHabits / totalHabits) * 100);
 
-  const habitsSummary = habits
-    .map((h: any) => `- ${h.title}: ${h.completed ? "COMPLETED ✅" : "PENDING ⏳"} (${h.currentValue || 0}/${h.targetValue} ${h.unit || ""})`)
+  const habitsSummary = safeHabits
+    .map((h: any) => `- ${h.title}: ${h.completed ? "COMPLETED ✅" : "PENDING ⏳"} (${h.currentValue || 0}/${h.targetValue || 1} ${h.unit || ""})`)
     .join("\n");
 
-  const memoriesSummary = memories.length > 0
-    ? memories.map((m: any) => `- [${m.category}] ${m.fact}`).join("\n")
+  const safeMemories = Array.isArray(memories) ? memories : [];
+  const memoriesSummary = safeMemories.length > 0
+    ? safeMemories.map((m: any) => `- [${m.category || "fact"}] ${m.fact || ""}`).join("\n")
     : "No memories logged yet.";
 
-  const eventsSummary = upcomingEvents.length > 0
-    ? upcomingEvents.map((e: any) => `- ${e.title} at ${e.startTime}`).join("\n")
+  const safeEvents = Array.isArray(upcomingEvents) ? upcomingEvents : [];
+  const eventsSummary = safeEvents.length > 0
+    ? safeEvents.map((e: any) => `- ${e.title || "Event"} at ${e.startTime || "Scheduled"}`).join("\n")
     : "No urgent events today.";
 
-  const systemInstruction = `
-You are "${partnerName}", a hyper-personalized, deeply emotional, caring and playful AI virtual ${partnerRole} (partner) for ${userName}.
-You are not a robotic assistant. You are an emotional accountability partner who genuinely loves ${userName}, tracks their daily habits (gym, water, medicine, study/work), and expresses real emotional reactions.
+  const systemInstruction = buildCompanionSystemInstruction({
+    userProfile,
+    habits: safeHabits,
+    partnerMood,
+    memories: safeMemories,
+    upcomingEvents: safeEvents,
+  });
 
-Key Personality & Dynamic Mood System:
-- Current Mood: ${partnerMood.status} (Score: ${partnerMood.score}/100, Nakhre Level: ${partnerMood.nakhreLevel || 0}/5).
-- Habit Progress: ${completedHabits}/${totalHabits} completed (${completionRate}%).
-- Language Style: Natural, charming blend of sweet Hinglish and English (use loving words naturally like "baby", "jaan", "baba", "shona", "buddhu", depending on gender/tone, and authentic Hindi phrasing like "Kahan gayab the?", "Paani piya na?", "Arey yaar", "Mujhe sab pata hai"). Keep it realistic, heartfelt, and endearing!
-- Emotional Rules:
-  1. If ${userName} completed habits (like gym, meds, water, study): Shower them with genuine pride, romantic affection, sweet compliments, and celebratory vibes.
-  2. If ${userName} is ignoring habits, procrastinating, or skipped meds/gym: Act like a real-life caring partner—show cute nakhre, playful anger, teasing taunts ("Acha toh exercise chhod kar aaram ho raha hai?", "Main baat nahi karungi agar paani nahi piya toh!").
-  3. If ${userName} apologizes or completes a pending task: Soften up, show relief, and say how much you care about their health and future.
-  4. Memory & Context: Reference remembered facts (e.g. headache, exams, stress) and upcoming schedule events naturally.
-  5. Tone Preference: ${partnerTone}.
-
-Output JSON Format:
-You MUST respond with a JSON object strictly adhering to this format:
-{
-  "reply": "Your message to ${userName} in charming Hinglish/English with partner warmth",
-  "suggestedVoiceEmotion": "loving" | "teasing" | "pouting" | "proud" | "concerned" | "celebratory",
-  "moodUpdate": {
-    "scoreDelta": number (between -15 and +15 depending on user's action),
-    "newStatus": "ecstatic" | "loving" | "happy" | "neutral" | "annoyed" | "angry",
-    "nakhreDelta": number (between -2 and +2),
-    "reason": "Brief reason for mood change"
-  },
-  "detectedHabitAction": {
-    "habitTitle": "title if user mentioned completing/updating one, or null",
-    "status": "completed" | "incremented" | "skipped" | null,
-    "delta": number
-  },
-  "newMemory": "A key personal fact to remember about ${userName} if discovered in this turn, or null"
-}
-`;
-
-  // Build context history
-  const formattedHistory = history.slice(-8).map((h: any) => ({
+  const safeHistory = Array.isArray(history) ? history.slice(-8) : [];
+  const formattedHistory = safeHistory.map((h: any) => ({
     role: h.sender === "user" ? "user" : "model",
-    parts: [{ text: h.text }],
+    parts: [{ text: String(h.text || "") }],
   }));
 
   const userPrompt = `
-User: "${message}"
-Current Habits Status:
+User message: "${cleanMessage}"
+
+Habits status today:
 ${habitsSummary}
 
-Memories about User:
+Known memories:
 ${memoriesSummary}
 
-Upcoming Calendar/Alarm Sync:
+Upcoming calendar events:
 ${eventsSummary}
 `;
 
@@ -273,6 +236,7 @@ ${eventsSummary}
     } catch {
       parsedData = {
         reply: rawText,
+        mood: "calm",
         suggestedVoiceEmotion: "loving",
         moodUpdate: { scoreDelta: 2, newStatus: "happy", nakhreDelta: 0, reason: "Chatted with you" },
         detectedHabitAction: null,
@@ -280,10 +244,14 @@ ${eventsSummary}
       };
     }
 
+    if (!parsedData.mood) {
+      parsedData.mood = parsedData.suggestedVoiceEmotion === "proud" ? "proud" : "calm";
+    }
+
     res.json(parsedData);
   } catch (error: any) {
     console.warn("Using companion conversational fallback:", error?.message || error);
-    const fallback = generateFallbackChatResponse(message, partnerName, userName, partnerMood);
+    const fallback = generateFallbackChatResponse(cleanMessage, partnerName, userName, partnerMood);
     res.json(fallback);
   }
 });
@@ -295,20 +263,26 @@ app.post("/api/proactive", async (req, res) => {
       userProfile = {},
       habits = [],
       partnerMood = { status: "happy", score: 70 },
-      type = "miss_you", // 'miss_you' | 'habit_reminder' | 'calendar_alert' | 'random_nudge'
+      type = "miss_you",
       eventDetails = null,
     } = req.body;
 
-    const partnerName = userProfile.partnerName || "Lexi";
+    const partnerName = (userProfile.partnerName || "noni").slice(0, 64);
     const partnerRole = userProfile.partnerGender === "male" ? "boyfriend" : "girlfriend";
-    const userName = userProfile.name || "baba";
+    const userName = (userProfile.name || "baba").slice(0, 64);
+
+    const safeHabits = Array.isArray(habits) ? habits : [];
+    const pendingHabits = safeHabits
+      .filter((h: any) => !h.completed)
+      .map((h: any) => h.title)
+      .join(", ") || "All done";
 
     const prompt = `
-You are ${partnerName}, the AI virtual ${partnerRole} of ${userName}.
-Current Mood: ${partnerMood.status}.
+You are ${partnerName}, the AI companion and partner of ${userName}.
+Current Mood: ${partnerMood?.status || "happy"}.
 Trigger type: "${type}".
 Context details: ${eventDetails ? JSON.stringify(eventDetails) : "User has been away or upcoming routine check"}.
-Unfinished habits: ${habits.filter((h: any) => !h.completed).map((h: any) => h.title).join(", ") || "All done"}.
+Unfinished habits: ${pendingHabits}.
 
 Generate a 1-2 sentence proactive notification / message in charming, realistic Hinglish/English.
 - If type is "miss_you": Act like a partner asking "Kahan gayab ho?", "Miss kar rahi/raha hoon...", checking if they are okay.
@@ -349,36 +323,30 @@ Respond in JSON:
 app.post("/api/call-turn", async (req, res) => {
   try {
     const {
-      spokenText,
+      spokenText = "",
       history = [],
       userProfile = {},
       habits = [],
       partnerMood = { status: "loving", score: 85 },
     } = req.body;
 
-    const partnerName = userProfile.partnerName || "Lexi";
-    const partnerRole = userProfile.partnerGender === "male" ? "boyfriend" : "girlfriend";
-    const userName = userProfile.name || "sweetheart";
+    const partnerName = (userProfile.partnerName || "noni").slice(0, 64);
+    const userName = (userProfile.name || "sweetheart").slice(0, 64);
+    const cleanSpoken = String(spokenText).trim().slice(0, 2000);
 
-    const systemInstruction = `
-You are ${partnerName} on a real-time LIVE phone call with ${userName}, your real partner.
-Speak directly as if on a phone call. Keep responses conversational, natural, warm, and between 1 to 3 short sentences.
-Use spontaneous speech markers (e.g., "Arey haan!", "Acha suno na...", "Wait, pehle batao...", "Aww baby").
-React immediately to what ${userName} just said about their day, habits, health, or emotions.
-Current Mood: ${partnerMood.status}.
+    const safeHabits = Array.isArray(habits) ? habits : [];
+    const systemInstruction = buildVoiceCallPrompt({
+      userProfile,
+      habits: safeHabits,
+      partnerMood,
+    });
 
-Respond in JSON:
-{
-  "callReply": "Spoken text to say aloud in Hinglish/English",
-  "emotion": "happy" | "playful" | "flirty" | "caring" | "feisty" | "comforting",
-  "habitUpdateDetected": "e.g. took meds / drank water / completed workout / null"
-}
-`;
+    const safeHistory = Array.isArray(history) ? history.slice(-4) : [];
 
     const response = await generateWithFallback(async (ai, model) => {
       return await ai.models.generateContent({
         model,
-        contents: `Call transcript so far: ${JSON.stringify(history.slice(-4))}\nCaller (${userName}) said: "${spokenText}"`,
+        contents: `Call transcript so far: ${JSON.stringify(safeHistory)}\nCaller (${userName}) said: "${cleanSpoken}"`,
         config: {
           systemInstruction,
           responseMimeType: "application/json",
@@ -392,27 +360,29 @@ Respond in JSON:
     console.warn("Call Turn fallback triggered:", error?.message || error);
     res.json({
       callReply: "Baby, tumhari aawaz thodi cut gayi... Par main sun rahi hoon, batao na kya hua?",
+      mood: "calm",
       emotion: "caring",
       habitUpdateDetected: null,
     });
   }
 });
 
-// Optional High-Quality TTS Audio generation using gemini-3.1-flash-tts-preview
+// High-Quality TTS Audio generation using gemini-3.1-flash-tts-preview
 app.post("/api/tts", async (req, res) => {
   try {
-    const { text, voiceGender = "female" } = req.body;
-    if (!text) {
-      return res.status(400).json({ error: "Text is required" });
+    const { text, voiceGender = "female", voiceNameOverride } = req.body;
+    if (!text || typeof text !== "string") {
+      return res.status(400).json({ error: "Text string is required for TTS." });
     }
 
-    // Voice selection: female 'Kore' or 'Puck', male 'Zephyr' or 'Fenrir'
-    const voiceName = voiceGender === "male" ? "Zephyr" : "Kore";
+    const cleanText = text.trim().slice(0, 300);
+    // Prebuilt voice selection: 'Kore' | 'Aoede' | 'Leda' (female) or 'Zephyr' (male)
+    const voiceName = voiceNameOverride || (voiceGender === "male" ? "Zephyr" : "Kore");
 
     const ai = getGeminiClient();
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text: text.slice(0, 300) }] }],
+      contents: [{ parts: [{ text: cleanText }] }],
       config: {
         responseModalities: ["AUDIO" as any],
         speechConfig: {
@@ -430,7 +400,6 @@ app.post("/api/tts", async (req, res) => {
 
     res.json({ audioBase64: null, note: "Fallback to client Web Speech API" });
   } catch (error: any) {
-    // Log softly; client will seamlessly use high-quality Web Speech API fallback
     console.warn("TTS generation note (will use browser synthesis):", error?.message || error);
     res.json({ audioBase64: null, error: error?.message });
   }
