@@ -105,6 +105,8 @@ body {
 
   /* App Shell Main Scroll Container */
   .app-main-shell {
+    position: relative;
+    z-index: var(--z-content, 10);
     height: 100dvh;
     flex: 1 1 0%;
     min-height: 0;
@@ -125,6 +127,8 @@ body {
 
   /* Chat View shell override: no vertical main scroll, messages handle scroll */
   .app-chat-shell {
+    position: relative;
+    z-index: var(--z-content, 10);
     height: 100dvh;
     flex: 1 1 0%;
     min-height: 0;

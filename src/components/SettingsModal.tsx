@@ -18,6 +18,10 @@ import {
   MapPin,
   LogOut,
   RefreshCw,
+  Brain,
+  Shield,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { playCompanionVoice } from '../utils/speech';
 
@@ -32,6 +36,8 @@ interface SettingsModalProps {
   onOpenOnboarding?: () => void;
   onOpenLogin?: () => void;
   onSignOut?: () => void;
+  onOpenMemoryVault?: () => void;
+  onDeleteAccount?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -45,6 +51,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onOpenOnboarding,
   onOpenLogin,
   onSignOut,
+  onOpenMemoryVault,
+  onDeleteAccount,
 }) => {
   const [name, setName] = useState(userProfile.name || 'Deepu');
   const [location, setLocation] = useState(userProfile.location || 'Delhi, India');
@@ -77,6 +85,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     userProfile.notificationsEnabled !== undefined ? userProfile.notificationsEnabled : true
   );
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!isOpen) return null;
 
@@ -448,6 +457,76 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   <span>{userProfile.isAuthenticated ? 'Switch' : 'Sign In'}</span>
                 </button>
+              )}
+            </div>
+          </div>
+
+          {/* 6. PRIVACY, MEMORY VAULT & DATA RIGHTS (DPDP & GDPR Compliance) */}
+          <div className="p-4 rounded-[16px] glass border border-[rgba(124,58,237,0.15)] space-y-3">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-[#7C3AED]" />
+              <h4 className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                Privacy & Data Ownership
+              </h4>
+            </div>
+
+            <p className="text-[11px] text-[#6B6B76] dark:text-[#C4B5FD] leading-relaxed">
+              Your conversations, streak records, and habits are kept strictly in private, isolated Firebase partitions.
+              No personal data is sold or used for public foundation model training.
+            </p>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              {onOpenMemoryVault && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenMemoryVault();
+                  }}
+                  className="px-3 py-2 rounded-[12px] glass-button border border-[rgba(124,58,237,0.2)] text-xs font-semibold text-[#7C3AED] dark:text-[#C4B5FD] flex items-center gap-1.5 hover:border-[#7C3AED] transition-all"
+                >
+                  <Brain className="w-3.5 h-3.5" />
+                  <span>Inspect & Manage Memories</span>
+                </button>
+              )}
+
+              {onDeleteAccount && (
+                <div>
+                  {!confirmDelete ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(true)}
+                      className="px-3 py-2 rounded-[12px] border border-rose-300 dark:border-rose-900 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-1.5 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Erase All Data (GDPR / DPDP)</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-rose-50 dark:bg-rose-950/60 p-2 rounded-[12px] border border-rose-400">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span className="text-[11px] text-rose-700 dark:text-rose-300 font-semibold">
+                        Permanent deletion! Proceed?
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onDeleteAccount();
+                        }}
+                        className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded-lg shadow-sm"
+                      >
+                        Yes, Delete Everything
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(false)}
+                        className="px-2 py-1 glass text-[10px] text-[var(--text-secondary)] rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

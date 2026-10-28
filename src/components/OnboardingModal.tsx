@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserProfile, PartnerTone, PartnerGender } from '../types';
+import { UserProfile, PartnerTone, PartnerGender, Habit } from '../types';
 import { AexoMascot } from './AexoMascot';
 import {
   Sparkles,
@@ -18,7 +18,11 @@ interface OnboardingModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentProfile: UserProfile;
-  onSaveProfile: (profile: Partial<UserProfile> | UserProfile, sendWelcomeMsg?: boolean) => void;
+  onSaveProfile: (
+    profile: Partial<UserProfile> | UserProfile,
+    sendWelcomeMsg?: boolean,
+    initialHabits?: Habit[]
+  ) => void;
 }
 
 export const OnboardingModal: React.FC<OnboardingModalProps> = ({
@@ -52,16 +56,206 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   const nameSuggestions = ['Lexi', 'Maya', 'Kiara', 'Riya', 'Aria', 'Tara', 'Leo'];
 
+  const generateStarterHabits = (goal: string, partner: string): Habit[] => {
+    const timestamp = Date.now();
+    if (goal === 'fitness_habits') {
+      return [
+        {
+          id: `h_${timestamp}_1`,
+          title: 'Morning Gym / Workout',
+          category: 'fitness',
+          scheduledTime: '07:30',
+          currentValue: 0,
+          targetValue: 1,
+          unit: 'session',
+          streak: 0,
+          completed: false,
+          importance: 'crucial',
+          isCrucial: true,
+          tags: ['Fitness', 'Health'],
+        },
+        {
+          id: `h_${timestamp}_2`,
+          title: 'Drink 2.5L Water',
+          category: 'hydration',
+          scheduledTime: '11:00',
+          currentValue: 0,
+          targetValue: 8,
+          unit: 'glasses',
+          streak: 0,
+          completed: false,
+          importance: 'crucial',
+          isCrucial: true,
+          tags: ['Health', 'Hydration'],
+        },
+        {
+          id: `h_${timestamp}_3`,
+          title: 'Evening Protein & Clean Diet',
+          category: 'health',
+          scheduledTime: '20:30',
+          currentValue: 0,
+          targetValue: 1,
+          unit: 'meal',
+          streak: 0,
+          completed: false,
+          importance: 'medium',
+          isCrucial: false,
+          tags: ['Health', 'Fitness'],
+        },
+      ];
+    }
+    if (goal === 'daily_routine') {
+      return [
+        {
+          id: `h_${timestamp}_1`,
+          title: 'Wake Up by 7:00 AM',
+          category: 'lifestyle',
+          scheduledTime: '07:00',
+          currentValue: 0,
+          targetValue: 1,
+          unit: 'check',
+          streak: 0,
+          completed: false,
+          importance: 'crucial',
+          isCrucial: true,
+          tags: ['Lifestyle'],
+        },
+        {
+          id: `h_${timestamp}_2`,
+          title: 'Drink Morning Water & Stretch',
+          category: 'hydration',
+          scheduledTime: '07:30',
+          currentValue: 0,
+          targetValue: 1,
+          unit: 'session',
+          streak: 0,
+          completed: false,
+          importance: 'crucial',
+          isCrucial: true,
+          tags: ['Health', 'Hydration'],
+        },
+        {
+          id: `h_${timestamp}_3`,
+          title: 'Take Daily Vitamins / Medicine',
+          category: 'health',
+          scheduledTime: '09:00',
+          currentValue: 0,
+          targetValue: 1,
+          unit: 'dose',
+          streak: 0,
+          completed: false,
+          importance: 'crucial',
+          isCrucial: true,
+          tags: ['Health'],
+        },
+      ];
+    }
+    if (goal === 'deep_work') {
+      return [
+        {
+          id: `h_${timestamp}_1`,
+          title: '2-Hour Focused Deep Work Block',
+          category: 'productivity',
+          scheduledTime: '10:00',
+          currentValue: 0,
+          targetValue: 1,
+          unit: 'block',
+          streak: 0,
+          completed: false,
+          importance: 'crucial',
+          isCrucial: true,
+          tags: ['Productivity'],
+        },
+        {
+          id: `h_${timestamp}_2`,
+          title: 'Hydrate & 5-Min Posture Stretch',
+          category: 'hydration',
+          scheduledTime: '15:00',
+          currentValue: 0,
+          targetValue: 1,
+          unit: 'session',
+          streak: 0,
+          completed: false,
+          importance: 'medium',
+          isCrucial: false,
+          tags: ['Health', 'Productivity'],
+        },
+        {
+          id: `h_${timestamp}_3`,
+          title: 'Plan Tomorrow Priorities & Clear Desk',
+          category: 'productivity',
+          scheduledTime: '18:00',
+          currentValue: 0,
+          targetValue: 1,
+          unit: 'check',
+          streak: 0,
+          completed: false,
+          importance: 'medium',
+          isCrucial: false,
+          tags: ['Productivity', 'Mindset'],
+        },
+      ];
+    }
+    // emotional_chat / default
+    return [
+      {
+        id: `h_${timestamp}_1`,
+        title: 'Morning Mindful Breathing & Water',
+        category: 'hydration',
+        scheduledTime: '08:00',
+        currentValue: 0,
+        targetValue: 1,
+        unit: 'session',
+        streak: 0,
+        completed: false,
+        importance: 'crucial',
+        isCrucial: true,
+        tags: ['Mindset', 'Health'],
+      },
+      {
+        id: `h_${timestamp}_2`,
+        title: 'Healthy Afternoon Walk',
+        category: 'health',
+        scheduledTime: '17:00',
+        currentValue: 0,
+        targetValue: 1,
+        unit: 'session',
+        streak: 0,
+        completed: false,
+        importance: 'medium',
+        isCrucial: false,
+        tags: ['Health', 'Fitness'],
+      },
+      {
+        id: `h_${timestamp}_3`,
+        title: `Evening Reflection with ${partner || 'Lexi'}`,
+        category: 'social',
+        scheduledTime: '21:30',
+        currentValue: 0,
+        targetValue: 1,
+        unit: 'chat',
+        streak: 0,
+        completed: false,
+        importance: 'crucial',
+        isCrucial: true,
+        tags: ['Social', 'Mindset'],
+      },
+    ];
+  };
+
   const handleSkip = () => {
+    const pName = companionName.trim() || 'Lexi';
+    const starterHabits = generateStarterHabits('fitness_habits', pName);
     onSaveProfile(
       {
         ...currentProfile,
         name: userName.trim() || 'Deepu',
         location: userLocation.trim() || 'Global',
-        partnerName: companionName.trim() || 'Lexi',
+        partnerName: pName,
         isOnboarded: true,
       },
-      true
+      true,
+      starterHabits
     );
     onClose();
   };
@@ -72,10 +266,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     else if (relationshipDynamic === 'disciplined_coach') tone = 'strict_caring';
     else if (relationshipDynamic === 'sassy_feisty') tone = 'sassy_feisty';
 
+    const pName = companionName.trim() || 'Lexi';
+    const starterHabits = generateStarterHabits(primaryGoal, pName);
+
     const updated: Partial<UserProfile> = {
       name: userName.trim() || 'Deepu',
       location: userLocation.trim() || 'India',
-      partnerName: companionName.trim() || 'Lexi',
+      partnerName: pName,
       partnerGender,
       voiceGender: partnerGender,
       partnerTone: tone,
@@ -85,7 +282,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       isOnboarded: true,
     };
 
-    onSaveProfile(updated, true);
+    onSaveProfile(updated, true, starterHabits);
     onClose();
   };
 
@@ -116,7 +313,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           <button
             id="onboarding-skip-btn"
             onClick={handleSkip}
-            className="px-3 py-1 rounded-full text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--primary-purple)] hover:bg-[var(--light-purple-surface)] transition-colors"
+            className="px-3 py-1 rounded-full text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--primary-purple)] hover:bg-[var(--light-purple-surface)] transition-colors cursor-pointer"
           >
             Skip & Start
           </button>
@@ -135,7 +332,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   Welcome to Lexi
                 </h2>
                 <p className="text-xs text-[var(--text-secondary)] max-w-xs mx-auto mt-0.5">
-                  Let's personalize your setup so your companion knows how to greet and support you.
+                  Let&apos;s personalize your setup so your companion knows how to greet and support you.
                 </p>
               </div>
 
@@ -210,7 +407,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       key={sug}
                       type="button"
                       onClick={() => setCompanionName(sug)}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                         companionName.toLowerCase() === sug.toLowerCase()
                           ? 'bg-[var(--primary-purple)] text-white shadow-xs scale-105'
                           : 'glass-button text-[var(--text-secondary)] border border-[var(--border)]'
@@ -229,10 +426,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
                 <div className="text-xs min-w-0">
                   <p className="font-bold text-[var(--text-primary)] truncate">
-                    "{userName ? `Hey ${userName}` : 'Hey'}, I'm {companionName || 'Lexi'}!"
+                    &ldquo;{userName ? `Hey ${userName}` : 'Hey'}, I&apos;m {companionName || 'Lexi'}!&rdquo;
                   </p>
                   <p className="text-[var(--text-secondary)] text-[11px]">
-                    I'm ready to accompany you through every step of your day.
+                    I&apos;m ready to accompany you through every step of your day.
                   </p>
                 </div>
               </div>
@@ -244,7 +441,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-200">
               <div className="text-center pb-1">
                 <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">
-                  Train {companionName || 'Lexi'}'s Personality
+                  Train {companionName || 'Lexi'}&apos;s Personality
                 </h2>
                 <p className="text-xs text-[var(--text-secondary)] max-w-xs mx-auto mt-0.5">
                   Choose how {companionName || 'Lexi'} should talk, motivate, and check in on you.
@@ -268,7 +465,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       key={opt.id}
                       type="button"
                       onClick={() => setRelationshipDynamic(opt.id)}
-                      className={`p-3 rounded-[16px] text-left transition-all ${
+                      className={`p-3 rounded-[16px] text-left transition-all cursor-pointer ${
                         relationshipDynamic === opt.id
                           ? 'bg-[var(--primary-purple)] text-white shadow-md'
                           : 'glass border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary-purple)]/50'
@@ -300,7 +497,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       key={opt.id}
                       type="button"
                       onClick={() => setPrimaryGoal(opt.id)}
-                      className={`p-3 rounded-[16px] text-left transition-all ${
+                      className={`p-3 rounded-[16px] text-left transition-all cursor-pointer ${
                         primaryGoal === opt.id
                           ? 'bg-[var(--primary-purple)] text-white shadow-md'
                           : 'glass border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary-purple)]/50'
@@ -331,7 +528,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       key={opt.id}
                       type="button"
                       onClick={() => setLanguageMix(opt.id)}
-                      className={`p-3 rounded-[16px] text-left transition-all ${
+                      className={`p-3 rounded-[16px] text-left transition-all cursor-pointer ${
                         languageMix === opt.id
                           ? 'bg-[var(--primary-purple)] text-white shadow-md'
                           : 'glass border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary-purple)]/50'
@@ -355,7 +552,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <button
               type="button"
               onClick={() => setStep((prev) => (prev - 1) as any)}
-              className="px-4 py-2 rounded-[12px] text-xs font-semibold glass-button text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2 rounded-[12px] text-xs font-semibold glass-button text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back</span>
@@ -369,7 +566,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               id="onboarding-next-btn"
               type="button"
               onClick={() => setStep((prev) => (prev + 1) as any)}
-              className="btn-primary-purple px-5 py-2.5 rounded-[12px] text-xs font-bold flex items-center gap-1.5"
+              className="btn-primary-purple px-5 py-2.5 rounded-[12px] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
             >
               <span>Next Step</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -379,7 +576,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               id="onboarding-finish-btn"
               type="button"
               onClick={handleComplete}
-              className="btn-primary-purple px-6 py-2.5 rounded-[12px] text-xs font-bold flex items-center gap-1.5"
+              className="btn-primary-purple px-6 py-2.5 rounded-[12px] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               <span>Start App with {companionName || 'Lexi'}</span>

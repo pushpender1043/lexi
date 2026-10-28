@@ -55,6 +55,7 @@ export interface UserProfile {
   relationshipDynamic?: string;
   primaryGoal?: string;
   languageMix?: string;
+  timeZone?: string;
 }
 
 export type HabitCategory =
@@ -79,6 +80,7 @@ export interface Habit {
   streak: number;
   completed: boolean;
   importance: 'crucial' | 'medium' | 'flexible';
+  isCrucial?: boolean;
   lastCompletedAt?: string;
   notes?: string;
 }

@@ -317,10 +317,10 @@ export const ParticleBackground: React.FC = () => {
   return (
     <div
       aria-hidden="true"
-      className="fixed inset-0 pointer-events-none overflow-hidden select-none -z-10"
-      style={{ zIndex: 0 }}
+      className="fixed inset-0 pointer-events-none overflow-hidden select-none"
+      style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}
     >
-      <canvas ref={canvasRef} className="block w-full h-full" />
+      <canvas ref={canvasRef} className="block w-full h-full pointer-events-none" />
     </div>
   );
 };

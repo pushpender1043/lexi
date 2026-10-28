@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { Mood } from '../types';
 
 export interface MoodConfig {
@@ -236,18 +236,18 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const decayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const setMood = (mood: Mood) => {
+  const setMood = useCallback((mood: Mood) => {
     if (decayTimerRef.current) {
       clearTimeout(decayTimerRef.current);
       decayTimerRef.current = null;
     }
     setCurrentMoodState(mood);
-  };
+  }, []);
 
   /**
    * Sets a mood that naturally eases back to 'calm' after a period of inactivity
    */
-  const triggerTransientMood = (mood: Mood, durationMs: number = 40000) => {
+  const triggerTransientMood = useCallback((mood: Mood, durationMs: number = 40000) => {
     if (decayTimerRef.current) {
       clearTimeout(decayTimerRef.current);
     }
@@ -256,7 +256,7 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     decayTimerRef.current = setTimeout(() => {
       setCurrentMoodState('calm');
     }, durationMs);
-  };
+  }, []);
 
   useEffect(() => {
     return () => {

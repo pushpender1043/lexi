@@ -19,6 +19,7 @@ import {
 } from '../utils/speech';
 import { AexoMascot } from './AexoMascot';
 import { motion, AnimatePresence } from 'motion/react';
+import { authFetch } from '../lib/firebase';
 
 export interface CallEndPayload {
   durationSec: number;
@@ -182,9 +183,8 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
     setCallHistory(updatedHistory);
 
     try {
-      const res = await fetch('/api/call-turn', {
+      const res = await authFetch('/api/call-turn', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           spokenText: utterance,
           history: updatedHistory,

@@ -1,0 +1,17 @@
+{
+  "short_name": "Lexi",
+  "name": "Lexi: AI SoulSync Companion",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0B0814",
+  "theme_color": "#7C3AED",
+  "display": "standalone",
+  "orientation": "portrait",
+  "description": "Hyper-personalized AI-powered virtual companion and habit tracker with dynamic emotional accountability, multimodal chat, voice calls, and schedule sync."
+}

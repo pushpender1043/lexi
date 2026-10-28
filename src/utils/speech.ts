@@ -1,4 +1,5 @@
 // Browser Text-to-Speech, Speech-to-Text, and Web Audio API visualizer for Lexi Virtual Companion
+import { authFetch } from '../lib/firebase';
 
 export interface SpeakOptions {
   gender?: 'female' | 'male';
@@ -95,9 +96,8 @@ export async function playCompanionVoice(text: string, options: SpeakOptions = {
   // Try server Gemini Flash TTS if requested and supported
   if (options.useGeminiTts) {
     try {
-      const res = await fetch('/api/tts', {
+      const res = await authFetch('/api/tts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: text.slice(0, 300),
           voiceGender: options.gender || 'female',

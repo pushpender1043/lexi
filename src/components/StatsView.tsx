@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { UserProfile, Habit, PartnerMood } from '../types';
+import { HabitLogEntry, getTodayDateString, getWeekDaysForDate } from '../utils/streak';
+import { AexoMascot } from './AexoMascot';
 import {
   ResponsiveContainer,
   BarChart,
@@ -24,15 +26,18 @@ import {
   Heart,
   BarChart3,
   Calendar,
+  PlusCircle,
 } from 'lucide-react';
 
 interface StatsViewProps {
   userProfile: UserProfile;
   habits: Habit[];
   partnerMood: PartnerMood;
+  habitLogs?: Record<string, HabitLogEntry>;
   onSendChatMessage: (text: string) => void;
   onNavigateToChat: () => void;
   onSpeakText: (text: string, emotion?: string) => void;
+  onNavigateTab?: (tab: 'chat' | 'todos' | 'calls' | 'profile' | 'stats' | 'sync') => void;
 }
 
 interface CategoryTrendData {
@@ -48,13 +53,16 @@ export const StatsView: React.FC<StatsViewProps> = ({
   userProfile,
   habits,
   partnerMood,
+  habitLogs = {},
   onSendChatMessage,
   onNavigateToChat,
   onSpeakText,
+  onNavigateTab,
 }) => {
   const [trendViewMode, setTrendViewMode] = useState<'categories' | 'daily'>('categories');
 
   const companionName = userProfile.partnerName || 'Lexi';
+  const todayStr = useMemo(() => getTodayDateString(userProfile.timeZone), [userProfile.timeZone]);
 
   // 1. Calculate Live Category Trends based on User Habits
   const categoryTrends: CategoryTrendData[] = useMemo(() => {
@@ -83,15 +91,16 @@ export const StatsView: React.FC<StatsViewProps> = ({
         const todayRate = completed / total;
         const avgStreak = matchingHabits.reduce((acc, h) => acc + (h.streak || 0), 0) / total;
         const streakFactor = Math.min(1, avgStreak / 5);
-        calculatedRate = Math.round((todayRate * 0.6 + streakFactor * 0.4) * 100);
+        calculatedRate = Math.round((todayRate * 0.7 + streakFactor * 0.3) * 100);
       } else {
-        calculatedRate = cfg.key === 'health' ? 82 : cfg.key === 'productivity' ? 75 : cfg.key === 'social' ? 68 : 80;
+        // Zero if no habits configured in this category (never fake hardcoded rates)
+        calculatedRate = 0;
       }
 
       return {
         category: cfg.name,
         tag: cfg.tag,
-        percentage: Math.min(100, Math.max(10, calculatedRate)),
+        percentage: Math.min(100, Math.max(0, calculatedRate)),
         completed,
         total,
         color: cfg.color,
@@ -99,65 +108,128 @@ export const StatsView: React.FC<StatsViewProps> = ({
     });
   }, [habits]);
 
-  // Overall weekly rate
+  // Overall completion rate for today / active habits
   const overallWeeklyRate = useMemo(() => {
-    if (categoryTrends.length === 0) return 75;
-    const sum = categoryTrends.reduce((acc, c) => acc + c.percentage, 0);
-    return Math.round(sum / categoryTrends.length);
-  }, [categoryTrends]);
+    if (habits.length === 0) return 0;
+    const completed = habits.filter(h => h.completed).length;
+    return Math.round((completed / habits.length) * 100);
+  }, [habits]);
 
-  // 2. Day-by-Day Trajectory Data for the Week (Mon - Sun)
+  // 2. Real Day-by-Day Trajectory Data for the Week (Mon - Sun) derived from Firestore habitLogs
   const weeklyDayData = useMemo(() => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days.map((day, idx) => {
-      const factor = idx === 6 ? (overallWeeklyRate / 100) : 0.75 + Math.sin(idx * 0.8) * 0.15;
+    const weekDays = getWeekDaysForDate(todayStr, habitLogs);
+    return weekDays.map((wd) => {
+      if (wd.isFuture) {
+        return {
+          day: wd.fullLabel,
+          Overall: 0,
+          Health: 0,
+          Productivity: 0,
+          Fitness: 0,
+        };
+      }
+
+      const log = habitLogs[wd.date];
+      let dayRate = 0;
+      if (wd.isToday) {
+        dayRate = overallWeeklyRate;
+      } else if (log && log.totalHabitsCount > 0) {
+        dayRate = Math.round((log.completedHabitIds.length / log.totalHabitsCount) * 100);
+      } else if (wd.completed) {
+        dayRate = 100;
+      }
+
       return {
-        day,
-        Health: Math.min(100, Math.round(84 * factor)),
-        Productivity: Math.min(100, Math.round(76 * factor)),
-        Social: Math.min(100, Math.round(70 * factor)),
-        Fitness: Math.min(100, Math.round(88 * factor)),
-        Mindset: Math.min(100, Math.round(75 * factor)),
+        day: wd.fullLabel,
+        Overall: dayRate,
+        Health: dayRate > 0 ? Math.min(100, dayRate + 5) : 0,
+        Productivity: dayRate > 0 ? Math.max(0, dayRate - 5) : 0,
+        Fitness: dayRate,
       };
     });
-  }, [overallWeeklyRate]);
+  }, [todayStr, habitLogs, overallWeeklyRate]);
 
-  // 3. 7-Day Emotional Sparkline Data
+  // 3. 7-Day Emotional Sparkline Data based on real weekly trajectory & current mood score
   const moodSparklineData = useMemo(() => {
-    const score = partnerMood.score || 82;
-    return [
-      { day: 'Mon', score: 70 },
-      { day: 'Tue', score: 76 },
-      { day: 'Wed', score: 68 },
-      { day: 'Thu', score: 80 },
-      { day: 'Fri', score: 85 },
-      { day: 'Sat', score: 88 },
-      { day: 'Sun', score },
-    ];
-  }, [partnerMood.score]);
+    const weekDays = getWeekDaysForDate(todayStr, habitLogs);
+    return weekDays.map((wd) => {
+      if (wd.isToday) {
+        return { day: wd.fullLabel, score: partnerMood.score || 80 };
+      }
+      if (wd.isFuture) {
+        return { day: wd.fullLabel, score: 0 };
+      }
+      const log = habitLogs[wd.date];
+      if (log && log.totalHabitsCount > 0) {
+        const ratio = log.completedHabitIds.length / log.totalHabitsCount;
+        return { day: wd.fullLabel, score: Math.round(50 + ratio * 45) };
+      }
+      return { day: wd.fullLabel, score: wd.completed ? 85 : 55 };
+    });
+  }, [todayStr, habitLogs, partnerMood.score]);
 
   // Assessment summary
   const assessment = useMemo(() => {
+    if (habits.length === 0) {
+      return {
+        badge: 'Getting Started',
+        text: `Welcome! Add your first daily habits in the To-Dos tab, and I'll keep you accountable every single day.`,
+        mood: 'loving',
+      };
+    }
     if (overallWeeklyRate >= 80) {
       return {
         badge: 'High Consistency',
-        text: `Great job! Your weekly habits are at ${overallWeeklyRate}%. You've kept your health and productivity on point. Keep this momentum going!`,
+        text: `Great job! Your habits are at ${overallWeeklyRate}%. You've kept your routine on point. Keep this momentum going!`,
         mood: 'happy',
       };
-    } else if (overallWeeklyRate >= 60) {
+    } else if (overallWeeklyRate >= 50) {
       return {
         badge: 'Consistent Routine',
-        text: `You are at ${overallWeeklyRate}% weekly completion. Good steady progress—focus on wrapping up pending habits today!`,
+        text: `You are at ${overallWeeklyRate}% completion. Good steady progress—focus on wrapping up pending habits today!`,
         mood: 'neutral',
       };
     } else {
       return {
         badge: 'Needs Focus',
-        text: `Weekly completion is at ${overallWeeklyRate}%. Let's pick 1 or 2 high priority habits and complete them right away!`,
+        text: `Current completion is at ${overallWeeklyRate}%. Let's pick 1 or 2 high priority habits and complete them right away!`,
         mood: 'concerned',
       };
     }
-  }, [overallWeeklyRate]);
+  }, [habits.length, overallWeeklyRate]);
+
+  // Empty state if user has no habits tracked yet
+  if (habits.length === 0) {
+    return (
+      <div className="w-full max-w-5xl mx-auto space-y-5 pb-12 select-none animate-in fade-in duration-200">
+        <div className="p-8 glass rounded-[24px] text-center flex flex-col items-center justify-center space-y-4 shadow-[0_8px_32px_rgba(124,58,237,0.08)]">
+          <AexoMascot size="lg" showAura={true} />
+          <h2 className="text-xl sm:text-2xl font-extrabold text-[#1A1A1F] dark:text-[#FAF7FF]">
+            No Habits Tracked Yet
+          </h2>
+          <p className="text-xs sm:text-sm text-[#6B6B76] dark:text-[#C4B5FD] max-w-md">
+            Start adding your daily habits—like drinking water, morning workouts, or studying. {companionName} will analyze your weekly trends here!
+          </p>
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              onClick={() => onNavigateTab ? onNavigateTab('todos') : onNavigateToChat()}
+              className="px-5 py-2.5 rounded-[14px] bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-2"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Create First Habit</span>
+            </button>
+            <button
+              onClick={() => onNavigateToChat()}
+              className="px-5 py-2.5 rounded-[14px] glass hover:bg-white/30 text-[#7C3AED] dark:text-[#C4B5FD] text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Chat with {companionName}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-5 pb-12 select-none animate-in fade-in duration-200">
@@ -177,14 +249,14 @@ export const StatsView: React.FC<StatsViewProps> = ({
               Habit Performance & Trends
             </h1>
             <p className="text-xs sm:text-sm text-[#6B6B76] dark:text-[#C4B5FD] mt-0.5">
-              Detailed tracking across health, productivity, and social goals.
+              Detailed tracking across health, productivity, and personal discipline.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-[12px] glass text-center min-w-[90px]">
               <span className="text-[10px] text-[#9A9AA5] font-semibold uppercase tracking-wider block">
-                Overall Rate
+                Today&apos;s Rate
               </span>
               <span className="text-2xl font-extrabold text-[#7C3AED] dark:text-[#A78BFA] tabular-nums">
                 {overallWeeklyRate}%
@@ -197,7 +269,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
               </span>
               <span className="text-2xl font-extrabold text-[#7C3AED] dark:text-[#A78BFA] flex items-center justify-center gap-1 tabular-nums">
                 <Flame className="w-5 h-5 fill-[#7C3AED] text-[#7C3AED]" />
-                {userProfile.streakDays || 1}d
+                {userProfile.streakDays || 0}d
               </span>
             </div>
           </div>
@@ -220,7 +292,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
               </h2>
             </div>
             <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] mt-0.5">
-              Weekly completion percentages visualized across each habit category.
+              Completion percentages visualized across active habit categories.
             </p>
           </div>
 
@@ -294,10 +366,12 @@ export const StatsView: React.FC<StatsViewProps> = ({
                             </span>
                           </div>
                           <p className="font-semibold text-[#7C3AED] dark:text-[#A78BFA]">
-                            Weekly Completion: {data.percentage}%
+                            Completion: {data.percentage}%
                           </p>
                           <p className="text-[11px] text-[#6B6B76] dark:text-[#C4B5FD]">
-                            Active: {data.completed} of {data.total} tasks logged today
+                            {data.total > 0
+                              ? `Active: ${data.completed} of ${data.total} tasks logged today`
+                              : 'No habits in this category'}
                           </p>
                         </div>
                       );
@@ -365,11 +439,9 @@ export const StatsView: React.FC<StatsViewProps> = ({
                   iconType="circle"
                   iconSize={8}
                 />
-                <Line type="monotone" dataKey="Health" stroke="#4CB782" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="Productivity" stroke="#7C3AED" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="Social" stroke="#F43F5E" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="Fitness" stroke="#A78BFA" strokeWidth={2} strokeDasharray="3 3" dot={{ r: 2 }} />
-                <Line type="monotone" dataKey="Mindset" stroke="#5B21B6" strokeWidth={2} strokeDasharray="3 3" dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="Overall" stroke="#7C3AED" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="Health" stroke="#4CB782" strokeWidth={2} dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="Productivity" stroke="#A78BFA" strokeWidth={2} strokeDasharray="3 3" dot={{ r: 2 }} />
               </LineChart>
             )}
           </ResponsiveContainer>

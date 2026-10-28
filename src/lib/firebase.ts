@@ -155,6 +155,67 @@ export async function signOutUser(): Promise<void> {
 }
 
 /**
+ * Retrieve current Firebase ID token for authenticated server requests
+ */
+export async function getAuthToken(): Promise<string | null> {
+  try {
+    if (!auth.currentUser) return null;
+    return await auth.currentUser.getIdToken();
+  } catch (err) {
+    console.warn('Could not retrieve Firebase auth token:', err);
+    return null;
+  }
+}
+
+/**
+ * Authenticated API Fetch Helper
+ * Attaches Authorization Bearer token to all backend /api/* calls
+ */
+export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getAuthToken();
+  const headers = new Headers(options.headers || {});
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
+
+/**
+ * GDPR / DPDP Article 17 "Right to Erasure"
+ * Fully deletes the user's profile document and signs out
+ */
+export async function deleteUserAccountAndData(userId: string): Promise<void> {
+  if (!isClientAuthorizedFor(userId)) {
+    throw new Error('Unauthorized deletion request');
+  }
+
+  try {
+    // Delete root user document
+    await deleteDoc(doc(db, 'users', userId));
+
+    // Clear all client state
+    localStorage.clear();
+
+    // If Firebase Auth user, delete user account or sign out
+    if (auth.currentUser) {
+      try {
+        await auth.currentUser.delete();
+      } catch {
+        await signOut(auth);
+      }
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `users/${userId}`);
+  }
+}
+
+/**
  * Check if the current client has a verified Firebase Auth session matching the requested userId
  */
 function isClientAuthorizedFor(userId: string): boolean {
@@ -306,6 +367,23 @@ export async function saveUserMemory(userId: string, memory: MemoryItem): Promis
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+/**
+ * Delete User Memory fact from /users/{userId}/memories/{memoryId}
+ */
+export async function deleteUserMemory(userId: string, memoryId: string): Promise<void> {
+  if (!isClientAuthorizedFor(userId)) {
+    return;
+  }
+
+  const path = `users/${userId}/memories/${memoryId}`;
+  try {
+    const memoryDocRef = doc(db, 'users', userId, 'memories', memoryId);
+    await deleteDoc(memoryDocRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 
@@ -564,6 +642,106 @@ export function subscribeCalendarEvents(
       const items: CalendarEvent[] = [];
       snap.forEach((docSnap) => items.push(docSnap.data() as CalendarEvent));
       onUpdate(items);
+    },
+    (error) => {
+      if (onError) onError(error);
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  );
+}
+
+/**
+ * Synchronize daily habit log to /users/{userId}/habitLogs/{date}
+ */
+export async function syncHabitLog(
+  userId: string,
+  dateOrLog: string | any,
+  maybeLogData?: any
+): Promise<void> {
+  if (!isClientAuthorizedFor(userId)) return;
+  const date = typeof dateOrLog === 'string' ? dateOrLog : dateOrLog?.date;
+  const logData = typeof dateOrLog === 'string' ? maybeLogData : dateOrLog;
+  if (!date) return;
+  const path = `users/${userId}/habitLogs/${date}`;
+  try {
+    const docRef = doc(db, 'users', userId, 'habitLogs', date);
+    await setDoc(docRef, {
+      ...logData,
+      date,
+      userId,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+/**
+ * Subscribe to all habit logs under /users/{userId}/habitLogs
+ */
+export function subscribeHabitLogs(
+  userId: string,
+  onUpdate: (logs: Record<string, any>) => void,
+  onError?: (err: any) => void
+): Unsubscribe {
+  if (!isClientAuthorizedFor(userId)) return () => {};
+  const path = `users/${userId}/habitLogs`;
+  const colRef = collection(db, 'users', userId, 'habitLogs');
+  return onSnapshot(
+    colRef,
+    (snap) => {
+      const logs: Record<string, any> = {};
+      snap.forEach((docSnap) => {
+        logs[docSnap.id] = docSnap.data();
+      });
+      onUpdate(logs);
+    },
+    (error) => {
+      if (onError) onError(error);
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  );
+}
+
+/**
+ * Synchronize daily water log to /users/{userId}/waterLogs/{date}
+ */
+export async function syncWaterLog(userId: string, date: string, glasses: number): Promise<void> {
+  if (!isClientAuthorizedFor(userId)) return;
+  const path = `users/${userId}/waterLogs/${date}`;
+  try {
+    const docRef = doc(db, 'users', userId, 'waterLogs', date);
+    await setDoc(docRef, {
+      date,
+      glasses,
+      userId,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+/**
+ * Subscribe to all water logs under /users/{userId}/waterLogs
+ */
+export function subscribeWaterLogs(
+  userId: string,
+  onUpdate: (logs: Record<string, number>) => void,
+  onError?: (err: any) => void
+): Unsubscribe {
+  if (!isClientAuthorizedFor(userId)) return () => {};
+  const path = `users/${userId}/waterLogs`;
+  const colRef = collection(db, 'users', userId, 'waterLogs');
+  return onSnapshot(
+    colRef,
+    (snap) => {
+      const logs: Record<string, number> = {};
+      snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        logs[docSnap.id] = d.glasses || 0;
+      });
+      onUpdate(logs);
     },
     (error) => {
       if (onError) onError(error);

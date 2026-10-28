@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { UserProfile, Habit, PartnerMood } from '../types';
+import { HabitLogEntry, getTodayDateString, getWeekDaysForDate } from '../utils/streak';
 import { GlassCard, GlassButton, ProgressRing } from './ui';
 import confetti from 'canvas-confetti';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
   Flame,
   Phone,
   CheckCircle2,
   Circle,
-  Heart,
   Droplets,
   Plus,
   MessageSquare,
@@ -17,18 +17,22 @@ import {
   ArrowRight,
   Check,
   RefreshCw,
+  PlusCircle,
 } from 'lucide-react';
 
 interface DashboardViewProps {
   userProfile: UserProfile;
   partnerMood?: PartnerMood;
   habits: Habit[];
+  habitLogs?: Record<string, HabitLogEntry>;
+  waterLogs?: Record<string, number>;
   onToggleHabit?: (id: string) => void;
+  onAddWater?: (amountMl: number) => void;
   onSendMessage: (text: string) => void;
   onStartCall: () => void;
   onSelectAction?: (actionTitle: string) => void;
   onNavigateTab?: (tab: 'chat' | 'todos' | 'calls' | 'profile' | 'stats' | 'sync') => void;
-  onQuickMoodBoost?: () => void;
+  onOpenMoodDetails?: () => void;
 }
 
 const DAILY_AFFIRMATIONS = [
@@ -42,14 +46,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   userProfile,
   partnerMood,
   habits,
+  habitLogs = {},
+  waterLogs = {},
   onToggleHabit,
+  onAddWater,
   onSendMessage,
   onStartCall,
   onNavigateTab,
-  onQuickMoodBoost,
+  onOpenMoodDetails,
 }) => {
   const [affirmationIndex, setAffirmationIndex] = useState(0);
-  const [boostFeedback, setBoostFeedback] = useState(false);
   const [waterLoggedFeedback, setWaterLoggedFeedback] = useState(false);
 
   const completedCount = habits.filter((h) => h.completed).length;
@@ -57,7 +63,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const habitPercentage = totalHabits > 0 ? Math.round((completedCount / totalHabits) * 100) : 0;
   const userName = userProfile.name || 'Friend';
   const companionName = userProfile.partnerName || 'Lexi';
-  const streakDays = userProfile.streakDays || 1;
+  const streakDays = userProfile.streakDays || 0;
+  const bestStreak = userProfile.bestStreak || streakDays;
+
+  const todayStr = useMemo(() => getTodayDateString(userProfile.timeZone), [userProfile.timeZone]);
+  const weekDays = useMemo(() => getWeekDaysForDate(todayStr, habitLogs), [todayStr, habitLogs]);
+
+  // Real water intake for today from Firestore waterLogs
+  const todayWaterMl = waterLogs[todayStr] ?? 0;
+  const waterTargetMl = 2500;
+  const waterPercentage = Math.min(100, Math.round((todayWaterMl / waterTargetMl) * 100));
 
   // Time-aware greeting
   const getGreeting = () => {
@@ -65,26 +80,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
-  };
-
-  const handleTriggerMoodBoost = () => {
-    setBoostFeedback(true);
-    setTimeout(() => setBoostFeedback(false), 2500);
-
-    if (onQuickMoodBoost) {
-      onQuickMoodBoost();
-    } else {
-      onSendMessage(`Thinking of you right now, ${companionName}! Sending you my positive energy ❤️`);
-    }
-
-    try {
-      confetti({
-        particleCount: 35,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#A78BFA', '#7C3AED', '#EC4899'],
-      });
-    } catch {}
   };
 
   const handleQuickAddWater = () => {
@@ -96,6 +91,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     );
     if (waterHabit && onToggleHabit && !waterHabit.completed) {
       onToggleHabit(waterHabit.id);
+    }
+
+    if (onAddWater) {
+      onAddWater(250);
     }
 
     setWaterLoggedFeedback(true);
@@ -130,20 +129,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
-  const weekDays = [
-    { label: 'M', completed: true, isToday: false },
-    { label: 'T', completed: true, isToday: false },
-    { label: 'W', completed: streakDays >= 3, isToday: false },
-    { label: 'T', completed: streakDays >= 4, isToday: true },
-    { label: 'F', completed: completedCount > 0, isToday: false },
-    { label: 'S', completed: false, isToday: false },
-    { label: 'S', completed: false, isToday: false },
-  ];
-
   return (
     <div className="w-full max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-20 md:pb-12 select-none">
       
-      {/* 1. Hero Greeting with Time-Aware Subtext & Tiny Online Pulse */}
+      {/* 1. Hero Greeting with Time-Aware Subtext */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -151,33 +140,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 sm:pt-4"
       >
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-2 h-2 rounded-full bg-[#4CB782] animate-pulse" />
-            <span className="text-xs font-semibold text-[#6B6B76] dark:text-[#A78BFA]">
-              {companionName} is online & listening
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF]">
             {getGreeting()},{' '}
             <span className="text-[#7C3AED] dark:text-[#A78BFA]">{userName}</span>
           </h1>
           <p className="text-xs sm:text-sm text-[#6B6B76] dark:text-[#9A9AA5] mt-0.5">
-            You&apos;re on a {streakDays}-day streak. Keep your momentum going today!
+            {streakDays > 0
+              ? `You're on a ${streakDays}-day streak. Keep your momentum going today!`
+              : `Start your daily streak today. Let's make every habit count!`}
           </p>
         </div>
 
-        {/* Hero Quick Actions */}
+        {/* Hero Quick Action */}
         <div className="flex items-center gap-2">
-          <GlassButton
-            variant="secondary"
-            size="md"
-            onClick={handleTriggerMoodBoost}
-            className="text-rose-600 dark:text-rose-400"
-          >
-            <Heart className={`w-4 h-4 ${boostFeedback ? 'fill-current' : ''}`} />
-            <span>{boostFeedback ? 'Loved! ❤️' : 'Quick Affection'}</span>
-          </GlassButton>
-
           <GlassButton
             variant="primary"
             size="md"
@@ -192,7 +167,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* 2. Responsive Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         
-        {/* Card A: Daily Streak with Animated Ring & Week Dots */}
+        {/* Card A: Daily Streak with Real Week Days Strip */}
         <GlassCard className="p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -214,14 +189,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </span>
             </div>
 
-            {/* 7-Day Rhythm Circles */}
+            {/* 7-Day Rhythm Circles (Calculated from Firestore habitLogs) */}
             <div className="grid grid-cols-7 gap-1.5 py-2">
               {weekDays.map((day, idx) => (
                 <div
                   key={idx}
                   className={`flex flex-col items-center py-2 rounded-xl text-center transition-all ${
                     day.isToday
-                      ? 'bg-[#7C3AED] text-white shadow-sm shadow-[#7C3AED]/30'
+                      ? 'bg-[#7C3AED] text-white shadow-sm shadow-[#7C3AED]/30 ring-2 ring-[#A78BFA]/40'
                       : day.completed
                       ? 'bg-[#4CB782]/15 text-[#4CB782]'
                       : 'bg-black/5 dark:bg-white/5 text-[#9A9AA5]'
@@ -244,8 +219,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           <div className="pt-3 border-t border-[rgba(124,58,237,0.1)] flex items-center justify-between text-xs text-[#6B6B76] dark:text-[#9A9AA5]">
-            <span>Best record: 14 days</span>
-            <span className="text-[#4CB782] font-semibold">Active Streak</span>
+            <span>Best record: {bestStreak} {bestStreak === 1 ? 'day' : 'days'}</span>
+            <span className={streakDays > 0 ? "text-[#4CB782] font-semibold" : "text-[#9A9AA5]"}>
+              {streakDays > 0 ? 'Active Streak' : 'Pending Today'}
+            </span>
           </div>
         </GlassCard>
 
@@ -263,60 +240,77 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 onClick={() => onNavigateTab?.('todos')}
                 className="text-xs font-semibold text-[#7C3AED] dark:text-[#A78BFA] hover:underline cursor-pointer"
               >
-                Manage
+                {totalHabits > 0 ? 'Manage' : '+ Add'}
               </button>
             </div>
 
-            <div className="flex items-center gap-4 py-2">
-              <ProgressRing progress={habitPercentage} size={68} strokeWidth={6}>
-                <span className="text-xs font-bold font-mono text-[#1A1A1F] dark:text-[#FAF7FF] tabular-nums">
-                  {completedCount}/{totalHabits}
-                </span>
-              </ProgressRing>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
-                  {habitPercentage}% Completed
-                </div>
-                <p className="text-xs text-[#6B6B76] dark:text-[#9A9AA5] truncate">
-                  {completedCount === totalHabits && totalHabits > 0
-                    ? '🎉 All habits completed for today!'
-                    : `${totalHabits - completedCount} habits left to check off`}
+            {totalHabits === 0 ? (
+              <div className="py-6 px-2 text-center flex flex-col items-center justify-center space-y-2">
+                <p className="text-xs text-[#6B6B76] dark:text-[#9A9AA5]">
+                  No habits added yet.
                 </p>
-              </div>
-            </div>
-
-            {/* Quick mini habit toggles */}
-            <div className="space-y-1.5 mt-2">
-              {habits.slice(0, 3).map((habit) => (
-                <div
-                  key={habit.id}
-                  onClick={() => handleToggleHabitWithBurst(habit.id)}
-                  className={`px-3 py-2 rounded-xl flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer ${
-                    habit.completed
-                      ? 'bg-[#4CB782]/10 text-[#4CB782]'
-                      : 'bg-black/5 dark:bg-white/5 hover:bg-[#F3EBFF] dark:hover:bg-white/10 text-[#1A1A1F] dark:text-[#FAF7FF]'
-                  }`}
+                <button
+                  onClick={() => onNavigateTab?.('todos')}
+                  className="px-3.5 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {habit.completed ? (
-                      <CheckCircle2 className="w-4 h-4 text-[#4CB782] shrink-0" />
-                    ) : (
-                      <Circle className="w-4 h-4 text-[#9A9AA5] shrink-0" />
-                    )}
-                    <span className={`truncate font-medium ${habit.completed ? 'line-through opacity-70' : ''}`}>
-                      {habit.title}
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Create First Habit</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-4 py-2">
+                  <ProgressRing progress={habitPercentage} size={68} strokeWidth={6}>
+                    <span className="text-xs font-bold font-mono text-[#1A1A1F] dark:text-[#FAF7FF] tabular-nums">
+                      {completedCount}/{totalHabits}
                     </span>
+                  </ProgressRing>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                      {habitPercentage}% Completed
+                    </div>
+                    <p className="text-xs text-[#6B6B76] dark:text-[#9A9AA5] truncate">
+                      {completedCount === totalHabits
+                        ? '🎉 All habits completed for today!'
+                        : `${totalHabits - completedCount} habits left to check off`}
+                    </p>
                   </div>
-                  <span className="text-[10px] text-[#9A9AA5] font-mono shrink-0">
-                    {habit.scheduledTime}
-                  </span>
                 </div>
-              ))}
-            </div>
+
+                {/* Quick mini habit toggles */}
+                <div className="space-y-1.5 mt-2">
+                  {habits.slice(0, 3).map((habit) => (
+                    <div
+                      key={habit.id}
+                      onClick={() => handleToggleHabitWithBurst(habit.id)}
+                      className={`px-3 py-2 rounded-xl flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer ${
+                        habit.completed
+                          ? 'bg-[#4CB782]/10 text-[#4CB782]'
+                          : 'bg-black/5 dark:bg-white/5 hover:bg-[#F3EBFF] dark:hover:bg-white/10 text-[#1A1A1F] dark:text-[#FAF7FF]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {habit.completed ? (
+                          <CheckCircle2 className="w-4 h-4 text-[#4CB782] shrink-0" />
+                        ) : (
+                          <Circle className="w-4 h-4 text-[#9A9AA5] shrink-0" />
+                        )}
+                        <span className={`truncate font-medium ${habit.completed ? 'line-through opacity-70' : ''}`}>
+                          {habit.title}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-[#9A9AA5] font-mono shrink-0">
+                        {habit.scheduledTime}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </GlassCard>
 
-        {/* Card C: Water Tracker with Animated Wave Fill & Quick +250ml Chip */}
+        {/* Card C: Water Tracker with Real Firestore Water Log */}
         <GlassCard className="p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -342,53 +336,63 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {/* Visual Glass Water Level */}
             <div className="relative h-24 rounded-2xl bg-sky-500/10 dark:bg-sky-950/20 border border-sky-400/20 overflow-hidden flex items-end p-3">
               <motion.div
-                initial={{ height: '35%' }}
-                animate={{ height: waterLoggedFeedback ? '75%' : '60%' }}
+                initial={{ height: '0%' }}
+                animate={{ height: `${Math.max(10, waterPercentage)}%` }}
                 transition={{ type: 'spring', damping: 20 }}
                 className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-sky-500/40 via-sky-400/30 to-sky-300/20 backdrop-blur-xs"
               />
               <div className="relative z-10 w-full flex items-center justify-between">
                 <div>
-                  <span className="text-xl font-extrabold text-[#1A1A1F] dark:text-[#FAF7FF] font-mono">
-                    1,750
+                  <span className="text-xl font-extrabold text-[#1A1A1F] dark:text-[#FAF7FF] font-mono tabular-nums">
+                    {todayWaterMl.toLocaleString()}
                   </span>
-                  <span className="text-xs text-[#6B6B76] dark:text-[#9A9AA5] ml-1">/ 2,500 ml</span>
+                  <span className="text-xs text-[#6B6B76] dark:text-[#9A9AA5] ml-1">/ {waterTargetMl.toLocaleString()} ml</span>
                 </div>
                 <span className="text-xs font-semibold text-sky-600 dark:text-sky-400 bg-white/70 dark:bg-black/30 px-2 py-0.5 rounded-md">
-                  70% Goal
+                  {waterPercentage}% Goal
                 </span>
               </div>
             </div>
           </div>
 
           <p className="text-xs text-[#6B6B76] dark:text-[#9A9AA5] pt-3 mt-1 border-t border-[rgba(124,58,237,0.1)]">
-            Hydration fuels focus and physical vitality. Take another sip!
+            {todayWaterMl >= waterTargetMl
+              ? '💧 Goal reached! Hydration fuels focus and physical vitality.'
+              : 'Hydration fuels focus and physical vitality. Take another sip!'}
           </p>
         </GlassCard>
 
         {/* Card D: Companion Mood / Emotional Check-In */}
         <GlassCard className="p-5 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div
+              onClick={onOpenMoodDetails}
+              className="flex items-center justify-between mb-3 cursor-pointer group"
+              title="Click to view mood details & nakhre meter"
+            >
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[#7C3AED]" />
-                <h3 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                <Sparkles className="w-5 h-5 text-[#7C3AED] group-hover:scale-110 transition-transform" />
+                <h3 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF] group-hover:text-[#7C3AED] transition-colors">
                   {companionName}&apos;s Mood
                 </h3>
               </div>
-              <span className="text-xs font-semibold capitalize text-[#7C3AED] dark:text-[#A78BFA]">
+              <span className="text-xs font-semibold capitalize text-[#7C3AED] dark:text-[#A78BFA] bg-purple-500/10 px-2 py-0.5 rounded-md">
                 {partnerMood?.status || 'Loving'} ({partnerMood?.score || 85}%)
               </span>
             </div>
 
-            <div className="p-3 rounded-2xl bg-[#F3EBFF]/60 dark:bg-white/5 border border-[rgba(124,58,237,0.15)] mb-3">
+            <div
+              onClick={onOpenMoodDetails}
+              className="p-3 rounded-2xl bg-[#F3EBFF]/60 dark:bg-white/5 border border-[rgba(124,58,237,0.15)] mb-3 cursor-pointer hover:border-[rgba(124,58,237,0.3)] transition-colors"
+              title="Click to cheer up or view feelings"
+            >
               <p className="text-xs text-[#1A1A1F] dark:text-[#FAF7FF] italic leading-relaxed">
-                &ldquo;{partnerMood?.lastReason || `${companionName} is happy seeing your daily commitment to habits!`}&rdquo;
+                &ldquo;{partnerMood?.lastReason || `${companionName} is keeping you accountable for today's habits!`}&rdquo;
               </p>
             </div>
 
             {/* Affection bar */}
-            <div>
+            <div onClick={onOpenMoodDetails} className="cursor-pointer" title="Affection meter">
               <div className="flex items-center justify-between text-xs text-[#6B6B76] dark:text-[#9A9AA5] mb-1">
                 <span>Affection Level</span>
                 <span className="font-mono">{partnerMood?.score || 85}/100</span>
@@ -396,19 +400,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
                 <div
                   style={{ width: `${partnerMood?.score || 85}%` }}
-                  className="h-full rounded-full bg-gradient-to-r from-[#A78BFA] to-[#7C3AED]"
+                  className="h-full rounded-full bg-gradient-to-r from-[#A78BFA] to-[#7C3AED] transition-all duration-300"
                 />
               </div>
             </div>
           </div>
 
-          <button
-            onClick={() => onNavigateTab?.('chat')}
-            className="pt-3 border-t border-[rgba(124,58,237,0.1)] flex items-center justify-between text-xs text-[#7C3AED] dark:text-[#A78BFA] font-semibold hover:underline cursor-pointer"
-          >
-            <span>Talk to {companionName}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="pt-3 border-t border-[rgba(124,58,237,0.1)] flex items-center justify-between text-xs">
+            <button
+              onClick={onOpenMoodDetails}
+              className="text-[#6B6B76] dark:text-[#9A9AA5] hover:text-[#7C3AED] dark:hover:text-[#A78BFA] cursor-pointer"
+            >
+              Heartbeat & Nakhre
+            </button>
+            <button
+              onClick={() => onNavigateTab?.('chat')}
+              className="text-[#7C3AED] dark:text-[#A78BFA] font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+            >
+              <span>Talk to {companionName}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </GlassCard>
 
         {/* Card E: Quick Actions Drawer */}

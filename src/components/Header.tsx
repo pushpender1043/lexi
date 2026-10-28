@@ -22,6 +22,7 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onOpenLogin?: () => void;
   onSignOut?: () => void;
+  onOpenMoodModal?: () => void;
   activeTab: 'dashboard' | 'chat' | 'todos' | 'calls' | 'profile' | 'stats' | 'sync';
   setActiveTab: (tab: any) => void;
   completedHabitsCount?: number;
@@ -31,10 +32,12 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   userProfile,
+  partnerMood,
   voiceEnabled,
   onToggleVoice,
   onOpenSettings,
   onOpenLogin,
+  onOpenMoodModal,
   activeTab,
   setActiveTab,
   completedHabitsCount = 0,
@@ -44,6 +47,24 @@ export const Header: React.FC<HeaderProps> = ({
   const companionName = userProfile.partnerName || 'noni';
   const isAuthenticated = userProfile.isAuthenticated;
   const userInitial = (userProfile.name || userProfile.userEmail || 'U')[0].toUpperCase();
+
+  const getMoodColor = (status?: string) => {
+    switch (status) {
+      case 'ecstatic':
+      case 'loving':
+        return 'bg-pink-500 shadow-xs shadow-pink-500/50';
+      case 'happy':
+        return 'bg-[#4CB782] shadow-xs shadow-emerald-500/50';
+      case 'neutral':
+        return 'bg-[#8B5CF6] shadow-xs shadow-purple-500/50';
+      case 'annoyed':
+        return 'bg-amber-500 shadow-xs shadow-amber-500/50';
+      case 'angry':
+        return 'bg-rose-500 shadow-xs shadow-rose-500/50';
+      default:
+        return 'bg-[#4CB782]';
+    }
+  };
 
   const navLinks = [
     { id: 'dashboard', label: 'Home', icon: Home },
@@ -68,15 +89,24 @@ export const Header: React.FC<HeaderProps> = ({
       style={{ zIndex: 'var(--z-header, 40)' }}
     >
       <div className="max-w-6xl mx-auto h-[var(--header-h)] px-4 sm:px-6 flex items-center justify-between gap-3">
-        {/* Left: Brand Identity with Mascot & Online Dot (Never collides with right icons) */}
+        {/* Left: Brand Identity with Mascot & Dynamic Mood Dot */}
         <button
           onClick={() => setActiveTab('dashboard')}
           className="flex items-center gap-2.5 min-w-0 shrink-0 text-left cursor-pointer focus:outline-hidden group"
           title="Go to Home Dashboard"
         >
-          <div className="relative shrink-0">
-            <AexoMascot size="sm" isListening={true} />
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#4CB782] ring-2 ring-white dark:ring-[#0B0814] animate-pulse" />
+          <div
+            onClick={(e) => {
+              if (onOpenMoodModal) {
+                e.stopPropagation();
+                onOpenMoodModal();
+              }
+            }}
+            className="relative shrink-0 cursor-pointer"
+            title={`Companion Mood: ${partnerMood?.status || 'happy'} (${partnerMood?.score || 85}%) - Tap to view heart meter`}
+          >
+            <AexoMascot size="sm" isListening={false} />
+            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-[#0B0814] ${getMoodColor(partnerMood?.status)}`} />
           </div>
           <div className="flex items-center min-w-0">
             <span className="text-base sm:text-lg font-black text-[#1A1A1F] dark:text-[#FAF7FF] tracking-tight truncate group-hover:text-[#7C3AED] transition-colors">

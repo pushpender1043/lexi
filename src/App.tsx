@@ -15,7 +15,6 @@ import {
 } from './data/defaults';
 import { Header } from './components/Header';
 import { BottomTabBar } from './components/BottomTabBar';
-import { HabitsCard } from './components/HabitsCard';
 import { ChatView } from './components/ChatView';
 import { DashboardView } from './components/DashboardView';
 import { TodosView } from './components/TodosView';
@@ -33,7 +32,7 @@ import { ParticleBackground } from './components/ParticleBackground';
 import { ProactiveNotificationBanner } from './components/ProactiveNotificationBanner';
 import { playCompanionVoice, stopCompanionVoice } from './utils/speech';
 import confetti from 'canvas-confetti';
-import { MessageSquare, CheckSquare, Phone, User, Home, TrendingUp, Sparkles } from 'lucide-react';
+import { MessageSquare, CheckSquare, Phone, User, Home, TrendingUp, Sparkles, X, WifiOff } from 'lucide-react';
 import {
   auth,
   db,
@@ -44,18 +43,25 @@ import {
   saveUserChatMessage,
   syncPartnerMood,
   saveUserMemory,
+  deleteUserMemory,
   saveCallRecord,
+  authFetch,
+  deleteUserAccountAndData,
+  syncHabitLog,
+  subscribeHabitLogs,
+  syncWaterLog,
+  subscribeWaterLogs,
 } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, doc, getDoc, getDocs } from 'firebase/firestore';
 import { generateUniqueId, deduplicateArrayIds } from './utils/id';
-import { MoodProvider, useMood, ALL_MOODS } from './lib/moods';
+import { HabitLogEntry, getTodayDateString, calculateStreak } from './utils/streak';
+import { MoodProvider, useMood } from './lib/moods';
 import { Mood } from './types';
 
 function AppContent() {
-  const { currentMood, setMood, triggerTransientMood } = useMood();
+  const { currentMood, triggerTransientMood } = useMood();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [showMoodPicker, setShowMoodPicker] = useState(false);
 
   // Local storage backed state with bulletproof ID deduplication
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
@@ -93,6 +99,34 @@ function AppContent() {
     return saved ? deduplicateArrayIds(JSON.parse(saved), 'mem') : DEFAULT_MEMORIES;
   });
 
+  // Daily habit completion logs (per-habit completion + timestamp in user's timezone)
+  const [habitLogs, setHabitLogs] = useState<Record<string, HabitLogEntry>>(() => {
+    const saved = localStorage.getItem('lexi_habit_logs');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Daily water logs (milliliters consumed per date)
+  const [waterLogs, setWaterLogs] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('lexi_water_logs');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Network connectivity status for offline resilience
+  const [isOnline, setIsOnline] = useState<boolean>(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   // UI state - modern minimal navigation
   const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'todos' | 'calls' | 'profile' | 'stats' | 'sync'>('dashboard');
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(() => {
@@ -106,6 +140,7 @@ function AppContent() {
     return !!userProfile.isAuthenticated && !userProfile.isOnboarded;
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMemoryVaultOpen, setIsMemoryVaultOpen] = useState(false);
   const [proactiveNudge, setProactiveNudge] = useState<ProactiveNudge | null>(null);
 
   // 1. Firebase Auth state listener and initial connection check
@@ -146,8 +181,7 @@ function AppContent() {
             remoteHabits.push(data);
           });
           setHabits(remoteHabits);
-        } else {
-          // First time user: seed default habits into Firestore
+        } else if (DEFAULT_HABITS.length > 0) {
           DEFAULT_HABITS.forEach((h) => {
             syncUserHabit(currentUid, h).catch(console.warn);
           });
@@ -174,9 +208,21 @@ function AppContent() {
       }
     );
 
+    // Listen to remote daily habit logs (users/{uid}/habitLogs/{date})
+    const habitLogsUnsub = subscribeHabitLogs(currentUid, (remoteLogs) => {
+      setHabitLogs(prev => ({ ...prev, ...remoteLogs }));
+    });
+
+    // Listen to remote daily water logs (users/{uid}/waterLogs/{date})
+    const waterLogsUnsub = subscribeWaterLogs(currentUid, (remoteWater) => {
+      setWaterLogs(prev => ({ ...prev, ...remoteWater }));
+    });
+
     return () => {
       habitsUnsub();
       moodUnsub();
+      habitLogsUnsub();
+      waterLogsUnsub();
     };
   }, [userProfile.isAuthenticated, userProfile.userId]);
 
@@ -277,6 +323,14 @@ function AppContent() {
     localStorage.setItem('lexi_memories', JSON.stringify(memories));
   }, [memories]);
 
+  useEffect(() => {
+    localStorage.setItem('lexi_habit_logs', JSON.stringify(habitLogs));
+  }, [habitLogs]);
+
+  useEffect(() => {
+    localStorage.setItem('lexi_water_logs', JSON.stringify(waterLogs));
+  }, [waterLogs]);
+
   // Periodic proactive check-in (simulate background assistant triggers)
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -284,9 +338,8 @@ function AppContent() {
       const pendingHabits = habits.filter(h => !h.completed);
       if (pendingHabits.length > 0 && !proactiveNudge) {
         try {
-          const res = await fetch('/api/proactive', {
+          const res = await authFetch('/api/proactive', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               userProfile,
               habits,
@@ -321,9 +374,8 @@ function AppContent() {
     // Try fetching personalized morning brief via /api/proactive
     let greetingText = '';
     try {
-      const res = await fetch('/api/proactive', {
+      const res = await authFetch('/api/proactive', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userProfile,
           habits,
@@ -407,6 +459,16 @@ function AppContent() {
 
   // Recalculate mood score from habit progress
   const updateMoodOnHabitAction = (action: 'completed' | 'incremented' | 'skipped', habitTitle: string) => {
+    let transientMood: Mood = 'calm';
+    if (action === 'completed') transientMood = 'proud';
+    else if (action === 'incremented') transientMood = 'happy';
+    else if (action === 'skipped') transientMood = 'angry';
+
+    // Safely trigger transient mood outside the render / functional updater cycle
+    setTimeout(() => {
+      triggerTransientMood(transientMood);
+    }, 0);
+
     setPartnerMood(prev => {
       let delta = 0;
       let newNakhre = prev.nakhreLevel;
@@ -416,16 +478,13 @@ function AppContent() {
         delta = 8;
         newNakhre = Math.max(0, newNakhre - 1);
         reason = `${userProfile.partnerName}: "Proud of you for finishing ${habitTitle}! Aise hi disciplined raho jaan ❤️"`;
-        triggerTransientMood('proud');
       } else if (action === 'incremented') {
         delta = 3;
         reason = `${userProfile.partnerName}: "Good progress on ${habitTitle}!"`;
-        triggerTransientMood('happy');
       } else if (action === 'skipped') {
         delta = -12;
         newNakhre = Math.min(5, newNakhre + 1);
         reason = `${userProfile.partnerName}: "Haww! ${habitTitle} skip kar diya? Ab toh main naraz hoon! 😤"`;
-        triggerTransientMood('angry');
       }
 
       const newScore = Math.max(10, Math.min(100, prev.score + delta));
@@ -437,42 +496,92 @@ function AppContent() {
       else if (newScore >= 25) newStatus = 'annoyed';
       else newStatus = 'angry';
 
-      return {
+      const updatedMood: PartnerMood = {
         status: newStatus,
         score: newScore,
         nakhreLevel: newNakhre,
         lastReason: reason,
         lastUpdated: 'Just now',
       };
+      const uid = userProfile.userId || auth.currentUser?.uid;
+      if (uid) {
+        syncPartnerMood(uid, updatedMood).catch(console.warn);
+      }
+      return updatedMood;
     });
   };
 
-  // Habit toggling handler
+  // Habit toggling handler with deterministic habitLogs & streak recalculation
   const handleToggleHabit = (id: string) => {
     let completedHabitTitle = '';
     let becameCompleted = false;
+    const todayStr = getTodayDateString(userProfile.timeZone);
 
-    setHabits(prev =>
-      prev.map(h => {
-        if (h.id === id) {
-          const nextState = !h.completed;
-          completedHabitTitle = h.title;
-          becameCompleted = nextState;
-          const updatedHabit = {
-            ...h,
-            completed: nextState,
-            currentValue: nextState ? h.targetValue : Math.max(0, h.currentValue - 1),
-            streak: nextState ? h.streak + 1 : Math.max(0, h.streak - 1),
-            lastCompletedAt: nextState ? 'Just now' : undefined,
-          };
-          if (userProfile.userId) {
-            syncUserHabit(userProfile.userId, updatedHabit).catch(console.warn);
-          }
-          return updatedHabit;
+    const updatedHabits = habits.map(h => {
+      if (h.id === id) {
+        const nextState = !h.completed;
+        completedHabitTitle = h.title;
+        becameCompleted = nextState;
+        const updatedHabit = {
+          ...h,
+          completed: nextState,
+          currentValue: nextState ? h.targetValue : Math.max(0, h.currentValue - 1),
+          streak: nextState ? (h.streak || 0) + 1 : Math.max(0, (h.streak || 0) - 1),
+          lastCompletedAt: nextState ? 'Just now' : undefined,
+        };
+        const uid = userProfile.userId || auth.currentUser?.uid;
+        if (uid) {
+          syncUserHabit(uid, updatedHabit).catch(console.warn);
         }
-        return h;
-      })
-    );
+        return updatedHabit;
+      }
+      return h;
+    });
+
+    setHabits(updatedHabits);
+
+    // Compute updated daily HabitLog in user's timezone
+    const completedHabits = updatedHabits.filter(h => h.completed);
+    const completedCrucial = updatedHabits.filter(h => h.completed && h.isCrucial);
+    const crucialHabits = updatedHabits.filter(h => h.isCrucial);
+    const allCrucialDone = crucialHabits.length > 0
+      ? crucialHabits.every(h => h.completed)
+      : completedHabits.length > 0;
+
+    const updatedLog: HabitLogEntry = {
+      date: todayStr,
+      completedHabitIds: completedHabits.map(h => h.id),
+      totalHabitsCount: updatedHabits.length,
+      completedCrucialCount: completedCrucial.length,
+      totalCrucialCount: crucialHabits.length,
+      completedAllCrucial: allCrucialDone,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const newHabitLogs = { ...habitLogs, [todayStr]: updatedLog };
+    setHabitLogs(newHabitLogs);
+
+    // Recalculate deterministic streak
+    const { currentStreak, bestStreak } = calculateStreak(todayStr, newHabitLogs);
+    const newBest = Math.max(userProfile.bestStreak || 0, bestStreak);
+
+    setUserProfile(prev => {
+      const merged = {
+        ...prev,
+        streakDays: currentStreak,
+        bestStreak: newBest,
+      };
+      const uid = prev.userId || auth.currentUser?.uid;
+      if (uid) {
+        syncUserProfile(uid, merged).catch(console.warn);
+      }
+      return merged;
+    });
+
+    const uid = userProfile.userId || auth.currentUser?.uid;
+    if (uid) {
+      syncHabitLog(uid, updatedLog).catch(console.warn);
+    }
 
     if (becameCompleted) {
       updateMoodOnHabitAction('completed', completedHabitTitle);
@@ -496,6 +605,20 @@ function AppContent() {
     }
   };
 
+  // Water tracking increment handler
+  const handleAddWater = (amountMl: number) => {
+    const todayStr = getTodayDateString(userProfile.timeZone);
+    const current = waterLogs[todayStr] || 0;
+    const nextAmount = current + amountMl;
+    const newWaterLogs = { ...waterLogs, [todayStr]: nextAmount };
+    setWaterLogs(newWaterLogs);
+
+    const uid = userProfile.userId || auth.currentUser?.uid;
+    if (uid) {
+      syncWaterLog(uid, todayStr, nextAmount).catch(console.warn);
+    }
+  };
+
   // Habit increment handler (e.g. water +1 glass)
   const handleIncrementHabit = (id: string, delta: number) => {
     let title = '';
@@ -511,7 +634,7 @@ function AppContent() {
             ...h,
             currentValue: nextVal,
             completed: reachedTarget,
-            streak: reachedTarget && !h.completed ? h.streak + 1 : h.streak,
+            streak: reachedTarget && !h.completed ? (h.streak || 0) + 1 : (h.streak || 0),
           };
         }
         return h;
@@ -612,9 +735,8 @@ function AppContent() {
     setIsLoadingChat(true);
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await authFetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userText,
           history: [...messages, userMsg],
@@ -629,23 +751,46 @@ function AppContent() {
       const data = await res.json();
       const reply = data.reply || "Main sun rahi hoon jaan, sab theek hai na?";
 
-      // Handle dynamic mood update from Gemini
+      // Handle dynamic mood update from Gemini safely
       if (data.mood) {
-        triggerTransientMood(data.mood);
+        setTimeout(() => triggerTransientMood(data.mood), 0);
       } else if (data.moodUpdate?.newStatus) {
-        triggerTransientMood(data.moodUpdate.newStatus);
+        const partnerStatusToAtmosphericMood: Record<string, Mood> = {
+          ecstatic: 'excited',
+          loving: 'romantic',
+          happy: 'happy',
+          neutral: 'calm',
+          annoyed: 'anxious',
+          angry: 'angry',
+        };
+        const mappedMood = partnerStatusToAtmosphericMood[data.moodUpdate.newStatus] || 'calm';
+        setTimeout(() => triggerTransientMood(mappedMood), 0);
       }
 
       if (data.moodUpdate) {
         setPartnerMood(prev => {
           const newScore = Math.max(10, Math.min(100, prev.score + (data.moodUpdate.scoreDelta || 0)));
-          return {
-            status: data.moodUpdate.newStatus || prev.status,
+          let computedStatus = data.moodUpdate.newStatus || prev.status;
+          if (!data.moodUpdate.newStatus) {
+            if (newScore >= 85) computedStatus = 'ecstatic';
+            else if (newScore >= 70) computedStatus = 'loving';
+            else if (newScore >= 55) computedStatus = 'happy';
+            else if (newScore >= 40) computedStatus = 'neutral';
+            else if (newScore >= 25) computedStatus = 'annoyed';
+            else computedStatus = 'angry';
+          }
+          const updatedMood: PartnerMood = {
+            status: computedStatus,
             score: newScore,
             nakhreLevel: Math.max(0, Math.min(5, prev.nakhreLevel + (data.moodUpdate.nakhreDelta || 0))),
             lastReason: data.moodUpdate.reason || prev.lastReason,
             lastUpdated: 'Just now',
           };
+          const uid = userProfile.userId || auth.currentUser?.uid;
+          if (uid) {
+            syncPartnerMood(uid, updatedMood).catch(console.warn);
+          }
+          return updatedMood;
         });
       }
 
@@ -710,36 +855,6 @@ function AppContent() {
     }
   };
 
-  // Quick Mood Boost handler from DashboardView
-  const handleQuickMoodBoost = () => {
-    const companionName = userProfile.partnerName || 'Lexi';
-
-    // Boost partner affection score by +10 (max 100)
-    setPartnerMood((prev) => ({
-      ...prev,
-      affectionScore: Math.min(100, (prev.affectionScore || 80) + 10),
-      score: Math.min(100, (prev.score || 85) + 5),
-      status: 'loving',
-      lastReason: 'Sent an unexpected sweet "Thinking of you" mood boost!',
-      lastUpdated: 'Just now',
-    }));
-
-    // Send predefined message to Lexi
-    const boostText = `Thinking of you right now, ${companionName}! Just wanted to send you my love and positive energy ❤️`;
-    handleSendMessage(boostText);
-
-    // Confetti celebration
-    try {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.6 }
-      });
-    } catch (e) {
-      // safe fallback
-    }
-  };
-
   // Clear chat conversation context
   const handleClearConversation = () => {
     const companionName = userProfile.partnerName || 'Lexi';
@@ -771,9 +886,8 @@ function AppContent() {
   // Trigger calendar event reminder simulation
   const handleTriggerEventReminder = async (event: CalendarEvent) => {
     try {
-      const res = await fetch('/api/proactive', {
+      const res = await authFetch('/api/proactive', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userProfile,
           habits,
@@ -814,6 +928,10 @@ function AppContent() {
     };
     setMemories(prev => [item, ...prev]);
 
+    if (userProfile.userId) {
+      saveUserMemory(userProfile.userId, item).catch(console.warn);
+    }
+
     const partnerReply: ChatMessage = {
       id: generateUniqueId('msg'),
       sender: 'partner',
@@ -827,6 +945,29 @@ function AppContent() {
 
   const handleDeleteMemory = (id: string) => {
     setMemories(prev => prev.filter(m => m.id !== id));
+    if (userProfile.userId) {
+      deleteUserMemory(userProfile.userId, id).catch(console.warn);
+    }
+  };
+
+  // Full user data & account erasure (DPDP & GDPR Article 17 compliance)
+  const handleDeleteAccount = async () => {
+    try {
+      if (userProfile.userId) {
+        await deleteUserAccountAndData(userProfile.userId);
+      }
+      localStorage.clear();
+      setUserProfile(DEFAULT_USER_PROFILE);
+      setHabits(DEFAULT_HABITS);
+      setPartnerMood(DEFAULT_PARTNER_MOOD);
+      setMessages(DEFAULT_MESSAGES);
+      setCallRecords(DEFAULT_CALL_RECORDS);
+      setCalendarEvents(DEFAULT_CALENDAR_EVENTS);
+      setMemories(DEFAULT_MEMORIES);
+      setIsLoginOpen(true);
+    } catch (err) {
+      console.error('Failed to erase account data:', err);
+    }
   };
 
   // Add calendar event handler
@@ -848,11 +989,27 @@ function AppContent() {
   };
 
   // Save profile from onboarding and settings
-  const handleSaveProfile = (updated: Partial<UserProfile> | UserProfile, sendWelcomeMsg?: boolean) => {
+  const handleSaveProfile = (
+    updated: Partial<UserProfile> | UserProfile,
+    sendWelcomeMsg?: boolean,
+    initialHabits?: Habit[]
+  ) => {
+    if (initialHabits && initialHabits.length > 0) {
+      setHabits(initialHabits);
+      localStorage.setItem('lexi_habits', JSON.stringify(initialHabits));
+      const uid = updated.userId || userProfile.userId || auth.currentUser?.uid;
+      if (uid) {
+        for (const h of initialHabits) {
+          syncUserHabit(uid, h).catch(console.warn);
+        }
+      }
+    }
+
     setUserProfile(prev => {
       const merged = { ...prev, ...updated };
-      if (merged.userId) {
-        syncUserProfile(merged.userId, merged).catch(console.warn);
+      const uid = merged.userId || auth.currentUser?.uid;
+      if (uid) {
+        syncUserProfile(uid, merged).catch(console.warn);
       }
       return merged;
     });
@@ -927,6 +1084,14 @@ function AppContent() {
       {/* Subtle Atmospheric Gradient & Canvas Particle Engine */}
       <ParticleBackground />
 
+      {/* Offline Status Alert Banner */}
+      {!isOnline && (
+        <div className="w-full bg-amber-500/95 dark:bg-amber-600/95 text-amber-950 dark:text-amber-50 text-xs font-semibold px-4 py-1.5 text-center flex items-center justify-center gap-2 z-50 shadow-xs backdrop-blur-md">
+          <WifiOff className="w-3.5 h-3.5" />
+          <span>Offline Mode: Changes are saved locally and will automatically sync when reconnected.</span>
+        </div>
+      )}
+
       {/* Modern Fixed Header (Full width, no gap, elevated on scroll) */}
       <Header
         userProfile={userProfile}
@@ -940,6 +1105,7 @@ function AppContent() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenLogin={() => setIsLoginOpen(true)}
         onSignOut={handleSignOut}
+        onOpenMoodModal={() => setIsMoodModalOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         completedHabitsCount={completedHabitsCount}
@@ -962,8 +1128,11 @@ function AppContent() {
             userProfile={userProfile}
             partnerMood={partnerMood}
             habits={habits}
+            habitLogs={habitLogs}
+            waterLogs={waterLogs}
             onToggleHabit={handleToggleHabit}
-            onQuickMoodBoost={handleQuickMoodBoost}
+            onAddWater={handleAddWater}
+            onOpenMoodDetails={() => setIsMoodModalOpen(true)}
             onSendMessage={(text) => {
               setActiveTab('chat');
               handleSendMessage(text);
@@ -1032,17 +1201,25 @@ function AppContent() {
 
         {/* 4. PROFILE SECTION */}
         {activeTab === 'profile' && (
-          <ProfileView
-            userProfile={userProfile}
-            partnerMood={partnerMood}
-            onSaveProfile={handleSaveProfile}
-            onTriggerTestCheckIn={() => handleTriggerDailyCheckIn(false)}
-            voiceEnabled={voiceEnabled}
-            onToggleVoice={() => {
-              if (voiceEnabled) stopCompanionVoice();
-              setVoiceEnabled(!voiceEnabled);
-            }}
-          />
+          <div className="space-y-6">
+            <ProfileView
+              userProfile={userProfile}
+              partnerMood={partnerMood}
+              onSaveProfile={handleSaveProfile}
+              onTriggerTestCheckIn={() => handleTriggerDailyCheckIn(false)}
+              voiceEnabled={voiceEnabled}
+              onToggleVoice={() => {
+                if (voiceEnabled) stopCompanionVoice();
+                setVoiceEnabled(!voiceEnabled);
+              }}
+            />
+            <MemoryVaultView
+              memories={memories}
+              userProfile={userProfile}
+              onAddMemory={handleAddMemory}
+              onDeleteMemory={handleDeleteMemory}
+            />
+          </div>
         )}
 
         {/* 5. STATS VIEW */}
@@ -1050,12 +1227,14 @@ function AppContent() {
           <StatsView
             userProfile={userProfile}
             habits={habits}
+            habitLogs={habitLogs}
             partnerMood={partnerMood}
             onSendChatMessage={(text) => {
               setActiveTab('chat');
               handleSendMessage(text);
             }}
             onNavigateToChat={() => setActiveTab('chat')}
+            onNavigateTab={(tab) => setActiveTab(tab)}
             onSpeakText={(text, emotion) => {
               if (voiceEnabled) {
                 playCompanionVoice(text, {
@@ -1195,7 +1374,30 @@ function AppContent() {
           onOpenOnboarding={() => setIsOnboardingOpen(true)}
           onOpenLogin={() => setIsLoginOpen(true)}
           onSignOut={handleSignOut}
+          onOpenMemoryVault={() => setIsMemoryVaultOpen(true)}
+          onDeleteAccount={handleDeleteAccount}
         />
+      )}
+
+      {/* Long-Term Memory Vault Modal (User Privacy, Transparency & Deletion) */}
+      {isMemoryVaultOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-2xl max-h-[88vh] overflow-y-auto relative glass-strong rounded-[24px] p-2 border border-[var(--primary-purple)]/40 shadow-2xl">
+            <button
+              onClick={() => setIsMemoryVaultOpen(false)}
+              className="absolute top-4 right-4 z-20 p-2 rounded-full glass hover:bg-white/40 text-[var(--text-secondary)] cursor-pointer"
+              title="Close Memory Vault"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <MemoryVaultView
+              memories={memories}
+              userProfile={userProfile}
+              onAddMemory={handleAddMemory}
+              onDeleteMemory={handleDeleteMemory}
+            />
+          </div>
+        </div>
       )}
 
       {/* Proactive Push Nudge Banner */}
@@ -1211,38 +1413,6 @@ function AppContent() {
           userProfile={userProfile}
         />
       )}
-
-      {/* Floating Mood Tester for instant verification of all 13 states */}
-      <div className="fixed bottom-20 md:bottom-4 right-4 z-40 flex items-center gap-1.5 p-1 rounded-full glass border border-[rgba(124,58,237,0.2)] shadow-md">
-        <button
-          onClick={() => setShowMoodPicker(!showMoodPicker)}
-          className="flex items-center gap-1 px-3 py-1 text-[11px] font-semibold text-[#7C3AED] dark:text-[#C4B5FD] hover:opacity-80 transition cursor-pointer"
-          title="Click to preview all 13 emotional states and particle dynamics"
-        >
-          <Sparkles className="w-3 h-3 text-[#A78BFA]" />
-          <span className="capitalize">Mood: {currentMood}</span>
-        </button>
-        {showMoodPicker && (
-          <div className="absolute bottom-full right-0 mb-2 p-2 rounded-[16px] glass-strong border border-[rgba(124,58,237,0.2)] shadow-xl grid grid-cols-2 gap-1 w-56 text-[10px] z-50">
-            {ALL_MOODS.map((m) => (
-              <button
-                key={m}
-                onClick={() => {
-                  setMood(m);
-                  setShowMoodPicker(false);
-                }}
-                className={`px-2 py-1.5 rounded-[8px] text-left capitalize transition cursor-pointer ${
-                  currentMood === m
-                    ? 'bg-[#7C3AED] text-white font-bold'
-                    : 'hover:bg-white/40 dark:hover:bg-white/10 text-[#1A1A1F] dark:text-[#FAF7FF]'
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
