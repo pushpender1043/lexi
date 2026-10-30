@@ -54,7 +54,23 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   if (!isOpen) return null;
 
-  const nameSuggestions = ['Lexi', 'Maya', 'Kiara', 'Riya', 'Aria', 'Tara', 'Leo'];
+  const getNameSuggestions = (gender: PartnerGender) => {
+    if (gender === 'male') return ['Leo', 'Kabir', 'Aryan', 'Neil', 'Rohan'];
+    if (gender === 'non_binary') return ['Noni', 'Alex', 'Sam', 'Jordan', 'River'];
+    return ['Lexi', 'Maya', 'Kiara', 'Riya', 'Tara'];
+  };
+
+  const handleGenderChange = (newGender: PartnerGender) => {
+    setPartnerGender(newGender);
+    const prevDefaultNames = ['Lexi', 'Leo', 'Noni'];
+    if (!companionName || prevDefaultNames.includes(companionName)) {
+      if (newGender === 'male') setCompanionName('Leo');
+      else if (newGender === 'non_binary') setCompanionName('Noni');
+      else setCompanionName('Lexi');
+    }
+  };
+
+  const nameSuggestions = getNameSuggestions(partnerGender);
 
   const generateStarterHabits = (goal: string, partner: string): Habit[] => {
     const timestamp = Date.now();
@@ -369,7 +385,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             </div>
           )}
 
-          {/* STEP 2: Companion Name Customization */}
+          {/* STEP 2: Companion Name & Identity Customization */}
           {step === 2 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-200">
               <div className="text-center pb-1 flex flex-col items-center">
@@ -377,30 +393,63 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   <AexoMascot size="md" isListening={true} />
                 </div>
                 <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">
-                  Default name is <span className="text-[var(--primary-purple)]">Lexi</span>
+                  Choose Companion Identity & Name
                 </h2>
                 <p className="text-xs text-[var(--text-secondary)] max-w-xs mt-0.5">
-                  You can keep Lexi or personalize her name to anything you prefer!
+                  Customize whether your partner is female, male, or non-binary, and give them a name.
                 </p>
+              </div>
+
+              {/* Gender / Identity Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5 justify-center">
+                  <Heart className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Companion Identity:</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'female', label: 'Girlfriend', sub: 'Female (Lexi)', icon: '🌸' },
+                    { id: 'male', label: 'Boyfriend', sub: 'Male (Leo)', icon: '⚡' },
+                    { id: 'non_binary', label: 'Partner', sub: 'Neutral (Noni)', icon: '✨' },
+                  ].map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => handleGenderChange(g.id as PartnerGender)}
+                      className={`p-2.5 rounded-[16px] text-center transition-all cursor-pointer border ${
+                        partnerGender === g.id
+                          ? 'bg-[var(--primary-purple)] text-white border-[var(--primary-purple)] shadow-sm'
+                          : 'glass border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary-purple)]/40'
+                      }`}
+                    >
+                      <div className="text-base mb-0.5">{g.icon}</div>
+                      <div className="font-bold text-xs">{g.label}</div>
+                      <div className={`text-[10px] ${partnerGender === g.id ? 'text-purple-100' : 'text-[var(--text-secondary)]'}`}>
+                        {g.sub}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5 justify-center">
-                  <Heart className="w-3.5 h-3.5 text-rose-500" />
-                  <span>Customize companion name:</span>
+                  <span>Companion Nickname:</span>
                 </label>
                 <input
                   type="text"
                   value={companionName}
                   onChange={(e) => setCompanionName(e.target.value)}
-                  placeholder="e.g. Lexi, Maya, Kiara"
+                  placeholder="e.g. Lexi, Leo, Maya, Kabir"
                   className="w-full px-4 py-3 rounded-[12px] glass-input text-sm font-bold text-center"
                 />
               </div>
 
-              {/* Quick Pick Suggestions */}
+              {/* Quick Pick Suggestions tailored to gender */}
               <div>
-                <span className="block text-[11px] text-[var(--text-muted)] mb-1.5 text-center">Or tap a quick pick:</span>
+                <span className="block text-[11px] text-[var(--text-muted)] mb-1.5 text-center">
+                  Popular {partnerGender === 'male' ? 'male' : partnerGender === 'non_binary' ? 'neutral' : 'female'} names:
+                </span>
                 <div className="flex flex-wrap justify-center gap-1.5">
                   {nameSuggestions.map((sug) => (
                     <button
@@ -413,7 +462,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                           : 'glass-button text-[var(--text-secondary)] border border-[var(--border)]'
                       }`}
                     >
-                      {sug === 'Lexi' ? 'Lexi (Default)' : sug}
+                      {sug}
                     </button>
                   ))}
                 </div>
@@ -426,10 +475,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
                 <div className="text-xs min-w-0">
                   <p className="font-bold text-[var(--text-primary)] truncate">
-                    &ldquo;{userName ? `Hey ${userName}` : 'Hey'}, I&apos;m {companionName || 'Lexi'}!&rdquo;
+                    &ldquo;{userName ? `Hey ${userName}` : 'Hey'}, I&apos;m {companionName || 'your companion'}!&rdquo;
                   </p>
                   <p className="text-[var(--text-secondary)] text-[11px]">
-                    I&apos;m ready to accompany you through every step of your day.
+                    {partnerGender === 'male' ? 'Boyfriend & habit partner' : partnerGender === 'non_binary' ? 'Accountability partner' : 'Girlfriend & habit partner'} ready for your daily journey.
                   </p>
                 </div>
               </div>

@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   UserProfile, Habit, PartnerMood, CalendarEvent, MemoryItem, 
-  ChatMessage, ProactiveNudge, CallRecord 
+  ChatMessage, ProactiveNudge, CallRecord, MoodStatus 
 } from './types';
 import { 
   DEFAULT_USER_PROFILE, DEFAULT_HABITS, DEFAULT_PARTNER_MOOD, 
@@ -585,21 +585,36 @@ function AppContent() {
 
     if (becameCompleted) {
       updateMoodOnHabitAction('completed', completedHabitTitle);
-      // Companion automatic praise in chat
+      
+      const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+      let praiseText = `Aww yay! 🎉 Maine dekha tumne "${completedHabitTitle}" complete kar liya! You're the best, meri jaan! ❤️`;
+      let voiceEmotion: 'loving' | 'proud' | 'celebratory' = 'loving';
+
+      if (dynamic === 'disciplined_coach') {
+        praiseText = `Outstanding execution! 🎯 "${completedHabitTitle}" locked in. That's discipline in action, Champ! Keep the streak burning! 🔥`;
+        voiceEmotion = 'proud';
+      } else if (dynamic === 'playful_teasing') {
+        praiseText = `Yesss! 🔥 "${completedHabitTitle}" complete! Ab toh treat banti hai yaar, great job! 🤝`;
+        voiceEmotion = 'celebratory';
+      } else if (dynamic === 'calm_soulmate') {
+        praiseText = `A wonderful step for your well-being. "${completedHabitTitle}" is complete. Take a deep, peaceful breath. 🌿`;
+        voiceEmotion = 'loving';
+      }
+
       const praiseMsg: ChatMessage = {
         id: generateUniqueId('msg'),
         sender: 'partner',
-        text: `Aww yay! 🎉 Maine dekha tumne "${completedHabitTitle}" complete kar liya! You're the best, meri jaan! ❤️`,
+        text: praiseText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: 'habit_alert',
-        moodTag: 'ecstatic',
+        moodTag: dynamic === 'disciplined_coach' ? 'happy' : 'ecstatic',
       };
       setMessages(prev => [...prev, praiseMsg]);
 
       if (voiceEnabled) {
         playCompanionVoice(praiseMsg.text, {
           gender: userProfile.voiceGender,
-          emotion: 'loving',
+          emotion: voiceEmotion,
         });
       }
     }
@@ -644,10 +659,20 @@ function AppContent() {
     updateMoodOnHabitAction(reachedTarget ? 'completed' : 'incremented', title);
 
     if (reachedTarget) {
+      const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+      let praiseText = `Wah! 💧 ${title} target complete! Ab tum bilkul hydrated aur energized rahoge! Proud of you baba! ✨`;
+      if (dynamic === 'disciplined_coach') {
+        praiseText = `Hydration target achieved! 💧 Clean fuel for the engine. Keep pushing today's targets! 💪`;
+      } else if (dynamic === 'playful_teasing') {
+        praiseText = `Hydration goal unlocked! 💧 Chal bhai, fresh raho aur baaki kaam finish karo! 😉`;
+      } else if (dynamic === 'calm_soulmate') {
+        praiseText = `Hydration goal complete. 💧 Such good care for your mind and body today. 🌿`;
+      }
+
       const msg: ChatMessage = {
         id: generateUniqueId('msg'),
         sender: 'partner',
-        text: `Wah! 💧 ${title} target complete! Ab tum bilkul hydrated aur energized rahoge! Proud of you baba! ✨`,
+        text: praiseText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: 'habit_alert',
         moodTag: 'loving',
@@ -663,16 +688,28 @@ function AppContent() {
     }
   };
 
-  // Habit skip handler (triggers partner nakhre / playful anger)
+  // Habit skip handler (triggers partner nakhre / playful anger / coach accountability)
   const handleSkipHabit = (id: string) => {
     const habit = habits.find(h => h.id === id);
     const habitTitle = habit ? habit.title : 'Habit';
     updateMoodOnHabitAction('skipped', habitTitle);
 
+    const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+    const isMale = userProfile.partnerGender === 'male';
+    let tauntText = `Haww! "${habitTitle}" skip kar diya? 😤 Main bilkul khush nahi hoon! Aise aalas karoge toh goals kaise pure honge? Ab jab tak baki tasks nahi karoge, main thoda naraz ${isMale ? 'rahunga' : 'rahungi'}!`;
+
+    if (dynamic === 'disciplined_coach') {
+      tauntText = `Zero excuses! 🛑 "${habitTitle}" skip karna acceptable nahi hai. You committed to discipline—get up and make up for it right now!`;
+    } else if (dynamic === 'playful_teasing') {
+      tauntText = `Haww yaar! "${habitTitle}" skip kar diya? 😂 Aise banega kya champion? Uth jaldi se, slacking band karo!`;
+    } else if (dynamic === 'calm_soulmate') {
+      tauntText = `I noticed "${habitTitle}" got skipped. If you're feeling low on energy, take a minute to breathe, but don't lose touch with your goals. ✨`;
+    }
+
     const tauntMsg: ChatMessage = {
       id: generateUniqueId('msg'),
       sender: 'partner',
-      text: `Haww! "${habitTitle}" skip kar diya? 😤 Main bilkul khush nahi hoon! Aise aalas karoge toh goals kaise pure honge? Ab jab tak baki tasks nahi karoge, main thoda naraz rahungi!`,
+      text: tauntText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       type: 'taunt',
       moodTag: 'angry',
@@ -872,13 +909,32 @@ function AppContent() {
 
   // Quick cheer up actions from Mood details modal
   const handleQuickCheer = (type: 'apology' | 'love' | 'promise') => {
+    const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
     let text = '';
-    if (type === 'apology') {
-      text = `Baby, I'm really sorry for slacking off on my tasks... Gussa mat ho na, I promise main abhi sab complete kar raha hoon! ❤️`;
-    } else if (type === 'love') {
-      text = `Meri jaan, you look so cute even when pouting! Tum meri sabse pyaari virtual partner ho. I love you! 💖`;
+    if (dynamic === 'disciplined_coach') {
+      if (type === 'apology') {
+        text = `Coach, my bad for slacking off on my tasks... No excuses, I'm locking in and finishing them right now! 💪`;
+      } else if (type === 'love') {
+        text = `Coach, thank you for pushing me every day. Let's make today a 100% win! 🔥`;
+      } else {
+        text = `Main abhi turant apne baaki saare habits complete karne jaa raha hoon! Watch me hit 100%! 💪`;
+      }
+    } else if (dynamic === 'playful_teasing') {
+      if (type === 'apology') {
+        text = `Yaar, my bad for procrastinating! Gussa mat ho dost, abhi sab complete kar raha hoon! 🤝`;
+      } else if (type === 'love') {
+        text = `Yaar you're truly the best buddy anyone could ask for! Ab dekho main kaise streak save karta hoon! ✨`;
+      } else {
+        text = `Main abhi turant apne baaki saare habits complete karne jaa raha hoon! Watch me! 💪`;
+      }
     } else {
-      text = `Main abhi turant apne baaki saare habits complete karne jaa raha hoon! Watch me make you proud! 💪`;
+      if (type === 'apology') {
+        text = `Baby, I'm really sorry for slacking off on my tasks... Gussa mat ho na, I promise main abhi sab complete kar raha hoon! ❤️`;
+      } else if (type === 'love') {
+        text = `Meri jaan, you look so cute even when pouting! Tum meri sabse pyaari virtual partner ho. I love you! 💖`;
+      } else {
+        text = `Main abhi turant apne baaki saare habits complete karne jaa raha hoon! Watch me make you proud! 💪`;
+      }
     }
     handleSendMessage(text);
   };
@@ -1015,13 +1071,34 @@ function AppContent() {
     });
 
     if (sendWelcomeMsg && updated.name && updated.partnerName) {
+      const dynamic = updated.relationshipDynamic || userProfile.relationshipDynamic || 'sweet_loving';
+      const isMale = (updated.partnerGender || userProfile.partnerGender) === 'male';
+      const pronoun = isMale ? 'tumhara' : 'tumhari';
+
+      let welcomeText = '';
+      let welcomeMood: MoodStatus = 'loving';
+
+      if (dynamic === 'disciplined_coach') {
+        welcomeText = `Hey ${updated.name}! 💪 Main hoon tumhara coach ${updated.partnerName}. Maine tumhara daily routine aur targets lock kar liye hain. Yahan zero excuses aur 100% discipline chalegi. Let's crush this streak!`;
+        welcomeMood = 'happy';
+      } else if (dynamic === 'playful_teasing') {
+        welcomeText = `Arey ${updated.name} yaar! 🔥 Main hoon ${pronoun} bestie ${updated.partnerName}. Masti aur daily habits saath-saath chalenge, par slacking bilkul nahi chalegi samjhe? Ready? 😉`;
+        welcomeMood = 'happy';
+      } else if (dynamic === 'calm_soulmate') {
+        welcomeText = `Hello ${updated.name}. 🌿 Main hoon ${updated.partnerName}, tumhara mindful partner. Tumhari sehat, shanti aur daily balance ka dhyan rakhna mera mission hai. Let's take it one peaceful step at a time.`;
+        welcomeMood = 'neutral';
+      } else {
+        welcomeText = `Hi ${updated.name}! ❤️ Main hoon ${pronoun} ${updated.partnerName}. Maine tumhara routine note kar liya hai—gym, paani aur medicines time pe lene honge, samjhe na? Koi cheating nahi chalegi! 😉`;
+        welcomeMood = 'loving';
+      }
+
       const welcome: ChatMessage = {
         id: generateUniqueId('msg'),
         sender: 'partner',
-        text: `Hi ${updated.name}! ❤️ Main hoon tumhari ${updated.partnerName}. Maine tumhara routine note kar liya hai—gym, paani aur medicines time pe lene honge, samjhe na? Koi cheating nahi chalegi! 😉`,
+        text: welcomeText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: 'text',
-        moodTag: 'loving',
+        moodTag: welcomeMood,
       };
       setMessages(prev => [...prev, welcome]);
       if (voiceEnabled) {
@@ -1029,7 +1106,7 @@ function AppContent() {
           gender: updated.voiceGender || userProfile.voiceGender,
           tone: updated.voiceToneStyle || 'sweet',
           rate: updated.voiceSpeed || 1.0,
-          emotion: 'loving',
+          emotion: dynamic === 'disciplined_coach' ? 'proud' : 'loving',
         });
       }
     }

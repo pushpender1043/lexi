@@ -90,13 +90,24 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
     // Initial greeting from companion
     const connectTimer = setTimeout(() => {
       setCallStatus('speaking');
-      const greeting = `Hello ${userProfile.name}! Bolo na baby, main sun rahi hoon. Aaj din kaisa jaa raha hai?`;
+      const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+      const isMale = userProfile.partnerGender === 'male';
+      let greeting = `Hello ${userProfile.name}! Bolo na baby, main sun rahi hoon. Aaj din kaisa jaa raha hai?`;
+      if (dynamic === 'disciplined_coach') {
+        greeting = `Hey ${userProfile.name}! Coach here, locked in. Aaj ke routine ka kya status hai, batao!`;
+      } else if (dynamic === 'playful_teasing') {
+        greeting = `Hello ${userProfile.name}! Haan yaar bolo, kya scene hai? Sun ${isMale ? 'raha' : 'rahi'} hoon!`;
+      } else if (dynamic === 'calm_soulmate') {
+        greeting = `Hello ${userProfile.name}. Main yahin hoon, aaram se bataiye aaj din kaisa jaa raha hai.`;
+      } else if (isMale) {
+        greeting = `Hello ${userProfile.name}! Bolo meri jaan, main sun raha hoon. Aaj din kaisa jaa raha hai?`;
+      }
       setPartnerSpeechText(greeting);
       setCallHistory([{ sender: companionName, text: greeting }]);
 
       playCompanionVoice(greeting, {
         gender: userProfile.voiceGender,
-        emotion: partnerMood.score < 50 ? 'angry' : 'loving',
+        emotion: dynamic === 'disciplined_coach' ? 'proud' : partnerMood.score < 50 ? 'angry' : 'loving',
         tone: userProfile.voiceToneStyle || 'sweet',
         rate: userProfile.voiceSpeed || 1.0,
         onEnd: () => {
@@ -229,12 +240,23 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
         }, Math.max(2000, reply.length * 50));
       }
     } catch {
-      const fallbackReply = 'Baby, aawaz thodi cut gayi... Par main yahin hoon tumhare sath!';
+      const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+      const isMale = userProfile.partnerGender === 'male';
+      let fallbackReply = 'Baby, aawaz thodi cut gayi... Par main yahin hoon tumhare sath!';
+      if (dynamic === 'disciplined_coach') {
+        fallbackReply = `Champ, connection thoda break hua... Main sun ${isMale ? 'raha' : 'rahi'} hoon, continue karo!`;
+      } else if (dynamic === 'playful_teasing') {
+        fallbackReply = `Arey aawaz kat gayi yaar! Sun ${isMale ? 'raha' : 'rahi'} hoon, dobara bolo!`;
+      } else if (dynamic === 'calm_soulmate') {
+        fallbackReply = `Aawaz thodi break ho gayi... Main yahin hoon, aaram se boliye.`;
+      } else if (isMale) {
+        fallbackReply = 'Meri jaan, aawaz thodi cut gayi... Par main yahin hoon tumhare sath!';
+      }
       setPartnerSpeechText(fallbackReply);
       setCallStatus('speaking');
       playCompanionVoice(fallbackReply, {
         gender: userProfile.voiceGender,
-        emotion: 'caring',
+        emotion: dynamic === 'disciplined_coach' ? 'proud' : 'caring',
         onEnd: () => {
           setCallStatus('listening');
           startListening();

@@ -61,6 +61,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [partnerGender, setPartnerGender] = useState<PartnerGender>(userProfile.partnerGender || 'female');
   const [voiceGender, setVoiceGender] = useState<PartnerGender>(userProfile.voiceGender || 'female');
 
+  const [relationshipDynamic, setRelationshipDynamic] = useState<string>(
+    userProfile.relationshipDynamic || 'sweet_loving'
+  );
+
   // Dedicated Voice Settings
   const [preferredVoiceName, setPreferredVoiceName] = useState<'Kore' | 'Aoede' | 'Leda' | 'Zephyr'>(
     userProfile.preferredVoiceName || 'Kore'
@@ -91,16 +95,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleTestVoice = () => {
     setIsPlayingPreview(true);
-    const sampleSentences: Record<string, string> = {
-      playful: `Arey ${name}! Main bohot khush hoon tumse baat karke! Aaj ke saare habits time pe karoge na?`,
-      serious: `${name}, let's focus on our goals today. No excuses, make sure your tasks and hydration are locked in.`,
-      comforting: `Suno na, main yahin hoon tumhare paas. Thoda paani piyo aur relax karo, sab theek hoga. ❤️`,
-      sweet: `Meri jaan, seeing you make progress makes my whole day. I love you so much! ✨`,
-      sassy: `Acha ji? Finally meri yaad aa gayi? Dekhte hain aaj ka streak bacha paate ho ya nahi! 😉`,
-    };
+    let sampleSentence = '';
 
-    playCompanionVoice(sampleSentences[voiceToneStyle] || sampleSentences.playful, {
-      gender: voiceGender,
+    if (relationshipDynamic === 'disciplined_coach') {
+      sampleSentence = `${name}, focus on the mission today. No excuses, let's lock in those daily habits and crush your streak! 💪`;
+    } else if (relationshipDynamic === 'playful_teasing') {
+      sampleSentence = `Arey ${name} yaar! Kahan gayab ho? Chal jaldi se tasks complete kar le, phir chill karte hain! 😉`;
+    } else if (relationshipDynamic === 'calm_soulmate') {
+      sampleSentence = `Take a deep breath ${name}. Peace begins with one mindful step. I'm right here with you. 🌿`;
+    } else {
+      const sampleSentences: Record<string, string> = {
+        playful: `Arey ${name}! Main bohot khush hoon tumse baat karke! Aaj ke saare habits time pe karoge na?`,
+        serious: `${name}, let's focus on our goals today. No excuses, make sure your tasks and hydration are locked in.`,
+        comforting: `Suno na, main yahin hoon tumhare paas. Thoda paani piyo aur relax karo, sab theek hoga. ❤️`,
+        sweet: `Meri jaan, seeing you make progress makes my whole day. I love you so much! ✨`,
+        sassy: `Acha ji? Finally meri yaad aa gayi? Dekhte hain aaj ka streak bacha paate ho ya nahi! 😉`,
+      };
+      sampleSentence = sampleSentences[voiceToneStyle] || sampleSentences.playful;
+    }
+
+    playCompanionVoice(sampleSentence, {
+      gender: voiceGender === 'male' ? 'male' : 'female',
       tone: voiceToneStyle,
       rate: voiceSpeed,
       onEnd: () => setIsPlayingPreview(false),
@@ -115,7 +130,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       partnerName,
       partnerTone,
       partnerGender,
-      voiceGender,
+      relationshipDynamic,
+      voiceGender: partnerGender === 'male' ? 'male' : 'female',
       preferredVoiceName,
       preferredLanguage,
       voiceToneStyle,
@@ -380,6 +396,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
                   placeholder="e.g. Deepu"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">
+                  Companion Gender / Identity
+                </label>
+                <select
+                  value={partnerGender}
+                  onChange={(e) => {
+                    const g = e.target.value as PartnerGender;
+                    setPartnerGender(g);
+                    setVoiceGender(g === 'male' ? 'male' : 'female');
+                  }}
+                  className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                >
+                  <option value="female">Girlfriend / Female (Lexi)</option>
+                  <option value="male">Boyfriend / Male (Leo)</option>
+                  <option value="non_binary">Neutral / Partner (Noni)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">
+                  Relationship Dynamic
+                </label>
+                <select
+                  value={relationshipDynamic}
+                  onChange={(e) => setRelationshipDynamic(e.target.value)}
+                  className="w-full px-3 py-2 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                >
+                  <option value="sweet_loving">Sweet & Loving Partner</option>
+                  <option value="playful_teasing">Playful & Teasing Bestie</option>
+                  <option value="disciplined_coach">Accountability Coach</option>
+                  <option value="calm_soulmate">Calm & Gentle Soulmate</option>
+                </select>
               </div>
             </div>
 

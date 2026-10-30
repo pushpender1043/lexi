@@ -1,4 +1,9 @@
-export type PartnerGender = 'female' | 'male';
+export type PartnerGender = 'female' | 'male' | 'non_binary';
+export type RelationshipDynamic =
+  | 'sweet_loving'
+  | 'playful_teasing'
+  | 'disciplined_coach'
+  | 'calm_soulmate';
 export type PartnerTone = 'playful_loving' | 'strict_caring' | 'sweet_clingy' | 'sassy_feisty';
 export type MoodStatus = 'ecstatic' | 'loving' | 'happy' | 'neutral' | 'annoyed' | 'angry';
 

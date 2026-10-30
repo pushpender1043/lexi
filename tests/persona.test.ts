@@ -15,6 +15,8 @@ describe('Persona & Prompt Shielding Tests', () => {
     gender: 'male',
     partnerName: 'Noni',
     partnerTone: 'playful_loving',
+    partnerGender: 'female',
+    relationshipDynamic: 'sweet_loving',
     streakDays: 7,
     dailyWaterGoal: 8,
   };
@@ -53,14 +55,117 @@ describe('Persona & Prompt Shielding Tests', () => {
     assert.ok(prompt.includes('JSON object with this exact structure'), 'JSON output constraint must be present');
   });
 
-  it('generates Gemini Live voice call prompt with speech-specific constraints', () => {
-    const prompt = buildVoiceCallPrompt({
-      userProfile: mockProfile,
+  describe('Gender Agreement & Hindi Grammar Rules', () => {
+    it('enforces feminine Hindi grammar when partnerGender is female', () => {
+      const prompt = buildCompanionSystemInstruction({
+        userProfile: {
+          ...mockProfile,
+          partnerGender: 'female',
+          partnerName: 'Maya',
+        },
+      });
+
+      assert.ok(prompt.includes('Your persona is FEMALE'));
+      assert.ok(prompt.includes('main samajh gayi'));
+      assert.ok(prompt.includes('tumhari Maya'));
     });
 
-    assert.ok(prompt.includes('You are Noni on a real-time live phone call with Kabir'));
-    assert.ok(prompt.includes('Never read out emojis, symbols, bullet points, or markdown'));
-    assert.ok(prompt.includes('callReply'));
+    it('enforces masculine Hindi grammar when partnerGender is male (Boyfriend)', () => {
+      const prompt = buildCompanionSystemInstruction({
+        userProfile: {
+          ...mockProfile,
+          partnerGender: 'male',
+          partnerName: 'Leo',
+        },
+      });
+
+      assert.ok(prompt.includes('Your persona is MALE'));
+      assert.ok(prompt.includes('main samajh gaya'));
+      assert.ok(prompt.includes('NEVER use feminine verb endings'));
+      assert.ok(prompt.includes('tumhara Leo'));
+    });
+  });
+
+  describe('Relationship Dynamics Rules (Not Always Romantic)', () => {
+    it('configures disciplined_coach dynamic with strict habit accountability and strictly forbids romantic pet names', () => {
+      const prompt = buildCompanionSystemInstruction({
+        userProfile: {
+          ...mockProfile,
+          relationshipDynamic: 'disciplined_coach',
+          partnerName: 'Coach Vikram',
+        },
+      });
+
+      assert.ok(prompt.includes('accountability coach and habit trainer'));
+      assert.ok(prompt.includes('NEVER use romantic pet names'));
+      assert.ok(prompt.includes('Champ'));
+      assert.ok(prompt.includes('Zero excuses'));
+    });
+
+    it('configures playful_teasing bestie dynamic with high-energy friendly banter and forbids romantic pet names', () => {
+      const prompt = buildCompanionSystemInstruction({
+        userProfile: {
+          ...mockProfile,
+          relationshipDynamic: 'playful_teasing',
+          partnerName: 'Rohan',
+        },
+      });
+
+      assert.ok(prompt.includes('teasing best friend'));
+      assert.ok(prompt.includes('NEVER use romantic pet names'));
+      assert.ok(prompt.includes('yaar'));
+      assert.ok(prompt.includes('roast-and-boost'));
+    });
+
+    it('configures calm_soulmate dynamic with peaceful, mindful presence', () => {
+      const prompt = buildCompanionSystemInstruction({
+        userProfile: {
+          ...mockProfile,
+          relationshipDynamic: 'calm_soulmate',
+          partnerName: 'Aria',
+        },
+      });
+
+      assert.ok(prompt.includes('mindful, deeply compassionate soulmate'));
+      assert.ok(prompt.includes('peaceful warmth'));
+    });
+  });
+
+  describe('Gemini Live Voice Call Prompt Constraints', () => {
+    it('generates Gemini Live voice call prompt with speech-specific constraints', () => {
+      const prompt = buildVoiceCallPrompt({
+        userProfile: mockProfile,
+      });
+
+      assert.ok(prompt.includes('Never read out emojis, symbols, bullet points, or markdown'));
+      assert.ok(prompt.includes('callReply'));
+    });
+
+    it('enforces disciplined coach voice rules (no pet names, focuses on execution)', () => {
+      const prompt = buildVoiceCallPrompt({
+        userProfile: {
+          ...mockProfile,
+          relationshipDynamic: 'disciplined_coach',
+          partnerName: 'Coach Dev',
+        },
+      });
+
+      assert.ok(prompt.includes('NEVER use romantic pet names'));
+      assert.ok(prompt.includes('Champ'));
+    });
+
+    it('enforces masculine Hindi grammar in voice prompt when partnerGender is male', () => {
+      const prompt = buildVoiceCallPrompt({
+        userProfile: {
+          ...mockProfile,
+          partnerGender: 'male',
+          partnerName: 'Arjun',
+        },
+      });
+
+      assert.ok(prompt.includes('Male gender agreement in Hindi'));
+      assert.ok(prompt.includes('Never use feminine endings'));
+    });
   });
 
   describe('Language & Script Detection', () => {
@@ -84,7 +189,7 @@ describe('Persona & Prompt Shielding Tests', () => {
     });
   });
 
-  describe('Offline & Fallback Script Mirroring', () => {
+  describe('Offline & Fallback Script Mirroring across Personas', () => {
     it('mirrors Devanagari Hindi and detects medicine habit', () => {
       const res = generateScriptMirrorFallback('मैंने दवाई ले ली है', 'Noni', 'Kabir');
       assert.ok(/[\u0900-\u097F]/.test(res.reply), 'Response must be in Devanagari');
@@ -107,6 +212,22 @@ describe('Persona & Prompt Shielding Tests', () => {
       assert.equal(res.detectedHabitAction?.habitTitle, 'Gym');
       assert.equal(res.detectedHabitAction?.status, 'completed');
       assert.equal(res.mood, 'excited');
+    });
+
+    it('uses disciplined coach persona when relationshipDynamic is disciplined_coach', () => {
+      const res = generateScriptMirrorFallback('sorry I skipped my workout', 'Coach', 'Kabir', {
+        relationshipDynamic: 'disciplined_coach',
+      });
+      assert.ok(res.reply.includes('Champ') || res.reply.includes('action') || res.reply.includes('Apology accepted'));
+      assert.ok(!res.reply.toLowerCase().includes('meri jaan'), 'Coach must not use romantic pet names');
+    });
+
+    it('uses masculine Hindi verbs when partnerGender is male', () => {
+      const res = generateScriptMirrorFallback('kahan gayab ho?', 'Leo', 'Kabir', {
+        partnerGender: 'male',
+        relationshipDynamic: 'sweet_loving',
+      });
+      assert.ok(res.reply.includes('raha hoon') || res.reply.includes('raha'), 'Male partner must use masculine Hindi verb');
     });
   });
 

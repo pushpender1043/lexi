@@ -156,5 +156,57 @@ describe('Streak & Timezone-Aware Data Invariants', () => {
     };
     const res3 = calculateStreak(today, brokenLogs);
     assert.strictEqual(res3.currentStreak, 0);
+
+    // Case 4: Month boundary streak calculation (Oct 31 -> Nov 1)
+    const nov1 = '2026-11-01';
+    const oct31 = '2026-10-31';
+    const monthLogs: Record<string, HabitLogEntry> = {
+      [oct31]: {
+        date: oct31,
+        completedHabitIds: ['h1'],
+        totalHabitsCount: 1,
+        completedCrucialCount: 1,
+        totalCrucialCount: 1,
+        completedAllCrucial: true,
+        updatedAt: '2026-10-31T20:00:00Z',
+      },
+      [nov1]: {
+        date: nov1,
+        completedHabitIds: ['h1'],
+        totalHabitsCount: 1,
+        completedCrucialCount: 1,
+        totalCrucialCount: 1,
+        completedAllCrucial: true,
+        updatedAt: '2026-11-01T09:00:00Z',
+      },
+    };
+    const res4 = calculateStreak(nov1, monthLogs);
+    assert.strictEqual(res4.currentStreak, 2, 'Consecutive streak across month boundary must equal 2');
+
+    // Case 5: Year boundary streak calculation (Dec 31 -> Jan 1)
+    const jan1 = '2027-01-01';
+    const dec31 = '2026-12-31';
+    const yearLogs: Record<string, HabitLogEntry> = {
+      [dec31]: {
+        date: dec31,
+        completedHabitIds: ['h1'],
+        totalHabitsCount: 1,
+        completedCrucialCount: 1,
+        totalCrucialCount: 1,
+        completedAllCrucial: true,
+        updatedAt: '2026-12-31T22:00:00Z',
+      },
+      [jan1]: {
+        date: jan1,
+        completedHabitIds: ['h1'],
+        totalHabitsCount: 1,
+        completedCrucialCount: 1,
+        totalCrucialCount: 1,
+        completedAllCrucial: true,
+        updatedAt: '2027-01-01T10:00:00Z',
+      },
+    };
+    const res5 = calculateStreak(jan1, yearLogs);
+    assert.strictEqual(res5.currentStreak, 2, 'Consecutive streak across year boundary must equal 2');
   });
 });

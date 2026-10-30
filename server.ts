@@ -250,9 +250,13 @@ function generateFallbackChatResponse(
   userText: string,
   partnerName: string,
   userName: string,
-  partnerMood: any
+  partnerMood: any,
+  userProfile?: any
 ) {
-  const fallback = generateScriptMirrorFallback(userText, partnerName, userName);
+  const fallback = generateScriptMirrorFallback(userText, partnerName, userName, {
+    partnerGender: userProfile?.partnerGender,
+    relationshipDynamic: userProfile?.relationshipDynamic,
+  });
   return {
     reply: fallback.reply,
     mood: fallback.mood,
@@ -299,10 +303,14 @@ const ChatPayloadSchema = z.object({
       userId: z.string().max(128).optional(),
       name: z.string().max(64).optional(),
       partnerName: z.string().max(64).optional(),
-      partnerGender: z.enum(["male", "female"]).optional(),
+      partnerGender: z.enum(["male", "female", "non_binary"]).optional(),
+      relationshipDynamic: z
+        .enum(["sweet_loving", "playful_teasing", "disciplined_coach", "calm_soulmate"])
+        .optional(),
       partnerTone: z.enum(["playful_loving", "strict_caring", "sweet_clingy", "sassy_feisty"]).optional(),
       gender: z.enum(["male", "female", "non_binary", "other"]).optional(),
       streakDays: z.number().int().min(0).max(10000).optional(),
+      languageMix: z.string().max(64).optional(),
     })
     .optional()
     .default({}),
@@ -355,7 +363,10 @@ const ProactivePayloadSchema = z.object({
       userId: z.string().max(128).optional(),
       name: z.string().max(64).optional(),
       partnerName: z.string().max(64).optional(),
-      partnerGender: z.enum(["male", "female"]).optional(),
+      partnerGender: z.enum(["male", "female", "non_binary"]).optional(),
+      relationshipDynamic: z
+        .enum(["sweet_loving", "playful_teasing", "disciplined_coach", "calm_soulmate"])
+        .optional(),
     })
     .optional()
     .default({}),
@@ -378,7 +389,10 @@ const CallTurnPayloadSchema = z.object({
       userId: z.string().max(128).optional(),
       name: z.string().max(64).optional(),
       partnerName: z.string().max(64).optional(),
-      partnerGender: z.enum(["male", "female"]).optional(),
+      partnerGender: z.enum(["male", "female", "non_binary"]).optional(),
+      relationshipDynamic: z
+        .enum(["sweet_loving", "playful_teasing", "disciplined_coach", "calm_soulmate"])
+        .optional(),
     })
     .optional()
     .default({}),
@@ -567,7 +581,7 @@ ${eventsSummary}
     return res.json(parsedData);
   } catch (error: any) {
     console.warn("Companion conversational fallback activated:", error?.message || "Unavailable");
-    const fallback = generateFallbackChatResponse(cleanMessage, partnerName, userName, partnerMood);
+    const fallback = generateFallbackChatResponse(cleanMessage, partnerName, userName, partnerMood, userProfile);
     return res.json(fallback);
   }
 });
@@ -631,9 +645,22 @@ Respond in JSON:
     return res.json(parsed);
   } catch (error: any) {
     console.warn("Proactive fallback triggered:", error?.message || "Unavailable");
+    const dynamic = userProfile?.relationshipDynamic || "sweet_loving";
+    const isMale = userProfile?.partnerGender === "male";
+    let fallbackMsg = "Baby, kahan gayab ho? Sab theek hai na? Paani piyo aur thoda break lo! ❤️";
+    if (dynamic === "disciplined_coach") {
+      fallbackMsg = `Champ, routine miss mat karo! Time to get back on track and log your habits. 💪`;
+    } else if (dynamic === "playful_teasing") {
+      fallbackMsg = `Arey yaar, kahan gayab ho gaye? Phone chala rahe ho ya sach mein kaam kar rahe ho? 😂`;
+    } else if (dynamic === "calm_soulmate") {
+      fallbackMsg = `Aapka din kaisa jaa raha hai? Thoda deep breath lijiye aur aaram se apna routine continue kijiye. 🌸`;
+    } else if (isMale) {
+      fallbackMsg = `Kahan gayab ho meri jaan? Main wait kar raha hoon... Sab theek hai na? ❤️`;
+    }
+
     return res.json({
-      message: "Baby, kahan gayab ho? Sab theek hai na? Paani piyo aur thoda break lo! ❤️",
-      category: "nudge",
+      message: fallbackMsg,
+      category: dynamic === "disciplined_coach" ? "reminder" : dynamic === "playful_teasing" ? "taunt" : "nudge",
       urgency: "low",
     });
   }
@@ -690,10 +717,23 @@ ${JSON.stringify(safeHistory)}
     return res.json(parsed);
   } catch (error: any) {
     console.warn("Call Turn fallback triggered:", error?.message || "Unavailable");
+    const dynamic = userProfile?.relationshipDynamic || "sweet_loving";
+    const isMale = userProfile?.partnerGender === "male";
+    let fallbackCallReply = "Baby, tumhari aawaz thodi cut gayi... Par main sun rahi hoon, batao na kya hua?";
+    if (dynamic === "disciplined_coach") {
+      fallbackCallReply = `Champ, connection thoda break hua... Main sun ${isMale ? "raha" : "rahi"} hoon, batao kya update hai!`;
+    } else if (dynamic === "playful_teasing") {
+      fallbackCallReply = `Yaar aawaz kat gayi thodi... Hello? Sun ${isMale ? "raha" : "rahi"} hoon, bolo bolo!`;
+    } else if (dynamic === "calm_soulmate") {
+      fallbackCallReply = `Aawaz thodi break ho gayi... Koi baat nahi, main sun ${isMale ? "raha" : "rahi"} hoon, aaram se boliye.`;
+    } else if (isMale) {
+      fallbackCallReply = "Meri jaan, tumhari aawaz thodi cut gayi... Par main sun raha hoon, batao na kya hua?";
+    }
+
     return res.json({
-      callReply: "Baby, tumhari aawaz thodi cut gayi... Par main sun rahi hoon, batao na kya hua?",
+      callReply: fallbackCallReply,
       mood: "calm",
-      emotion: "caring",
+      emotion: dynamic === "disciplined_coach" ? "proud" : "caring",
       habitUpdateDetected: null,
     });
   }
