@@ -69,7 +69,7 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
       {/* Sync Services Status Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Google Calendar Card */}
-        <div className="p-4 rounded-[18px] bg-white/65 dark:bg-white/[0.045] backdrop-blur-xl border border-white/60 dark:border-white/[0.12] shadow-[0_8px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.2)] flex items-center justify-between gap-3">
+        <div className="p-4 rounded-[18px] bg-white/65 dark:bg-[#191F3C]/58 border border-white/60 dark:border-white/[0.14] shadow-[0_8px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.2)] flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-[12px] bg-[#F3EBFF]/80 dark:bg-white/[0.08] text-[#7C3AED] dark:text-[#C4B5FD] flex items-center justify-center border border-white/60 dark:border-white/[0.14]">
               <Calendar className="w-5 h-5" />
@@ -101,7 +101,7 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
         </div>
 
         {/* Native Alarms Card */}
-        <div className="p-4 rounded-[18px] bg-white/65 dark:bg-white/[0.045] backdrop-blur-xl border border-white/60 dark:border-white/[0.12] shadow-[0_8px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.2)] flex items-center justify-between gap-3">
+        <div className="p-4 rounded-[18px] bg-white/65 dark:bg-[#191F3C]/58 border border-white/60 dark:border-white/[0.14] shadow-[0_8px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.2)] flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-[12px] bg-[#F3EBFF]/80 dark:bg-white/[0.08] text-amber-500 dark:text-amber-300 flex items-center justify-center border border-white/60 dark:border-white/[0.14]">
               <Bell className="w-5 h-5" />
@@ -225,7 +225,7 @@ export const EcosystemSyncView: React.FC<EcosystemSyncViewProps> = ({
           <div
             key={event.id ? `${event.id}-${index}` : `event-${index}`}
             id={`event-item-${event.id}`}
-            className="p-3.5 sm:p-4 rounded-[18px] bg-white/65 dark:bg-white/[0.045] backdrop-blur-xl border border-white/60 dark:border-white/[0.12] flex flex-wrap items-center justify-between gap-3 hover:border-[#896ABD]/45 dark:hover:border-[#A855F7]/45 shadow-[0_8px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all"
+            className="p-3.5 sm:p-4 rounded-[18px] bg-white/65 dark:bg-[#191F3C]/58 border border-white/60 dark:border-white/[0.14] flex flex-wrap items-center justify-between gap-3 hover:border-[#896ABD]/45 dark:hover:border-[#A855F7]/45 shadow-[0_8px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[12px] bg-[#F3EBFF]/80 dark:bg-white/[0.08] text-[#7C3AED] dark:text-[#C4B5FD] flex items-center justify-center font-bold text-xs border border-white/60 dark:border-white/[0.14]">

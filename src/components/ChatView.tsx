@@ -198,7 +198,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
     <div className="flex-1 flex flex-col h-full max-w-3xl mx-auto w-full select-none relative overflow-hidden glass rounded-[22px] border border-white/65 dark:border-white/20 animate-in fade-in duration-200">
       
       {/* 1. Single Compact Translucent Glass Header */}
-      <div className="px-3.5 sm:px-5 py-2.5 bg-white/24 dark:bg-white/[0.035] backdrop-blur-xl border-b border-white/40 dark:border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] flex items-center justify-between shrink-0 z-20">
+      <div className="px-3.5 sm:px-5 py-2.5 bg-white/24 dark:bg-[#191F3C]/52 border-b border-white/40 dark:border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-2.5">
           {/* Mobile Back Button Only */}
           {onBack && (
@@ -469,7 +469,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
       </AnimatePresence>
 
       {/* 3. Fixed Bottom Translucent Glass Composer */}
-      <div className="p-2.5 sm:p-3.5 bg-white/22 dark:bg-white/[0.035] border-t border-white/40 dark:border-white/[0.12] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] shrink-0">
+      <div className="p-2.5 sm:p-3.5 bg-white/22 dark:bg-[#161B36]/58 border-t border-white/40 dark:border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] shrink-0">
         <div className="flex items-end gap-2 max-w-2xl mx-auto">
           <textarea
             ref={textareaRef}
@@ -501,10 +501,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
               animate={{ scale: 1 }}
               whileTap={{ scale: 0.94 }}
               onClick={startVoiceRecording}
-              className={`p-3 rounded-2xl transition-all cursor-pointer border backdrop-blur-lg ${
+              className={`p-3 rounded-2xl transition-all cursor-pointer border ${
                 isRecording
                   ? 'bg-rose-500 border-rose-400 text-white animate-pulse shadow-md shadow-rose-500/40'
-                  : 'bg-white/35 dark:bg-white/[0.07] border-white/65 dark:border-white/[0.18] text-[#6D28D9] dark:text-[#E9D5FF] hover:bg-white/55 dark:hover:bg-white/[0.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]'
+                  : 'bg-white/35 dark:bg-[#1F2548]/58 border-white/65 dark:border-white/[0.18] text-[#6D28D9] dark:text-[#E9D5FF] hover:bg-white/55 dark:hover:bg-[#272F58]/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]'
               }`}
               title={isRecording ? 'Stop Recording' : 'Voice Input'}
             >

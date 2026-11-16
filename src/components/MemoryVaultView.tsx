@@ -130,7 +130,7 @@ export const MemoryVaultView: React.FC<MemoryVaultViewProps> = ({
             <div
               key={mem.id ? `${mem.id}-${index}` : `mem-${index}`}
               id={`memory-card-${mem.id}`}
-              className="p-4 rounded-[18px] bg-white/65 dark:bg-white/[0.045] backdrop-blur-xl border border-white/60 dark:border-white/[0.12] hover:border-[#896ABD]/45 dark:hover:border-[#A855F7]/45 shadow-[0_8px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all flex flex-col justify-between"
+              className="p-4 rounded-[18px] bg-white/65 dark:bg-[#191F3C]/58 border border-white/60 dark:border-white/[0.14] hover:border-[#896ABD]/45 dark:hover:border-[#A855F7]/45 shadow-[0_8px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">

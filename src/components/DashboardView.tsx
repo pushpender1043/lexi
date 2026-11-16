@@ -195,12 +195,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {weekDays.map((day, idx) => (
                 <div
                   key={idx}
-                  className={`flex flex-col items-center py-2 rounded-xl text-center transition-all border backdrop-blur-md ${
+                  className={`flex flex-col items-center py-2 rounded-xl text-center transition-all border ${
                     day.isToday
                       ? 'bg-gradient-to-b from-[#A855F7] to-[#7C3AED] text-white border-white/40 shadow-[0_6px_14px_rgba(168,85,247,0.34),inset_0_1px_0_rgba(255,255,255,0.45)]'
                       : day.completed
                       ? 'bg-[#4CB782]/14 text-[#2E8B57] dark:text-[#4CB782] border-[#4CB782]/28'
-                      : 'bg-white/22 dark:bg-white/[0.04] border-white/45 dark:border-white/[0.09] text-[#6C6584] dark:text-[#938CA8]'
+                      : 'bg-white/25 dark:bg-[#1E2544]/45 border-white/45 dark:border-white/[0.1] text-[#6C6584] dark:text-[#938CA8]'
                   }`}
                 >
                   <span className="font-mono text-[10px] font-semibold">{day.label}</span>
@@ -281,10 +281,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div
                       key={habit.id}
                       onClick={() => handleToggleHabitWithBurst(habit.id)}
-                      className={`px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer border backdrop-blur-md ${
+                      className={`px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer border ${
                         habit.completed
-                          ? 'bg-[#4CB782]/10 border-[#4CB782]/25 text-[#2E8B57] dark:text-[#4CB782]'
-                          : 'bg-white/20 dark:bg-white/[0.035] hover:bg-white/40 dark:hover:bg-white/[0.08] border-white/45 dark:border-white/[0.08] text-[#14121C] dark:text-[#F8F7FC]'
+                          ? 'bg-[#4CB782]/12 border-[#4CB782]/28 text-[#2E8B57] dark:text-[#4CB782]'
+                          : 'bg-white/22 dark:bg-[#1D2340]/45 hover:bg-white/40 dark:hover:bg-[#252D52]/60 border-white/45 dark:border-white/[0.1] text-[#14121C] dark:text-[#F8F7FC]'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -332,12 +332,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             {/* Sleeker Glass Water Level */}
-            <div className="relative h-[76px] rounded-2xl bg-sky-400/10 dark:bg-white/[0.035] backdrop-blur-md border border-white/55 dark:border-white/[0.12] overflow-hidden flex items-end p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
+            <div className="relative h-[76px] rounded-2xl bg-sky-400/10 dark:bg-[#19203C]/50 border border-white/55 dark:border-white/[0.14] overflow-hidden flex items-end p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
               <motion.div
                 initial={{ height: '0%' }}
                 animate={{ height: `${Math.max(10, waterPercentage)}%` }}
                 transition={{ type: 'spring', damping: 20 }}
-                className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-sky-500/40 via-sky-400/24 to-[#A855F7]/12 backdrop-blur-xs border-t border-sky-300/45"
+                className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-sky-500/42 via-sky-400/24 to-[#A855F7]/12 border-t border-sky-300/45"
               />
               <div className="relative z-10 w-full flex items-baseline justify-between">
                 <div>
@@ -430,7 +430,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => onNavigateTab?.('chat')}
-                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-white/[0.04] hover:bg-white/44 dark:hover:bg-white/[0.09] backdrop-blur-md border border-white/50 dark:border-white/[0.1] hover:border-[#A855F7]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
+                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-[#1E2444]/48 hover:bg-white/44 dark:hover:bg-[#272F58]/64 border border-white/50 dark:border-white/[0.12] hover:border-[#A855F7]/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
               >
                 <MessageSquare className="w-4 h-4 text-[#A855F7] shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="font-display text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] truncate">Open Chat</span>
@@ -438,7 +438,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               <button
                 onClick={onStartCall}
-                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-white/[0.04] hover:bg-white/44 dark:hover:bg-white/[0.09] backdrop-blur-md border border-white/50 dark:border-white/[0.1] hover:border-[#4CB782]/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
+                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-[#1E2444]/48 hover:bg-white/44 dark:hover:bg-[#272F58]/64 border border-white/50 dark:border-white/[0.12] hover:border-[#4CB782]/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
               >
                 <Phone className="w-4 h-4 text-[#4CB782] shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="font-display text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] truncate">Voice Call</span>
@@ -446,7 +446,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               <button
                 onClick={() => onNavigateTab?.('todos')}
-                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-white/[0.04] hover:bg-white/44 dark:hover:bg-white/[0.09] backdrop-blur-md border border-white/50 dark:border-white/[0.1] hover:border-[#A855F7]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
+                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-[#1E2444]/48 hover:bg-white/44 dark:hover:bg-[#272F58]/64 border border-white/50 dark:border-white/[0.12] hover:border-[#A855F7]/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
               >
                 <CheckCircle2 className="w-4 h-4 text-[#896ABD] dark:text-[#C4B5FD] shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="font-display text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] truncate">All Habits</span>
@@ -454,7 +454,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               <button
                 onClick={() => onNavigateTab?.('stats')}
-                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-white/[0.04] hover:bg-white/44 dark:hover:bg-white/[0.09] backdrop-blur-md border border-white/50 dark:border-white/[0.1] hover:border-amber-400/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
+                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-[#1E2444]/48 hover:bg-white/44 dark:hover:bg-[#272F58]/64 border border-white/50 dark:border-white/[0.12] hover:border-amber-400/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
               >
                 <TrendingUp className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="font-display text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] truncate">Trends</span>
