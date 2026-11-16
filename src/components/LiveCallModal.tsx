@@ -350,15 +350,15 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-2xl animate-in fade-in select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-2xl animate-in fade-in select-none">
       <motion.div
         initial={{ opacity: 0, scale: 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.94 }}
-        className="relative w-full max-w-md h-[610px] rounded-[32px] glass-strong p-6 flex flex-col justify-between overflow-hidden shadow-[0_24px_64px_rgba(124,58,237,0.25)] border border-[rgba(124,58,237,0.25)]"
+        className="relative w-full max-w-md h-[610px] rounded-[32px] glass-strong p-6 flex flex-col justify-between overflow-hidden border border-white/60 dark:border-white/22 shadow-[0_28px_72px_rgba(0,0,0,0.75)]"
       >
         {/* Soft atmospheric gradient glow behind orb */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-gradient-to-tr from-[#7C3AED]/30 via-[#A78BFA]/20 to-pink-500/15 blur-3xl pointer-events-none -z-10" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-gradient-to-tr from-[#896ABD]/30 via-[#A855F7]/22 to-sky-400/12 blur-3xl pointer-events-none -z-10" />
 
         {/* Top Header Row */}
         <div className="flex items-center justify-between z-10">
@@ -366,14 +366,14 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
             <span className="w-2.5 h-2.5 rounded-full bg-[#4CB782] animate-pulse" />
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                <h3 className="text-sm font-bold text-[#14121C] dark:text-[#F8F7FC]">
                   Live with {companionName}
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.25)] text-[#7C3AED] dark:text-[#C4B5FD] uppercase tracking-wider">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F3EBFF] dark:bg-[rgba(168,85,247,0.22)] text-[#7C3AED] dark:text-[#E9D5FF] border border-transparent dark:border-[#A855F7]/30 uppercase tracking-wider">
                   HD Voice
                 </span>
               </div>
-              <p className="text-[11px] text-[#6B6B76] dark:text-[#A78BFA] font-mono">
+              <p className="text-[11px] text-[#534E68] dark:text-[#C4B5FD] font-mono tabular-nums">
                 {formatTimer(callSeconds)}
               </p>
             </div>
@@ -383,10 +383,10 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
             {/* Toggle Captions */}
             <button
               onClick={() => setShowCaptions(!showCaptions)}
-              className={`p-2 rounded-xl transition-colors cursor-pointer ${
+              className={`p-2 rounded-xl transition-colors cursor-pointer border ${
                 showCaptions
-                  ? 'bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.3)] text-[#7C3AED] dark:text-[#FAF7FF]'
-                  : 'bg-black/5 dark:bg-white/10 text-[#6B6B76] dark:text-[#9A9AA5]'
+                  ? 'bg-[#F3EBFF] dark:bg-[rgba(168,85,247,0.28)] border-transparent dark:border-[#A855F7]/40 text-[#7C3AED] dark:text-[#F8F7FC]'
+                  : 'bg-black/5 dark:bg-white/[0.06] border-transparent dark:border-white/10 text-[#534E68] dark:text-[#938CA8]'
               }`}
               title={showCaptions ? 'Hide Captions' : 'Show Captions'}
             >
@@ -396,7 +396,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
             {/* Hangup Quick Close */}
             <button
               onClick={handleEndCall}
-              className="p-2 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 text-[#6B6B76] dark:text-[#FAF7FF] transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-black/5 dark:bg-white/[0.06] border border-transparent dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#534E68] dark:text-[#F8F7FC] transition-colors cursor-pointer"
               title="End Call"
             >
               <X className="w-4 h-4" />
@@ -443,9 +443,9 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
                 duration: callStatus === 'speaking' ? 1.5 : 2.5,
                 ease: 'easeInOut',
               }}
-              className="w-44 h-44 rounded-full bg-gradient-to-tr from-[#7C3AED]/35 via-[#A78BFA]/25 to-pink-400/20 blur-2xl absolute -z-10"
+              className="w-44 h-44 rounded-full bg-gradient-to-tr from-[#896ABD]/40 via-[#A855F7]/28 to-sky-400/18 blur-2xl absolute -z-10"
             />
-            <div className="w-36 h-36 rounded-full border border-white/60 dark:border-white/15 flex items-center justify-center bg-white/50 dark:bg-white/5 backdrop-blur-md shadow-inner">
+            <div className="w-36 h-36 rounded-full border border-white/60 dark:border-white/20 flex items-center justify-center bg-white/50 dark:bg-white/[0.045] backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.3)]">
               <AexoMascot
                 size="lg"
                 isListening={callStatus === 'listening'}
@@ -473,10 +473,10 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
                   }}
                   className={`w-1 rounded-full transition-all duration-150 ${
                     callStatus === 'speaking'
-                      ? 'bg-gradient-to-t from-[#7C3AED] to-[#A78BFA]'
+                      ? 'bg-gradient-to-t from-[#896ABD] to-[#C4B5FD]'
                       : callStatus === 'listening'
                       ? 'bg-[#4CB782]'
-                      : 'bg-[#9A9AA5]/40'
+                      : 'bg-white/25'
                   }`}
                 />
               );
@@ -484,14 +484,14 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
           </div>
 
           {/* State Pill */}
-          <div className="px-4 py-1.5 rounded-full bg-white/75 dark:bg-white/10 border border-white/80 dark:border-white/15 text-xs font-semibold text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-2 shadow-xs">
+          <div className="px-4 py-1.5 rounded-full bg-white/75 dark:bg-transparent dark:glass-pill border border-white/80 dark:border-white/20 text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] flex items-center gap-2">
             <span
               className={`w-2 h-2 rounded-full ${
                 callStatus === 'speaking'
-                  ? 'bg-[#7C3AED] animate-ping'
+                  ? 'bg-[#A855F7] animate-ping'
                   : callStatus === 'listening'
                   ? 'bg-[#4CB782] animate-pulse'
-                  : 'bg-[#A78BFA]'
+                  : 'bg-[#C4B5FD]'
               }`}
             />
             <span className="capitalize">
@@ -509,16 +509,16 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
           {showCaptions && (
             <div className="mt-3 px-4 text-center max-w-xs min-h-[46px] flex items-center justify-center">
               {callStatus === 'speaking' && partnerSpeechText ? (
-                <p className="text-xs text-[#7C3AED] dark:text-[#C4B5FD] font-medium leading-relaxed line-clamp-2">
+                <p className="text-xs text-[#7C3AED] dark:text-[#E9D5FF] font-medium leading-relaxed line-clamp-2">
                   &ldquo;{partnerSpeechText}&rdquo;
                 </p>
               ) : userSpokenText ? (
-                <p className="text-xs text-[#1A1A1F] dark:text-[#FAF7FF] italic line-clamp-2 font-medium">
+                <p className="text-xs text-[#14121C] dark:text-[#F8F7FC] italic line-clamp-2 font-medium">
                   &ldquo;{userSpokenText}&rdquo;
                 </p>
               ) : (
-                <p className="text-[11px] text-[#9A9AA5] flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#A78BFA]" />
+                <p className="text-[11px] text-[#7C7692] dark:text-[#938CA8] flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#A855F7]" />
                   <span>Speak freely in Hinglish or English</span>
                 </p>
               )}
@@ -541,7 +541,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
                 setUserSpokenText(prompt);
                 handleUserUtterance(prompt);
               }}
-              className="px-3.5 py-1.5 rounded-full text-[11px] whitespace-nowrap bg-white/70 dark:bg-white/10 hover:bg-[#F3EBFF] text-[#6B6B76] dark:text-[#C4B5FD] hover:text-[#7C3AED] border border-[rgba(124,58,237,0.15)] shrink-0 transition-transform active:scale-95 cursor-pointer font-medium"
+              className="px-3.5 py-1.5 rounded-full text-[11px] whitespace-nowrap bg-white/70 dark:bg-white/[0.07] hover:bg-[#F3EBFF] dark:hover:bg-white/[0.14] text-[#534E68] dark:text-[#E9D5FF] hover:text-[#7C3AED] dark:hover:text-white border border-[rgba(137,106,189,0.2)] dark:border-white/15 shrink-0 transition-all active:scale-95 cursor-pointer font-medium"
             >
               {prompt}
             </button>
@@ -549,7 +549,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
         </div>
 
         {/* Floating Controls Footer */}
-        <div className="flex items-center justify-center gap-6 pt-3 border-t border-[rgba(124,58,237,0.14)] z-10">
+        <div className="flex items-center justify-center gap-6 pt-3 border-t border-[rgba(137,106,189,0.16)] dark:border-white/12 z-10">
           {/* Mute Mic */}
           <button
             onClick={() => {
@@ -560,8 +560,8 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
             }}
             className={`p-3.5 rounded-full transition-all cursor-pointer ${
               isMuted
-                ? 'bg-rose-500/15 text-rose-500 border border-rose-300'
-                : 'glass text-[#1A1A1F] dark:text-[#FAF7FF]'
+                ? 'bg-rose-500/18 text-rose-400 border border-rose-400/35'
+                : 'glass text-[#14121C] dark:text-[#F8F7FC]'
             }`}
             title={isMuted ? 'Unmute Mic' : 'Mute Mic'}
           >
@@ -571,7 +571,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
           {/* End Call Button */}
           <button
             onClick={handleEndCall}
-            className="w-14 h-14 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+            className="w-14 h-14 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-[0_10px_28px_rgba(244,63,94,0.45),inset_0_1px_0_rgba(255,255,255,0.35)] border border-rose-300/30 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer"
             title="End Call"
           >
             <PhoneOff className="w-6 h-6" />
@@ -586,8 +586,8 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
             }}
             className={`p-3.5 rounded-full transition-all cursor-pointer ${
               isSpeakerMuted
-                ? 'bg-amber-500/15 text-amber-500 border border-amber-300'
-                : 'glass text-[#1A1A1F] dark:text-[#FAF7FF]'
+                ? 'bg-amber-500/18 text-amber-400 border border-amber-400/35'
+                : 'glass text-[#14121C] dark:text-[#F8F7FC]'
             }`}
             title={isSpeakerMuted ? 'Unmute Companion Audio' : 'Mute Companion Audio'}
           >

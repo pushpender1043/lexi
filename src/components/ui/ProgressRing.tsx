@@ -29,8 +29,9 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
       <svg width={size} height={size} className="-rotate-90">
         <defs>
           <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#A78BFA" />
-            <stop offset="100%" stopColor="#7C3AED" />
+            <stop offset="0%" stopColor="#C4B5FD" />
+            <stop offset="50%" stopColor="#A855F7" />
+            <stop offset="100%" stopColor="#896ABD" />
           </linearGradient>
         </defs>
         {/* Track circle */}
@@ -40,7 +41,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
           r={radius}
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-black/5 dark:text-white/10 fill-transparent"
+          className="text-black/8 dark:text-white/12 fill-transparent"
         />
         {/* Progress stroke */}
         <motion.circle

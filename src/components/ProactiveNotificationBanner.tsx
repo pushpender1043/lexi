@@ -41,28 +41,28 @@ export const ProactiveNotificationBanner: React.FC<ProactiveNotificationBannerPr
       id={`proactive-nudge-${nudge.id}`}
       className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-lg transition-all duration-300 animate-in fade-in slide-in-from-top-4 select-none"
     >
-      <div className="glass-strong rounded-[20px] p-4 shadow-[var(--shadow-glass)] border border-[var(--border)] flex items-start gap-3.5">
+      <div className="glass-strong rounded-[24px] p-4 shadow-[var(--shadow-glass)] border border-white/60 dark:border-white/20 flex items-start gap-3.5">
         {/* Companion Mascot Avatar */}
         <div className="relative shrink-0">
           <AexoMascot size="sm" isListening={true} />
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--success-green)] ring-2 ring-white dark:ring-[#0F0B1A]" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--success-green)] ring-2 ring-white dark:ring-[#07060C]" />
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-[var(--text-primary)]">
                 {partnerName}
               </span>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--light-purple-surface)] text-[var(--primary-purple)] border border-[var(--border)]">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--light-purple-surface)] text-[var(--primary-purple)] dark:text-[#E9D5FF] border border-white/15">
                 {isHabitRelated ? 'Habit Reminder' : 'Companion Nudge'}
               </span>
             </div>
             <button
               id="dismiss-nudge-btn"
               onClick={onDismiss}
-              className="p-1 rounded-[8px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              className="p-1.5 rounded-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Dismiss"
             >
               <X className="w-3.5 h-3.5" />

@@ -23,10 +23,10 @@ export const Chip: React.FC<ChipProps> = ({
       type="button"
       whileTap={{ scale: 0.96 }}
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer select-none ${
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] text-xs font-semibold whitespace-nowrap transition-all cursor-pointer select-none ${
         active
-          ? 'bg-[#7C3AED] text-white shadow-xs'
-          : 'bg-white/60 dark:bg-white/[0.06] text-[#6B6B76] dark:text-[#C4B5FD] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF] hover:bg-white/90 border border-white/70 dark:border-white/10'
+          ? 'btn-primary-purple text-white'
+          : 'bg-white/65 dark:bg-white/[0.06] text-[#534E68] dark:text-[#C5BED9] hover:text-[#14121C] dark:hover:text-[#F8F7FC] hover:bg-white/90 dark:hover:bg-white/[0.11] border border-white/70 dark:border-white/[0.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-lg'
       } ${className}`}
     >
       {icon && <span className="shrink-0">{icon}</span>}

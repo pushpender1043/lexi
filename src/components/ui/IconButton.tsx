@@ -26,13 +26,13 @@ export const IconButton: React.FC<IconButtonProps> = ({
 
   const variantStyles = {
     default:
-      'bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/[0.15] text-[#6B6B76] hover:text-[#1A1A1F] dark:text-[#9A9AA5] dark:hover:text-[#FAF7FF] border border-white/60 dark:border-white/10 shadow-xs',
+      'bg-white/70 dark:bg-white/[0.07] hover:bg-white dark:hover:bg-white/[0.14] text-[#534E68] hover:text-[#14121C] dark:text-[#C5BED9] dark:hover:text-[#F8F7FC] border border-white/70 dark:border-white/[0.16] shadow-[0_6px_18px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.26)] backdrop-blur-xl',
     active:
-      'bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.25)] text-[#7C3AED] dark:text-[#C4B5FD] border border-[rgba(124,58,237,0.25)] shadow-xs',
+      'bg-[rgba(137,106,189,0.16)] dark:bg-[rgba(168,85,247,0.24)] text-[#6D28D9] dark:text-[#E9D5FF] border border-[#896ABD]/35 dark:border-[#A855F7]/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.24)] backdrop-blur-xl',
     ghost:
-      'bg-transparent hover:bg-white/50 dark:hover:bg-white/10 text-[#6B6B76] hover:text-[#1A1A1F] dark:text-[#9A9AA5] dark:hover:text-[#FAF7FF]',
+      'bg-transparent hover:bg-white/55 dark:hover:bg-white/[0.08] text-[#534E68] hover:text-[#14121C] dark:text-[#C5BED9] dark:hover:text-[#F8F7FC]',
     primary:
-      'bg-[#7C3AED] hover:bg-[#5B21B6] text-white shadow-[0_4px_16px_rgba(124,58,237,0.32)] border border-[#7C3AED]/30',
+      'btn-primary-purple',
   };
 
   return (

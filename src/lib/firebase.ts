@@ -126,10 +126,29 @@ export async function signInWithGoogle(): Promise<User | null> {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error: any) {
-    console.error('Error during Google sign in:', error);
-    if (error?.code === 'auth/popup-closed-by-user') {
+    const code = error?.code || '';
+    if (
+      code === 'auth/popup-closed-by-user' ||
+      code === 'auth/cancelled-popup-request'
+    ) {
+      // User dismissed or superseded the popup — treat as a clean cancellation rather than an error
       return null;
     }
+    if (code === 'auth/popup-blocked') {
+      const blockedErr: any = new Error(
+        'Sign-in popup was blocked by your browser. Allow pop-ups for this site or sign in with Email / Guest.'
+      );
+      blockedErr.code = code;
+      throw blockedErr;
+    }
+    if (code === 'auth/unauthorized-domain') {
+      const domainErr: any = new Error(
+        'Google sign-in is not authorized on this preview domain. Please use Email or Guest sign-in.'
+      );
+      domainErr.code = code;
+      throw domainErr;
+    }
+    console.error('Error during Google sign in:', error);
     throw error;
   }
 }

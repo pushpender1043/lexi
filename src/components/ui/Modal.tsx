@@ -42,7 +42,7 @@ export const Modal: React.FC<ModalProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 dark:bg-black/75 backdrop-blur-md"
+            className="fixed inset-0 bg-black/65 dark:bg-black/78 backdrop-blur-lg"
           />
 
           {/* Dialog Container */}
@@ -51,18 +51,18 @@ export const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-            className={`relative w-full ${maxWidth} glass-strong rounded-[28px] border border-[rgba(124,58,237,0.18)] dark:border-white/15 shadow-[0_20px_60px_rgba(124,58,237,0.18)] overflow-hidden z-10 my-auto`}
+            className={`relative w-full ${maxWidth} glass-strong rounded-[28px] border border-white/60 dark:border-white/18 shadow-[0_24px_64px_rgba(0,0,0,0.65)] overflow-hidden z-10 my-auto`}
           >
             {(title || showClose) && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-[rgba(124,58,237,0.12)] bg-[#FAF7FF]/50 dark:bg-white/5">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[rgba(137,106,189,0.16)] dark:border-white/10 bg-white/40 dark:bg-white/[0.03]">
                 <div>
                   {title && (
-                    <h3 className="text-base font-extrabold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                    <h3 className="text-base font-extrabold text-[#14121C] dark:text-[#F8F7FC]">
                       {title}
                     </h3>
                   )}
                   {subtitle && (
-                    <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] mt-0.5">
+                    <p className="text-xs text-[#534E68] dark:text-[#C5BED9] mt-0.5">
                       {subtitle}
                     </p>
                   )}
@@ -70,7 +70,7 @@ export const Modal: React.FC<ModalProps> = ({
                 {showClose && (
                   <button
                     onClick={onClose}
-                    className="p-1.5 rounded-full text-[#9A9AA5] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF] hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                    className="p-2 min-w-[36px] min-h-[36px] rounded-full text-[#7C7692] hover:text-[#14121C] dark:text-[#C5BED9] dark:hover:text-[#F8F7FC] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center"
                     aria-label="Close"
                   >
                     <X className="w-5 h-5" />

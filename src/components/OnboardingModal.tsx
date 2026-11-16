@@ -303,22 +303,22 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-in fade-in select-none">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/65 dark:bg-black/78 backdrop-blur-lg animate-in fade-in select-none">
       <div
         id="onboarding-wizard-modal"
-        className="relative w-full max-w-lg rounded-[28px] glass-strong shadow-[var(--shadow-glass)] border border-[var(--border)] overflow-hidden flex flex-col max-h-[92vh]"
+        className="relative w-full max-w-lg rounded-[28px] glass-strong shadow-[0_24px_64px_rgba(0,0,0,0.65)] border border-white/60 dark:border-white/20 overflow-hidden flex flex-col max-h-[92vh]"
       >
         {/* Top Header Bar with Step Indicator & Skip Option */}
-        <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-black/5 dark:border-white/[0.12] bg-white/40 dark:bg-white/[0.03] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-[var(--primary-purple)] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#A855F7] to-[#7C3AED] text-white flex items-center justify-center font-bold text-xs shadow-[0_4px_14px_rgba(168,85,247,0.4)] border border-white/25">
               {step}
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--soft-lavender)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#7C3AED] dark:text-[#C4B5FD]">
                 Step {step} of 3
               </span>
-              <h3 className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">
+              <h3 className="text-xs sm:text-sm font-bold text-[#14121C] dark:text-[#F8F7FC]">
                 {step === 1 && 'Personalize Your Profile'}
                 {step === 2 && 'Name Your Companion'}
                 {step === 3 && `Train ${companionName}'s Personality`}
@@ -329,32 +329,32 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           <button
             id="onboarding-skip-btn"
             onClick={handleSkip}
-            className="px-3 py-1 rounded-full text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--primary-purple)] hover:bg-[var(--light-purple-surface)] transition-colors cursor-pointer"
+            className="glass-button px-3 py-1 rounded-full text-xs font-semibold cursor-pointer"
           >
-            Skip & Start
+            Skip &amp; Start
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 text-[var(--text-primary)]">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5 text-[#14121C] dark:text-[#F8F7FC] no-scrollbar">
           {/* STEP 1: Name & Location */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-200">
               <div className="text-center pb-1">
-                <div className="w-12 h-12 mx-auto mb-2 rounded-[16px] bg-[var(--light-purple-surface)] text-[var(--primary-purple)] flex items-center justify-center border border-[var(--border)] shadow-xs">
+                <div className="w-12 h-12 mx-auto mb-2 rounded-[16px] bg-[#F3EBFF]/80 dark:bg-white/[0.08] text-[#7C3AED] dark:text-[#C4B5FD] flex items-center justify-center border border-white/60 dark:border-white/[0.15] shadow-xs">
                   <User className="w-6 h-6" />
                 </div>
-                <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">
+                <h2 className="text-base sm:text-lg font-extrabold tracking-tight text-[#14121C] dark:text-[#F8F7FC]">
                   Welcome to Lexi
                 </h2>
-                <p className="text-xs text-[var(--text-secondary)] max-w-xs mx-auto mt-0.5">
+                <p className="text-xs text-[#534E68] dark:text-[#C5BED9] max-w-xs mx-auto mt-0.5">
                   Let&apos;s personalize your setup so your companion knows how to greet and support you.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-[var(--primary-purple)]" />
+                <label className="block text-xs font-semibold text-[#534E68] dark:text-[#C5BED9] mb-1.5 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-[#A855F7]" />
                   <span>What should your companion call you? (Your Name)</span>
                 </label>
                 <input
@@ -362,13 +362,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
                   placeholder="e.g. Deepu, Alex, Sarah"
-                  className="w-full px-4 py-3 rounded-[12px] glass-input text-xs sm:text-sm"
+                  className="w-full px-4 py-3 rounded-[14px] glass-input text-xs sm:text-sm text-[#14121C] dark:text-[#F8F7FC]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                <label className="block text-xs font-semibold text-[#534E68] dark:text-[#C5BED9] mb-1.5 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
                   <span>Your Location (City / Country)</span>
                 </label>
                 <input
@@ -376,9 +376,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   value={userLocation}
                   onChange={(e) => setUserLocation(e.target.value)}
                   placeholder="e.g. Delhi, India / London / New York"
-                  className="w-full px-4 py-3 rounded-[12px] glass-input text-xs sm:text-sm"
+                  className="w-full px-4 py-3 rounded-[14px] glass-input text-xs sm:text-sm text-[#14121C] dark:text-[#F8F7FC]"
                 />
-                <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                <p className="text-[11px] text-[#7C7692] dark:text-[#938CA8] mt-1">
                   Helps your companion know timezones, weather and daily schedules.
                 </p>
               </div>
@@ -392,18 +392,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <div className="mb-2">
                   <AexoMascot size="md" isListening={true} />
                 </div>
-                <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">
-                  Choose Companion Identity & Name
+                <h2 className="text-base sm:text-lg font-extrabold tracking-tight text-[#14121C] dark:text-[#F8F7FC]">
+                  Choose Companion Identity &amp; Name
                 </h2>
-                <p className="text-xs text-[var(--text-secondary)] max-w-xs mt-0.5">
+                <p className="text-xs text-[#534E68] dark:text-[#C5BED9] max-w-xs mt-0.5">
                   Customize whether your partner is female, male, or non-binary, and give them a name.
                 </p>
               </div>
 
               {/* Gender / Identity Selection */}
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5 justify-center">
-                  <Heart className="w-3.5 h-3.5 text-rose-500" />
+                <label className="block text-xs font-semibold text-[#534E68] dark:text-[#C5BED9] mb-1.5 flex items-center gap-1.5 justify-center">
+                  <Heart className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
                   <span>Companion Identity:</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -418,13 +418,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       onClick={() => handleGenderChange(g.id as PartnerGender)}
                       className={`p-2.5 rounded-[16px] text-center transition-all cursor-pointer border ${
                         partnerGender === g.id
-                          ? 'bg-[var(--primary-purple)] text-white border-[var(--primary-purple)] shadow-sm'
-                          : 'glass border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary-purple)]/40'
+                          ? 'btn-primary-purple text-white border-white/30'
+                          : 'bg-white/60 dark:bg-white/[0.045] border-white/60 dark:border-white/[0.12] text-[#14121C] dark:text-[#F8F7FC] hover:border-[#A855F7]/45 dark:hover:bg-white/[0.08]'
                       }`}
                     >
                       <div className="text-base mb-0.5">{g.icon}</div>
                       <div className="font-bold text-xs">{g.label}</div>
-                      <div className={`text-[10px] ${partnerGender === g.id ? 'text-purple-100' : 'text-[var(--text-secondary)]'}`}>
+                      <div className={`text-[10px] ${partnerGender === g.id ? 'text-purple-100' : 'text-[#534E68] dark:text-[#C5BED9]'}`}>
                         {g.sub}
                       </div>
                     </button>
@@ -433,7 +433,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5 justify-center">
+                <label className="block text-xs font-semibold text-[#534E68] dark:text-[#C5BED9] mb-1.5 flex items-center gap-1.5 justify-center">
                   <span>Companion Nickname:</span>
                 </label>
                 <input
@@ -441,13 +441,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   value={companionName}
                   onChange={(e) => setCompanionName(e.target.value)}
                   placeholder="e.g. Lexi, Leo, Maya, Kabir"
-                  className="w-full px-4 py-3 rounded-[12px] glass-input text-sm font-bold text-center"
+                  className="w-full px-4 py-3 rounded-[14px] glass-input text-sm font-bold text-center text-[#14121C] dark:text-[#F8F7FC]"
                 />
               </div>
 
               {/* Quick Pick Suggestions tailored to gender */}
               <div>
-                <span className="block text-[11px] text-[var(--text-muted)] mb-1.5 text-center">
+                <span className="block text-[11px] text-[#7C7692] dark:text-[#938CA8] mb-1.5 text-center">
                   Popular {partnerGender === 'male' ? 'male' : partnerGender === 'non_binary' ? 'neutral' : 'female'} names:
                 </span>
                 <div className="flex flex-wrap justify-center gap-1.5">
@@ -458,8 +458,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       onClick={() => setCompanionName(sug)}
                       className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                         companionName.toLowerCase() === sug.toLowerCase()
-                          ? 'bg-[var(--primary-purple)] text-white shadow-xs scale-105'
-                          : 'glass-button text-[var(--text-secondary)] border border-[var(--border)]'
+                          ? 'btn-primary-purple scale-105'
+                          : 'glass-button text-[#534E68] dark:text-[#C5BED9]'
                       }`}
                     >
                       {sug}
@@ -469,15 +469,15 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </div>
 
               {/* Live Preview Card */}
-              <div className="p-3.5 rounded-[16px] glass border border-[var(--border)] flex items-center gap-3">
-                <div className="p-2 rounded-[12px] bg-[var(--primary-purple)] text-white shadow-xs shrink-0">
+              <div className="p-3.5 rounded-[18px] bg-white/60 dark:bg-white/[0.045] border border-white/60 dark:border-white/[0.12] flex items-center gap-3">
+                <div className="p-2 rounded-[12px] bg-gradient-to-br from-[#A855F7] to-[#7C3AED] text-white shadow-xs shrink-0 border border-white/25">
                   <Smile className="w-4 h-4" />
                 </div>
                 <div className="text-xs min-w-0">
-                  <p className="font-bold text-[var(--text-primary)] truncate">
+                  <p className="font-bold text-[#14121C] dark:text-[#F8F7FC] truncate">
                     &ldquo;{userName ? `Hey ${userName}` : 'Hey'}, I&apos;m {companionName || 'your companion'}!&rdquo;
                   </p>
-                  <p className="text-[var(--text-secondary)] text-[11px]">
+                  <p className="text-[#534E68] dark:text-[#C5BED9] text-[11px]">
                     {partnerGender === 'male' ? 'Boyfriend & habit partner' : partnerGender === 'non_binary' ? 'Accountability partner' : 'Girlfriend & habit partner'} ready for your daily journey.
                   </p>
                 </div>
@@ -489,18 +489,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-200">
               <div className="text-center pb-1">
-                <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">
+                <h2 className="text-base sm:text-lg font-extrabold tracking-tight text-[#14121C] dark:text-[#F8F7FC]">
                   Train {companionName || 'Lexi'}&apos;s Personality
                 </h2>
-                <p className="text-xs text-[var(--text-secondary)] max-w-xs mx-auto mt-0.5">
+                <p className="text-xs text-[#534E68] dark:text-[#C5BED9] max-w-xs mx-auto mt-0.5">
                   Choose how {companionName || 'Lexi'} should talk, motivate, and check in on you.
                 </p>
               </div>
 
               {/* Question 1: Personality & Vibe */}
               <div>
-                <label className="block text-xs font-bold text-[var(--text-primary)] mb-1.5 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[var(--primary-purple)]" />
+                <label className="block text-xs font-bold text-[#14121C] dark:text-[#F8F7FC] mb-1.5 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#A855F7]" />
                   <span>1. How should {companionName} talk with you?</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -514,14 +514,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       key={opt.id}
                       type="button"
                       onClick={() => setRelationshipDynamic(opt.id)}
-                      className={`p-3 rounded-[16px] text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-[16px] text-left transition-all cursor-pointer border ${
                         relationshipDynamic === opt.id
-                          ? 'bg-[var(--primary-purple)] text-white shadow-md'
-                          : 'glass border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary-purple)]/50'
+                          ? 'btn-primary-purple border-white/30'
+                          : 'bg-white/60 dark:bg-white/[0.045] border-white/60 dark:border-white/[0.12] text-[#14121C] dark:text-[#F8F7FC] hover:border-[#A855F7]/50 dark:hover:bg-white/[0.08]'
                       }`}
                     >
                       <div className="font-bold text-xs">{opt.title}</div>
-                      <div className={`text-[10px] mt-0.5 ${relationshipDynamic === opt.id ? 'text-purple-100' : 'text-[var(--text-secondary)]'}`}>
+                      <div className={`text-[10px] mt-0.5 ${relationshipDynamic === opt.id ? 'text-purple-100' : 'text-[#534E68] dark:text-[#C5BED9]'}`}>
                         {opt.desc}
                       </div>
                     </button>
@@ -531,8 +531,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
               {/* Question 2: Primary Daily Focus */}
               <div>
-                <label className="block text-xs font-bold text-[var(--text-primary)] mb-1.5 flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5 text-[var(--success-green)]" />
+                <label className="block text-xs font-bold text-[#14121C] dark:text-[#F8F7FC] mb-1.5 flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-[#4CB782]" />
                   <span>2. What is your primary focus together?</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -546,14 +546,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       key={opt.id}
                       type="button"
                       onClick={() => setPrimaryGoal(opt.id)}
-                      className={`p-3 rounded-[16px] text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-[16px] text-left transition-all cursor-pointer border ${
                         primaryGoal === opt.id
-                          ? 'bg-[var(--primary-purple)] text-white shadow-md'
-                          : 'glass border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary-purple)]/50'
+                          ? 'btn-primary-purple border-white/30'
+                          : 'bg-white/60 dark:bg-white/[0.045] border-white/60 dark:border-white/[0.12] text-[#14121C] dark:text-[#F8F7FC] hover:border-[#A855F7]/50 dark:hover:bg-white/[0.08]'
                       }`}
                     >
                       <div className="font-bold text-xs">{opt.title}</div>
-                      <div className={`text-[10px] mt-0.5 ${primaryGoal === opt.id ? 'text-purple-100' : 'text-[var(--text-secondary)]'}`}>
+                      <div className={`text-[10px] mt-0.5 ${primaryGoal === opt.id ? 'text-purple-100' : 'text-[#534E68] dark:text-[#C5BED9]'}`}>
                         {opt.desc}
                       </div>
                     </button>
@@ -563,8 +563,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
               {/* Question 3: Language & Tone Mix */}
               <div>
-                <label className="block text-xs font-bold text-[var(--text-primary)] mb-1.5 flex items-center gap-1.5">
-                  <MessageCircle className="w-3.5 h-3.5 text-[var(--soft-lavender)]" />
+                <label className="block text-xs font-bold text-[#14121C] dark:text-[#F8F7FC] mb-1.5 flex items-center gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5 text-[#C4B5FD]" />
                   <span>3. Preferred language style?</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -577,14 +577,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       key={opt.id}
                       type="button"
                       onClick={() => setLanguageMix(opt.id)}
-                      className={`p-3 rounded-[16px] text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-[16px] text-left transition-all cursor-pointer border ${
                         languageMix === opt.id
-                          ? 'bg-[var(--primary-purple)] text-white shadow-md'
-                          : 'glass border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary-purple)]/50'
+                          ? 'btn-primary-purple border-white/30'
+                          : 'bg-white/60 dark:bg-white/[0.045] border-white/60 dark:border-white/[0.12] text-[#14121C] dark:text-[#F8F7FC] hover:border-[#A855F7]/50 dark:hover:bg-white/[0.08]'
                       }`}
                     >
                       <div className="font-bold text-xs">{opt.title}</div>
-                      <div className={`text-[10px] mt-0.5 ${languageMix === opt.id ? 'text-purple-100' : 'text-[var(--text-secondary)]'}`}>
+                      <div className={`text-[10px] mt-0.5 ${languageMix === opt.id ? 'text-purple-100' : 'text-[#534E68] dark:text-[#C5BED9]'}`}>
                         {opt.desc}
                       </div>
                     </button>
@@ -596,12 +596,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         </div>
 
         {/* Footer Navigation Controls */}
-        <div className="px-6 py-4 border-t border-[var(--border)] flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-black/5 dark:border-white/[0.12] bg-white/40 dark:bg-white/[0.03] flex items-center justify-between">
           {step > 1 ? (
             <button
               type="button"
               onClick={() => setStep((prev) => (prev - 1) as any)}
-              className="px-4 py-2 rounded-[12px] text-xs font-semibold glass-button text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-[12px] text-xs font-semibold glass-button flex items-center gap-1.5 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back</span>

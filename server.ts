@@ -908,7 +908,43 @@ ${JSON.stringify(safeHistory)}
   }
 });
 
-// 11. TTS Audio Generation with Short-Lived Safe Execution
+// 11. TTS Audio Generation with Quota Cooldown, Cache & Clean Browser Fallback
+const TTS_CANDIDATE_MODELS = [
+  "gemini-3.8-flash-lite-tts",
+  "gemini-3.8-flash-tts",
+] as const;
+
+const ttsCooldownUntil: Record<string, number> = {};
+const ttsAudioCache = new Map<string, { audioBase64: string; sampleRate: number }>();
+const TTS_AUDIO_CACHE_MAX = 40;
+
+function isQuotaExhaustedError(err: any): boolean {
+  const msg = err?.message || String(err || "");
+  return (
+    err?.status === 429 ||
+    msg.includes('"code":429') ||
+    msg.includes("RESOURCE_EXHAUSTED") ||
+    msg.includes("Quota exceeded")
+  );
+}
+
+function parseRetryDelayMs(err: any): number {
+  const msg = err?.message || String(err || "");
+  // Check JSON "retryDelay":"78373s" pattern from Gemini RPC details
+  const jsonMatch = msg.match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/);
+  if (jsonMatch) {
+    const sec = Math.ceil(Number(jsonMatch[1]));
+    if (Number.isFinite(sec) && sec > 0) {
+      return Math.min(Math.max(sec * 1000, 60_000), 24 * 60 * 60 * 1000);
+    }
+  }
+  // If free tier daily limit is hit without parseable seconds, back off for 1 hour
+  if (msg.includes("PerDay") || msg.includes("free_tier")) {
+    return 60 * 60 * 1000;
+  }
+  return 10 * 60 * 1000;
+}
+
 app.post("/api/tts", async (req: Request, res: Response) => {
   const parseResult = TtsPayloadSchema.safeParse(req.body);
   if (!parseResult.success) {
@@ -918,36 +954,98 @@ app.post("/api/tts", async (req: Request, res: Response) => {
   const { text, voiceGender, voiceNameOverride } = parseResult.data;
   const cleanText = sanitizePromptInput(text, 300);
   const voiceName = voiceNameOverride || (voiceGender === "male" ? "Zephyr" : "Kore");
+  const cacheKey = `${voiceName}::${cleanText.toLowerCase()}`;
 
-  try {
-    const ai = getGeminiClient();
-    if (!ai) {
-      return res.json({ audioBase64: null, note: "Fallback to client Web Speech API" });
+  const cached = ttsAudioCache.get(cacheKey);
+  if (cached) {
+    return res.json({
+      audioBase64: cached.audioBase64,
+      format: "pcm",
+      sampleRate: cached.sampleRate,
+      cached: true,
+    });
+  }
+
+  const ai = getGeminiClient();
+  if (!ai) {
+    return res.json({
+      audioBase64: null,
+      fallback: "browser",
+      note: "Fallback to client Web Speech API",
+    });
+  }
+
+  const now = Date.now();
+  let quotaHit = false;
+  let earliestCooldownUntil = Number.MAX_SAFE_INTEGER;
+
+  for (const model of TTS_CANDIDATE_MODELS) {
+    const activeCooldown = ttsCooldownUntil[model] || 0;
+    if (now < activeCooldown) {
+      quotaHit = true;
+      earliestCooldownUntil = Math.min(earliestCooldownUntil, activeCooldown);
+      continue;
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash-lite-tts",
-      contents: [{ parts: [{ text: cleanText }] }],
-      config: {
-        responseModalities: ["AUDIO" as any],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName },
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: [{ parts: [{ text: cleanText }] }],
+        config: {
+          responseModalities: ["AUDIO" as any],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName },
+            },
           },
         },
-      },
-    });
+      });
 
-    const audioBase64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (audioBase64) {
-      return res.json({ audioBase64, format: "pcm", sampleRate: 24000 });
+      const audioBase64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (audioBase64) {
+        if (ttsAudioCache.size >= TTS_AUDIO_CACHE_MAX) {
+          const oldestKey = ttsAudioCache.keys().next().value;
+          if (oldestKey) ttsAudioCache.delete(oldestKey);
+        }
+        ttsAudioCache.set(cacheKey, { audioBase64, sampleRate: 24000 });
+        return res.json({ audioBase64, format: "pcm", sampleRate: 24000 });
+      }
+    } catch (error: any) {
+      if (isQuotaExhaustedError(error)) {
+        const delayMs = parseRetryDelayMs(error);
+        const until = Date.now() + delayMs;
+        ttsCooldownUntil[model] = until;
+        quotaHit = true;
+        earliestCooldownUntil = Math.min(earliestCooldownUntil, until);
+        console.info(
+          `[TTS] Gemini quota reached for '${model}'; switching to browser speech fallback for ~${Math.max(1, Math.round(delayMs / 60000))}m.`
+        );
+      } else {
+        // Transient/model availability error — brief 60s cooldown without noisy JSON stack dumps
+        const until = Date.now() + 60_000;
+        ttsCooldownUntil[model] = until;
+        earliestCooldownUntil = Math.min(earliestCooldownUntil, until);
+        console.info(
+          `[TTS] '${model}' unavailable (${error?.status || "fallback"}); using browser speech synthesis.`
+        );
+      }
     }
-
-    return res.json({ audioBase64: null, note: "Fallback to client Web Speech API" });
-  } catch (error: any) {
-    console.warn("TTS generation note (falling back to browser speech):", error?.message || "Unavailable");
-    return res.json({ audioBase64: null, error: "Browser speech fallback active" });
   }
+
+  const retryAfterSec =
+    earliestCooldownUntil < Number.MAX_SAFE_INTEGER
+      ? Math.max(60, Math.ceil((earliestCooldownUntil - Date.now()) / 1000))
+      : 600;
+
+  return res.json({
+    audioBase64: null,
+    fallback: "browser",
+    quotaExceeded: quotaHit,
+    retryAfterSec,
+    note: quotaHit
+      ? "Gemini TTS quota reached; browser speech synthesis active."
+      : "Fallback to client Web Speech API",
+  });
 });
 
 // 12. Global Sanitized Error Handler (Prevents stack traces and internal leakage)

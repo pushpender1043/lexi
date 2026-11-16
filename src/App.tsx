@@ -28,7 +28,7 @@ import { LoginModal } from './components/LoginModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { SettingsModal } from './components/SettingsModal';
 import { StatsView } from './components/StatsView';
-import { ParticleBackground } from './components/ParticleBackground';
+import { AtmosphericBackground } from './components/AtmosphericBackground';
 import { ProactiveNotificationBanner } from './components/ProactiveNotificationBanner';
 import { playCompanionVoice, stopCompanionVoice } from './utils/speech';
 import confetti from 'canvas-confetti';
@@ -1545,9 +1545,9 @@ function AppContent() {
   };
 
   return (
-    <div className={`h-[100dvh] ${darkMode ? 'dark' : ''} bg-gradient-mesh text-[#1A1A1F] dark:text-[#FAF7FF] flex flex-col transition-colors duration-300 relative overflow-hidden font-sans`}>
-      {/* Subtle Atmospheric Gradient & Canvas Particle Engine */}
-      <ParticleBackground />
+    <div className={`h-[100dvh] ${darkMode ? 'dark' : ''} bg-gradient-mesh text-[#14121C] dark:text-[#F8F7FC] flex flex-col transition-colors duration-300 relative overflow-hidden font-sans`}>
+      {/* WebGPU AeroShards Interactive Atmospheric Glass Canvas */}
+      <AtmosphericBackground darkMode={darkMode} />
 
       {/* Offline Status Alert Banner */}
       {!isOnline && (
@@ -1864,11 +1864,11 @@ function AppContent() {
 
       {/* Long-Term Memory Vault Modal (User Privacy, Transparency & Deletion) */}
       {isMemoryVaultOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-2xl max-h-[88vh] overflow-y-auto relative glass-strong rounded-[24px] p-2 border border-[var(--primary-purple)]/40 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-lg animate-fade-in">
+          <div className="w-full max-w-2xl max-h-[88vh] overflow-y-auto relative glass-strong rounded-[28px] p-2 border border-white/60 dark:border-white/18 shadow-2xl">
             <button
               onClick={() => setIsMemoryVaultOpen(false)}
-              className="absolute top-4 right-4 z-20 p-2 rounded-full glass hover:bg-white/40 text-[var(--text-secondary)] cursor-pointer"
+              className="absolute top-4 right-4 z-20 p-2 rounded-full glass hover:bg-white/20 text-[var(--text-secondary)] cursor-pointer"
               title="Close Memory Vault"
             >
               <X className="w-5 h-5" />

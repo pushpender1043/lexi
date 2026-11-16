@@ -71,86 +71,85 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-5 pb-14 select-none animate-in fade-in duration-300">
+    <div className="w-full max-w-[900px] mx-auto space-y-5 pb-14 select-none animate-in fade-in duration-300">
       
       {/* Profile Header Bar */}
-      <div className="p-6 sm:p-7 glass shadow-[0_8px_32px_rgba(124,58,237,0.08)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="relative shrink-0">
+      <div className="p-5 glass flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="shrink-0">
             <AexoMascot size="md" showAura={true} />
-            <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#4CB782] ring-2 ring-white dark:ring-[#0F0B1A]" />
           </div>
 
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF]">
-                {partnerName} & {name}
+              <h2 className="font-display text-xl sm:text-2xl font-bold tracking-[-0.025em] text-[#14121C] dark:text-[#F8F7FC]">
+                {partnerName} &amp; {name}
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-[#6B6B76] dark:text-[#C4B5FD] mt-0.5">
-              Personalized AI Virtual Sidekick • Emotional & Routine Accountability
+            <p className="text-[12.5px] text-[#534E68] dark:text-[#C5BED9] mt-0.5">
+              Personalized AI Companion · Routine &amp; Habit Accountability
             </p>
-            <p className="text-xs text-[#7C3AED] dark:text-[#A78BFA] font-semibold mt-1">
+            <p className="text-xs italic text-[#7C3AED] dark:text-[#C4B5FD] mt-1">
               &ldquo;Keeping you consistent with habits, deep work, and discipline.&rdquo;
             </p>
           </div>
         </div>
 
-        {/* Quick Streak & Mood Badges */}
-        <div className="flex items-center gap-2.5">
-          <div className="px-3.5 py-2 rounded-[12px] bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.2)] text-[#7C3AED] dark:text-[#C4B5FD] text-xs font-bold flex items-center gap-1.5 tabular-nums">
-            <Flame className="w-4 h-4 fill-[#7C3AED]" />
-            <span>{userProfile.streakDays ?? 0}d Streak</span>
+        {/* Quick Streak & Mood Metrics */}
+        <div className="flex items-center gap-2 font-mono">
+          <div className="px-3 py-1.5 rounded-full glass text-[#7C3AED] dark:text-[#E9D5FF] text-xs font-bold flex items-center gap-1.5 tabular-nums">
+            <Flame className="w-3.5 h-3.5 text-[#A855F7] fill-[#A855F7]" />
+            <span>{userProfile.streakDays ?? 0}d</span>
           </div>
 
-          <div className="px-3.5 py-2 rounded-[12px] glass text-xs font-semibold text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
-            <span className="capitalize">{partnerMood.status} ({partnerMood.score}%)</span>
+          <div className="px-3 py-1.5 rounded-full glass text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] flex items-center gap-1.5 tabular-nums">
+            <Sparkles className="w-3.5 h-3.5 text-[#A855F7]" />
+            <span className="capitalize">{partnerMood.status} · {partnerMood.score}%</span>
           </div>
         </div>
       </div>
 
       {/* Main Profile Form */}
-      <form onSubmit={handleSave} className="space-y-5">
+      <form onSubmit={handleSave} className="space-y-4">
         {/* Companion Persona & Emotional Tone */}
-        <div className="p-6 glass shadow-[0_8px_32px_rgba(124,58,237,0.08)] space-y-4">
-          <h3 className="text-sm font-bold tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#7C3AED]" />
-            <span>Companion Persona & Dynamics</span>
+        <div className="p-5 glass space-y-3.5">
+          <h3 className="font-display text-[15px] font-bold tracking-[-0.015em] text-[#14121C] dark:text-[#F8F7FC] flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#A855F7]" />
+            <span>Companion Persona &amp; Dynamics</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Companion&apos;s Display Name</label>
+              <label className="block text-[#534E68] dark:text-[#C5BED9] font-semibold mb-1">Companion&apos;s Display Name</label>
               <input
                 id="profile-partner-name-input"
                 type="text"
                 value={partnerName}
                 onChange={e => setPartnerName(e.target.value)}
-                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#14121C] dark:text-[#F8F7FC] focus:outline-hidden"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Your Name</label>
+              <label className="block text-[#534E68] dark:text-[#C5BED9] font-semibold mb-1">Your Name</label>
               <input
                 id="profile-user-name-input"
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#14121C] dark:text-[#F8F7FC] focus:outline-hidden"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Companion Personality Tone</label>
+              <label className="block text-[#534E68] dark:text-[#C5BED9] font-semibold mb-1">Companion Personality Tone</label>
               <select
                 id="profile-tone-select"
                 value={partnerTone}
                 onChange={e => setPartnerTone(e.target.value as PartnerTone)}
-                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#14121C] dark:text-[#F8F7FC] focus:outline-hidden"
               >
                 <option value="playful_loving">Playful & Loving (Warm, caring, supportive Hinglish)</option>
                 <option value="sweet_clingy">Sweet & Clingy (Affectionate + Needs your time)</option>
@@ -160,12 +159,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Voice Audio Gender</label>
+              <label className="block text-[#534E68] dark:text-[#C5BED9] font-semibold mb-1">Voice Audio Gender</label>
               <select
                 id="profile-voice-gender-select"
                 value={voiceGender}
                 onChange={e => setVoiceGender(e.target.value as PartnerGender)}
-                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#14121C] dark:text-[#F8F7FC] focus:outline-hidden"
               >
                 <option value="female">Female Companion Voice</option>
                 <option value="male">Male Companion Voice</option>
@@ -175,42 +174,42 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
 
         {/* Daily Schedule & Goals */}
-        <div className="p-6 glass shadow-[0_8px_32px_rgba(124,58,237,0.08)] space-y-4">
-          <h3 className="text-sm font-bold tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[#7C3AED]" />
-            <span>Schedule & Routine Targets</span>
+        <div className="p-5 glass space-y-3.5">
+          <h3 className="font-display text-[15px] font-bold tracking-[-0.015em] text-[#14121C] dark:text-[#F8F7FC] flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#A855F7]" />
+            <span>Schedule &amp; Routine Targets</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div>
-              <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Morning Wake Up</label>
+              <label className="block text-[#534E68] dark:text-[#C5BED9] font-semibold mb-1">Morning Wake Up</label>
               <input
                 type="time"
                 value={wakeUpTime}
                 onChange={e => setWakeUpTime(e.target.value)}
-                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#14121C] dark:text-[#F8F7FC] focus:outline-hidden"
               />
             </div>
 
             <div>
-              <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Night Sleep Target</label>
+              <label className="block text-[#534E68] dark:text-[#C5BED9] font-semibold mb-1">Night Sleep Target</label>
               <input
                 type="time"
                 value={sleepTime}
                 onChange={e => setSleepTime(e.target.value)}
-                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#14121C] dark:text-[#F8F7FC] focus:outline-hidden"
               />
             </div>
 
             <div>
-              <label className="block text-[#6B6B76] dark:text-[#C4B5FD] font-semibold mb-1">Daily Water Goal (Glasses)</label>
+              <label className="block text-[#534E68] dark:text-[#C5BED9] font-semibold mb-1">Daily Water Goal (Glasses)</label>
               <input
                 type="number"
                 min="1"
                 max="20"
                 value={dailyWaterGoal}
                 onChange={e => setDailyWaterGoal(Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                className="w-full px-3.5 py-2.5 glass-input text-xs text-[#14121C] dark:text-[#F8F7FC] focus:outline-hidden"
               />
             </div>
           </div>
@@ -221,7 +220,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <button
             type="button"
             onClick={onTriggerTestCheckIn}
-            className="px-4 py-2.5 rounded-[12px] bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] text-[#7C3AED] dark:text-[#C4B5FD] hover:bg-[#E9D8FD] border border-[rgba(124,58,237,0.2)] text-xs font-bold flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+            className="glass-button px-4 py-2.5 rounded-[12px] text-xs font-bold flex items-center gap-2 cursor-pointer"
           >
             <Bell className="w-4 h-4" />
             <span>Test Proactive Notification</span>
@@ -230,7 +229,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <button
             id="save-profile-btn"
             type="submit"
-            className="px-6 py-2.5 rounded-[12px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white text-xs font-bold shadow-[0_4px_16px_rgba(124,58,237,0.3)] flex items-center gap-2 transition-transform active:scale-95 cursor-pointer"
+            className="btn-primary-purple px-6 py-2.5 rounded-[12px] text-xs font-bold flex items-center gap-2"
           >
             {savedSuccess ? (
               <>

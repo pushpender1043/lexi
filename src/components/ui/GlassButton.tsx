@@ -26,15 +26,15 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
 
   const variantStyles = {
     primary:
-      'bg-[#7C3AED] hover:bg-[#5B21B6] text-white shadow-[0_4px_20px_rgba(124,58,237,0.32)] border border-[#7C3AED]/30',
+      'btn-primary-purple',
     secondary:
-      'bg-[#F3EBFF] dark:bg-white/[0.08] hover:bg-[#E9D8FD] dark:hover:bg-white/[0.14] text-[#7C3AED] dark:text-[#C4B5FD] border border-[rgba(124,58,237,0.18)] shadow-xs',
+      'bg-white/75 dark:bg-white/[0.07] hover:bg-white dark:hover:bg-white/[0.12] text-[#6D28D9] dark:text-[#E9DDFB] border border-[rgba(137,106,189,0.25)] dark:border-white/[0.16] shadow-[0_8px_24px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-xl',
     ghost:
-      'bg-transparent hover:bg-white/60 dark:hover:bg-white/10 text-[#6B6B76] hover:text-[#1A1A1F] dark:text-[#9A9AA5] dark:hover:text-[#FAF7FF] border border-transparent',
+      'bg-transparent hover:bg-white/60 dark:hover:bg-white/[0.08] text-[#534E68] hover:text-[#14121C] dark:text-[#C5BED9] dark:hover:text-[#F8F7FC] border border-transparent',
     danger:
-      'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40',
+      'bg-rose-500/12 hover:bg-rose-500/22 text-rose-600 dark:text-rose-300 border border-rose-300/60 dark:border-rose-400/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-lg',
     dashed:
-      'border-1.5 border-dashed border-[rgba(124,58,237,0.35)] hover:border-[#7C3AED] bg-transparent hover:bg-[#F3EBFF] dark:hover:bg-white/5 text-[#6B6B76] dark:text-[#C4B5FD] hover:text-[#7C3AED]',
+      'btn-guest-dashed text-[#534E68] dark:text-[#C4B5FD] hover:text-[#7C3AED] dark:hover:text-[#F8F7FC]',
   };
 
   return (

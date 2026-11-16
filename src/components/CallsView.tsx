@@ -154,38 +154,38 @@ export const CallsView: React.FC<CallsViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-5 pb-16 select-none animate-in fade-in duration-200">
-      {/* Top Hero Call Launcher Card with Lexi Purple Branding */}
-      <div className="p-6 sm:p-7 glass-strong rounded-[24px] shadow-[0_8px_32px_rgba(124,58,237,0.12)] relative overflow-hidden border border-[rgba(124,58,237,0.18)]">
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-          <div className="flex items-center gap-4">
-            {/* Mascot Avatar with live pulse dot */}
-            <div className="relative shrink-0">
-              <div className="w-16 h-16 rounded-[18px] bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.2)] flex items-center justify-center shadow-xs">
+    <div className="w-full max-w-[900px] mx-auto space-y-5 pb-16 select-none animate-in fade-in duration-200">
+      {/* Top Hero Call Launcher Card with Dark Specular Glass */}
+      <div className="p-5 glass-strong rounded-[22px] relative overflow-hidden border border-white/60 dark:border-white/20">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            {/* Mascot Avatar */}
+            <div className="shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-[#F3EBFF]/60 dark:bg-white/[0.06] border border-[rgba(137,106,189,0.2)] dark:border-white/[0.16] flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]">
                 <AexoMascot size="md" isListening={true} showAura={true} />
               </div>
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#4CB782] border-2 border-white dark:border-[#0F0B1A] animate-pulse" />
             </div>
 
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF]">
+                <h2 className="font-display text-xl sm:text-2xl font-bold tracking-[-0.025em] text-[#14121C] dark:text-[#F8F7FC]">
                   {companionName}
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.25)] text-[#7C3AED] dark:text-[#C4B5FD] uppercase tracking-wider">
-                  Live Voice
+                <span className="font-mono text-[10px] font-semibold text-[#7C3AED] dark:text-[#C4B5FD]">
+                  · Live Voice
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-[#6B6B76] dark:text-[#C4B5FD] mt-0.5 font-medium">
-                Real-time voice calls • Hinglish & English • Habit accountability
+              <p className="text-[12.5px] text-[#534E68] dark:text-[#C5BED9] mt-0.5">
+                Real-time Hinglish &amp; English voice calls · Habit accountability
               </p>
-              <div className="flex items-center gap-2 mt-2 text-xs">
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#7C3AED] dark:text-[#C4B5FD] px-2.5 py-0.5 rounded-full bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.2)]">
-                  <Smile className="w-3 h-3 text-[#7C3AED]" />
-                  Mood: {partnerMood.status} ({partnerMood.score}%)
+              <div className="flex items-center gap-2.5 mt-1.5 text-[11px] flex-wrap font-mono">
+                <span className="inline-flex items-center gap-1 font-semibold text-[#7C3AED] dark:text-[#C4B5FD]">
+                  <Smile className="w-3.5 h-3.5 text-[#A855F7]" />
+                  {partnerMood.status} ({partnerMood.score}%)
                 </span>
-                <span className="text-[11px] text-[#6B6B76] dark:text-[#A78BFA]">
-                  • Voice: {userProfile.voiceGender === 'male' ? 'Male (Zephyr)' : 'Female (Kore)'}
+                <span aria-hidden="true" className="opacity-40 text-[#938CA8]">·</span>
+                <span className="text-[#534E68] dark:text-[#938CA8]">
+                  {userProfile.voiceGender === 'male' ? 'Male (Zephyr)' : 'Female (Kore)'}
                 </span>
               </div>
             </div>
@@ -199,8 +199,8 @@ export const CallsView: React.FC<CallsViewProps> = ({
               title="Test companion voice tone"
               className={`flex items-center gap-1.5 px-3.5 py-3 rounded-[14px] text-xs font-semibold border transition-all cursor-pointer ${
                 isTestingVoice
-                  ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-sm'
-                  : 'glass text-[#6B6B76] dark:text-[#FAF7FF] hover:text-[#7C3AED]'
+                  ? 'btn-primary-purple text-white'
+                  : 'glass-button text-[#534E68] dark:text-[#F8F7FC]'
               }`}
             >
               <Volume2 className={`w-4 h-4 ${isTestingVoice ? 'animate-pulse' : ''}`} />
@@ -211,9 +211,9 @@ export const CallsView: React.FC<CallsViewProps> = ({
             <button
               id="calls-start-live-call-btn"
               onClick={onStartCall}
-              className="flex items-center gap-2 px-6 py-3 rounded-[14px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white font-bold text-sm shadow-[0_4px_20px_rgba(124,58,237,0.35)] transition-all hover:scale-102 active:scale-98 cursor-pointer"
+              className="btn-primary-purple flex items-center gap-2 px-6 py-3 rounded-[14px] font-bold text-sm"
             >
-              <PhoneCall className="w-4 h-4 animate-bounce" />
+              <PhoneCall className="w-4 h-4" />
               <span>Call {companionName}</span>
             </button>
           </div>
@@ -223,44 +223,44 @@ export const CallsView: React.FC<CallsViewProps> = ({
       {/* Calls Filter & Title bar */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-[#7C3AED]" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6B6B76] dark:text-[#A78BFA]">
+          <Clock className="w-4 h-4 text-[#A855F7]" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#534E68] dark:text-[#C4B5FD]">
             Call Logs & Summaries
           </h3>
-          <span className="text-xs font-bold text-[#7C3AED] bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] px-2 py-0.5 rounded-full">
-            {callRecords.length}
+          <span className="text-xs font-bold text-[#7C3AED] dark:text-[#E9D5FF] tabular-nums">
+            ({callRecords.length})
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Filter Pills */}
-          <div className="flex items-center gap-1 bg-white/60 dark:bg-white/5 p-1 rounded-[12px] border border-[rgba(124,58,237,0.12)] text-xs">
+          <div className="flex items-center gap-1 bg-white/60 dark:bg-transparent dark:glass-pill p-1 rounded-[14px] border border-[rgba(137,106,189,0.16)] dark:border-white/18 text-xs">
             <button
               onClick={() => setCallFilter('all')}
-              className={`px-3 py-1 rounded-[8px] text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-[10px] text-xs font-semibold transition-all cursor-pointer ${
                 callFilter === 'all'
-                  ? 'bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.25)] text-[#7C3AED] dark:text-[#C4B5FD] font-bold shadow-2xs'
-                  : 'text-[#6B6B76] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF]'
+                  ? 'bg-[#7C3AED] dark:bg-gradient-to-r dark:from-[#A855F7] dark:to-[#7C3AED] text-white font-bold shadow-xs'
+                  : 'text-[#534E68] dark:text-[#C5BED9] hover:text-[#14121C] dark:hover:text-[#F8F7FC]'
               }`}
             >
               All
             </button>
             <button
               onClick={() => setCallFilter('completed')}
-              className={`px-3 py-1 rounded-[8px] text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-[10px] text-xs font-semibold transition-all cursor-pointer ${
                 callFilter === 'completed'
-                  ? 'bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.25)] text-[#7C3AED] dark:text-[#C4B5FD] font-bold shadow-2xs'
-                  : 'text-[#6B6B76] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF]'
+                  ? 'bg-[#7C3AED] dark:bg-gradient-to-r dark:from-[#A855F7] dark:to-[#7C3AED] text-white font-bold shadow-xs'
+                  : 'text-[#534E68] dark:text-[#C5BED9] hover:text-[#14121C] dark:hover:text-[#F8F7FC]'
               }`}
             >
               Completed
             </button>
             <button
               onClick={() => setCallFilter('missed')}
-              className={`px-3 py-1 rounded-[8px] text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-[10px] text-xs font-semibold transition-all cursor-pointer ${
                 callFilter === 'missed'
-                  ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-bold shadow-2xs'
-                  : 'text-[#6B6B76] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF]'
+                  ? 'bg-rose-500/20 text-rose-600 dark:text-rose-300 font-bold shadow-xs'
+                  : 'text-[#534E68] dark:text-[#C5BED9] hover:text-[#14121C] dark:hover:text-[#F8F7FC]'
               }`}
             >
               Missed
@@ -275,7 +275,7 @@ export const CallsView: React.FC<CallsViewProps> = ({
                   onClearHistory();
                 }
               }}
-              className="p-1.5 rounded-lg text-[#9A9AA5] hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-[#7C7692] dark:text-[#938CA8] hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
               title="Clear Call History"
             >
               <Trash2 className="w-4 h-4" />
@@ -287,17 +287,17 @@ export const CallsView: React.FC<CallsViewProps> = ({
       {/* Call History List */}
       <div className="space-y-3">
         {filteredCalls.length === 0 ? (
-          <div className="p-10 text-center rounded-[24px] glass text-[#9A9AA5] border border-[rgba(124,58,237,0.12)]">
-            <PhoneMissed className="w-10 h-10 text-[#A78BFA] mx-auto mb-3 opacity-60" />
-            <p className="text-base font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+          <div className="p-10 text-center rounded-[24px] glass text-[#7C7692] dark:text-[#938CA8]">
+            <PhoneMissed className="w-10 h-10 text-[#A855F7] mx-auto mb-3 opacity-70" />
+            <p className="text-base font-bold text-[#14121C] dark:text-[#F8F7FC]">
               No voice calls in this filter
             </p>
-            <p className="text-xs text-[#6B6B76] dark:text-[#A78BFA] mt-1 max-w-sm mx-auto">
+            <p className="text-xs text-[#534E68] dark:text-[#C5BED9] mt-1 max-w-sm mx-auto">
               Tap the Call button above to have a live conversation with {companionName} anytime!
             </p>
             <button
               onClick={onStartCall}
-              className="mt-4 px-5 py-2.5 rounded-[12px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white text-xs font-bold transition-all shadow-md cursor-pointer inline-flex items-center gap-2"
+              className="btn-primary-purple mt-4 px-5 py-2.5 rounded-[12px] text-xs font-bold inline-flex items-center gap-2"
             >
               <PhoneCall className="w-3.5 h-3.5" />
               <span>Start First Call</span>
@@ -307,17 +307,17 @@ export const CallsView: React.FC<CallsViewProps> = ({
           filteredCalls.map((call) => (
             <div
               key={call.id}
-              className="p-4 sm:p-5 rounded-[20px] glass hover:bg-white/70 dark:hover:bg-white/10 transition-all border border-[rgba(124,58,237,0.12)] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              className="p-3.5 sm:p-4 rounded-[18px] glass hover:border-white/25 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
             >
-              <div className="flex items-start sm:items-center gap-3.5">
+              <div className="flex items-start sm:items-center gap-3">
                 {/* Call Type Icon */}
                 <div
-                  className={`w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 ${
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
                     call.type === 'missed'
-                      ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                      ? 'bg-rose-500/12 text-rose-400 border-rose-400/25'
                       : call.type === 'incoming'
-                      ? 'bg-[#4CB782]/10 text-[#4CB782] border border-[#4CB782]/20'
-                      : 'bg-[#7C3AED]/10 text-[#7C3AED] border border-[#7C3AED]/20'
+                      ? 'bg-[#4CB782]/12 text-[#4CB782] border-[#4CB782]/25'
+                      : 'bg-[#A855F7]/15 text-[#C4B5FD] border-[#A855F7]/25'
                   }`}
                 >
                   {call.type === 'missed' ? (
@@ -331,25 +331,25 @@ export const CallsView: React.FC<CallsViewProps> = ({
 
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                    <h4 className="font-display text-[14px] font-semibold text-[#14121C] dark:text-[#F8F7FC]">
                       Voice Call with {call.partnerName || companionName}
                     </h4>
-                    <span className="text-[11px] font-semibold text-[#6B6B76] dark:text-[#A78BFA]">
-                      • {formatDuration(call.durationSec)}
+                    <span className="font-mono text-[11px] font-semibold text-[#534E68] dark:text-[#C4B5FD] tabular-nums">
+                      · {formatDuration(call.durationSec)}
                     </span>
                     {call.moodDuringCall && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] text-[#7C3AED] dark:text-[#C4B5FD] border border-[rgba(124,58,237,0.15)]">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F3EBFF] dark:bg-white/[0.08] text-[#7C3AED] dark:text-[#E9D5FF] border border-white/12">
                         {getMoodEmoji(call.moodDuringCall)}
                       </span>
                     )}
                   </div>
 
                   {/* Summary / Topic note */}
-                  <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] mt-1 leading-relaxed">
+                  <p className="text-xs text-[#534E68] dark:text-[#C5BED9] mt-1 leading-relaxed">
                     {call.summary || 'Habit tracking and friendly emotional check-in'}
                   </p>
 
-                  <span className="text-[10px] text-[#9A9AA5] mt-1 inline-block font-mono">
+                  <span className="text-[10px] text-[#7C7692] dark:text-[#938CA8] mt-1 inline-block font-mono">
                     {call.timestamp}
                   </span>
                 </div>
@@ -362,8 +362,8 @@ export const CallsView: React.FC<CallsViewProps> = ({
                   onClick={() => handlePlaySummary(call)}
                   className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
                     isPlayingSummaryId === call.id
-                      ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-xs'
-                      : 'glass text-[#6B6B76] dark:text-[#FAF7FF] hover:text-[#7C3AED]'
+                      ? 'btn-primary-purple text-white'
+                      : 'glass-button text-[#534E68] dark:text-[#F8F7FC]'
                   }`}
                   title="Listen to call summary"
                 >
@@ -373,7 +373,7 @@ export const CallsView: React.FC<CallsViewProps> = ({
                 {/* Call Back Button */}
                 <button
                   onClick={onStartCall}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.25)] hover:bg-[#7C3AED] hover:text-white text-[#7C3AED] dark:text-[#C4B5FD] text-xs font-bold transition-all border border-[rgba(124,58,237,0.2)] cursor-pointer"
+                  className="glass-button flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer"
                   title="Call Back"
                 >
                   <Phone className="w-3.5 h-3.5" />

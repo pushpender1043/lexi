@@ -110,6 +110,35 @@ export async function playPcmAudio(
   }
 }
 
+const TTS_COOLDOWN_STORAGE_KEY = 'lexi_tts_cooldown_until';
+let geminiTtsCooldownUntil = 0;
+
+function getTtsCooldownUntil(): number {
+  if (geminiTtsCooldownUntil > Date.now()) {
+    return geminiTtsCooldownUntil;
+  }
+  try {
+    const raw = window.sessionStorage?.getItem(TTS_COOLDOWN_STORAGE_KEY);
+    const parsed = raw ? Number(raw) : 0;
+    if (Number.isFinite(parsed) && parsed > Date.now()) {
+      geminiTtsCooldownUntil = parsed;
+      return parsed;
+    }
+  } catch {
+    // Ignore storage access errors in restricted frames
+  }
+  return 0;
+}
+
+function setTtsCooldownUntil(untilMs: number): void {
+  geminiTtsCooldownUntil = untilMs;
+  try {
+    window.sessionStorage?.setItem(TTS_COOLDOWN_STORAGE_KEY, String(untilMs));
+  } catch {
+    // Ignore storage access errors
+  }
+}
+
 /**
  * Primary Voice Synthesizer with automatic fallback from Gemini TTS to Web Speech API
  */
@@ -118,8 +147,8 @@ export async function playCompanionVoice(text: string, options: SpeakOptions = {
 
   stopCompanionVoice();
 
-  // Try server Gemini Flash TTS if requested and supported
-  if (options.useGeminiTts) {
+  // Try server Gemini Flash TTS only when requested and not in quota cooldown
+  if (options.useGeminiTts && Date.now() >= getTtsCooldownUntil()) {
     try {
       const res = await authFetch('/api/tts', {
         method: 'POST',
@@ -136,7 +165,12 @@ export async function playCompanionVoice(text: string, options: SpeakOptions = {
           if (options.onStart) options.onStart();
           const played = await playPcmAudio(data.audioBase64, data.sampleRate || 24000, options.onEnd);
           if (played) return;
+        } else if (data.quotaExceeded || data.retryAfterSec) {
+          const waitSec = Math.min(Math.max(Number(data.retryAfterSec) || 600, 60), 24 * 60 * 60);
+          setTtsCooldownUntil(Date.now() + waitSec * 1000);
         }
+      } else if (res.status === 429) {
+        setTtsCooldownUntil(Date.now() + 10 * 60 * 1000);
       }
     } catch {
       // Fallback seamlessly to Web Speech API below
@@ -144,59 +178,65 @@ export async function playCompanionVoice(text: string, options: SpeakOptions = {
   }
 
   // Browser SpeechSynthesis fallback
-  if (!window.speechSynthesis) {
-    console.warn("Speech synthesis not supported in this browser.");
+  if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
     if (options.onEnd) options.onEnd();
     return;
   }
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  const baseRate = options.rate || 1.0;
-  let rateMultiplier = 1.0;
-  let pitch = options.pitch || 1.05;
+  try {
+    const utterance = new SpeechSynthesisUtterance(text);
+    const baseRate = options.rate || 1.0;
+    let rateMultiplier = 1.0;
+    let pitch = options.pitch || 1.05;
 
-  if (options.tone === 'playful' || options.emotion === 'teasing') {
-    pitch = 1.2;
-    rateMultiplier = 1.06;
-  } else if (options.tone === 'serious' || options.emotion === 'angry') {
-    pitch = 0.95;
-    rateMultiplier = 0.98;
-  } else if (options.tone === 'comforting' || options.emotion === 'caring') {
-    pitch = 1.08;
-    rateMultiplier = 0.95;
-  } else if (options.tone === 'sweet' || options.emotion === 'loving' || options.emotion === 'celebratory') {
-    pitch = 1.15;
-    rateMultiplier = 0.98;
-  } else if (options.tone === 'sassy') {
-    pitch = 1.22;
-    rateMultiplier = 1.1;
-  }
-
-  utterance.rate = Math.max(0.6, Math.min(2.0, baseRate * rateMultiplier));
-  utterance.pitch = pitch;
-
-  const voices = window.speechSynthesis.getVoices();
-  if (voices.length > 0) {
-    const isMale = options.gender === 'male';
-    const preferredVoice = voices.find(v => {
-      const name = v.name.toLowerCase();
-      const lang = v.lang.toLowerCase();
-      const matchesGender = isMale
-        ? (name.includes('male') || name.includes('david') || name.includes('rishi') || name.includes('george'))
-        : (name.includes('female') || name.includes('zira') || name.includes('swara') || name.includes('samantha') || name.includes('natural'));
-      return (lang.includes('in') || lang.includes('en')) && matchesGender;
-    }) || voices.find(v => v.lang.includes('en') && (options.gender === 'male' ? !v.name.includes('Female') : true)) || voices[0];
-
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
+    if (options.tone === 'playful' || options.emotion === 'teasing') {
+      pitch = 1.2;
+      rateMultiplier = 1.06;
+    } else if (options.tone === 'serious' || options.emotion === 'angry') {
+      pitch = 0.95;
+      rateMultiplier = 0.98;
+    } else if (options.tone === 'comforting' || options.emotion === 'caring') {
+      pitch = 1.08;
+      rateMultiplier = 0.95;
+    } else if (options.tone === 'sweet' || options.emotion === 'loving' || options.emotion === 'celebratory') {
+      pitch = 1.15;
+      rateMultiplier = 0.98;
+    } else if (options.tone === 'sassy') {
+      pitch = 1.22;
+      rateMultiplier = 1.1;
     }
+
+    utterance.rate = Math.max(0.6, Math.min(2.0, baseRate * rateMultiplier));
+    utterance.pitch = pitch;
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const isMale = options.gender === 'male';
+      const preferredVoice = voices.find(v => {
+        const name = v.name.toLowerCase();
+        const lang = v.lang.toLowerCase();
+        const matchesGender = isMale
+          ? (name.includes('male') || name.includes('david') || name.includes('rishi') || name.includes('george'))
+          : (name.includes('female') || name.includes('zira') || name.includes('swara') || name.includes('samantha') || name.includes('natural'));
+        return (lang.includes('in') || lang.includes('en')) && matchesGender;
+      }) || voices.find(v => v.lang.includes('en') && (options.gender === 'male' ? !v.name.includes('Female') : true)) || voices[0];
+
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+    }
+
+    if (options.onStart) utterance.onstart = options.onStart;
+    if (options.onEnd) utterance.onend = options.onEnd;
+    utterance.onerror = (err) => {
+      if (options.onError) options.onError(err);
+      if (options.onEnd) options.onEnd();
+    };
+
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    if (options.onEnd) options.onEnd();
   }
-
-  if (options.onStart) utterance.onstart = options.onStart;
-  if (options.onEnd) utterance.onend = options.onEnd;
-  if (options.onError) utterance.onerror = options.onError;
-
-  window.speechSynthesis.speak(utterance);
 }
 
 export function stopCompanionVoice() {

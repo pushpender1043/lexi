@@ -130,128 +130,126 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-20 md:pb-12 select-none">
+    <div className="w-full max-w-[960px] mx-auto space-y-6 pb-20 md:pb-12 select-none">
       
-      {/* 1. Hero Greeting with Time-Aware Subtext */}
+      {/* 1. Hero Greeting with Editorial Display Typography */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 sm:pt-4"
+        className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pt-3 sm:pt-5 px-0.5"
       >
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF]">
+          <h1 className="font-display text-[26px] sm:text-[34px] font-bold tracking-[-0.03em] leading-[1.08] text-[#14121C] dark:text-[#F8F7FC]">
             {getGreeting()},{' '}
-            <span className="text-[#7C3AED] dark:text-[#A78BFA]">{userName}</span>
+            <span className="text-[#7C3AED] dark:text-[#C4B5FD]">{userName}</span>
           </h1>
-          <p className="text-xs sm:text-sm text-[#6B6B76] dark:text-[#9A9AA5] mt-0.5">
+          <p className="text-[12.5px] sm:text-[13.5px] text-[#534E68] dark:text-[#C5BED9] mt-1.5 font-normal">
             {streakDays > 0
-              ? `You're on a ${streakDays}-day streak. Keep your momentum going today!`
-              : `Start your daily streak today. Let's make every habit count!`}
+              ? `On a ${streakDays}-day streak — keep the rhythm steady today.`
+              : `Start your daily streak today. Make every small habit count.`}
           </p>
         </div>
 
         {/* Hero Quick Action */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <GlassButton
             variant="primary"
-            size="md"
+            size="sm"
             onClick={onStartCall}
+            className="rounded-full px-4 py-2 text-xs font-semibold"
           >
-            <Phone className="w-4 h-4" />
+            <Phone className="w-3.5 h-3.5" />
             <span>Call {companionName}</span>
           </GlassButton>
         </div>
       </motion.div>
 
-      {/* 2. Responsive Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* 2. Minimal Airy Bento Grid (Generous outer gutters so AeroShards breathes between cards) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
         
-        {/* Card A: Daily Streak with Real Week Days Strip */}
-        <GlassCard className="p-5 flex flex-col justify-between">
+        {/* Card A: Daily Streak with Minimal Week Strip */}
+        <GlassCard className="p-4 flex flex-col justify-between gap-3">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#7C3AED] to-[#A78BFA] text-white flex items-center justify-center shadow-md shadow-[#7C3AED]/25">
-                  <Flame className="w-5 h-5 fill-white animate-pulse" />
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#7C3AED] via-[#896ABD] to-[#A855F7] text-white flex items-center justify-center shadow-[0_6px_16px_rgba(168,85,247,0.32),inset_0_1px_0_rgba(255,255,255,0.4)]">
+                  <Flame className="w-4 h-4 fill-white" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                  <h3 className="font-display text-[15px] font-bold tracking-[-0.015em] text-[#14121C] dark:text-[#F8F7FC]">
                     Daily Streak
                   </h3>
-                  <span className="text-[11px] text-[#6B6B76] dark:text-[#9A9AA5]">
-                    Consistent habit momentum
+                  <span className="text-[11px] text-[#6C6584] dark:text-[#938CA8] block leading-tight">
+                    Weekly rhythm
                   </span>
                 </div>
               </div>
-              <span className="text-xl font-extrabold text-[#7C3AED] dark:text-[#A78BFA] font-mono tabular-nums">
+              <span className="font-mono text-2xl font-bold tracking-tight text-[#7C3AED] dark:text-[#C4B5FD] tabular-nums">
                 {streakDays}d
               </span>
             </div>
 
-            {/* 7-Day Rhythm Circles (Calculated from Firestore habitLogs) */}
-            <div className="grid grid-cols-7 gap-1.5 py-2">
+            {/* 7-Day Rhythm Tiles (Compact & Crisp) */}
+            <div className="grid grid-cols-7 gap-1 pt-1">
               {weekDays.map((day, idx) => (
                 <div
                   key={idx}
-                  className={`flex flex-col items-center py-2 rounded-xl text-center transition-all ${
+                  className={`flex flex-col items-center py-2 rounded-xl text-center transition-all border backdrop-blur-md ${
                     day.isToday
-                      ? 'bg-[#7C3AED] text-white shadow-sm shadow-[#7C3AED]/30 ring-2 ring-[#A78BFA]/40'
+                      ? 'bg-gradient-to-b from-[#A855F7] to-[#7C3AED] text-white border-white/40 shadow-[0_6px_14px_rgba(168,85,247,0.34),inset_0_1px_0_rgba(255,255,255,0.45)]'
                       : day.completed
-                      ? 'bg-[#4CB782]/15 text-[#4CB782]'
-                      : 'bg-black/5 dark:bg-white/5 text-[#9A9AA5]'
+                      ? 'bg-[#4CB782]/14 text-[#2E8B57] dark:text-[#4CB782] border-[#4CB782]/28'
+                      : 'bg-white/22 dark:bg-white/[0.04] border-white/45 dark:border-white/[0.09] text-[#6C6584] dark:text-[#938CA8]'
                   }`}
                 >
-                  <span className="text-[10px] font-bold">{day.label}</span>
-                  <div className="my-1">
+                  <span className="font-mono text-[10px] font-semibold">{day.label}</span>
+                  <div className="mt-1">
                     {day.completed ? (
                       <Check className="w-3 h-3 stroke-[3]" />
                     ) : (
-                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40 block" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40 block my-[3px]" />
                     )}
                   </div>
-                  <span className="text-[9px] opacity-80">
-                    {day.isToday ? 'Today' : day.completed ? 'Done' : '—'}
-                  </span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="pt-3 border-t border-[rgba(124,58,237,0.1)] flex items-center justify-between text-xs text-[#6B6B76] dark:text-[#9A9AA5]">
-            <span>Best record: {bestStreak} {bestStreak === 1 ? 'day' : 'days'}</span>
-            <span className={streakDays > 0 ? "text-[#4CB782] font-semibold" : "text-[#9A9AA5]"}>
+          <div className="pt-2.5 border-t border-[rgba(137,106,189,0.12)] dark:border-white/10 flex items-center justify-between text-[11px] text-[#534E68] dark:text-[#C5BED9]">
+            <span className="font-mono tabular-nums">Best {bestStreak}{bestStreak === 1 ? 'd' : 'd'}</span>
+            <span className={streakDays > 0 ? 'text-[#4CB782] font-semibold' : 'text-[#7C7692] dark:text-[#938CA8]'}>
               {streakDays > 0 ? 'Active Streak' : 'Pending Today'}
             </span>
           </div>
         </GlassCard>
 
-        {/* Card B: Today's Habits with Circular Progress Ring */}
-        <GlassCard className="p-5 flex flex-col justify-between">
+        {/* Card B: Today's Habits with Sleek Ring */}
+        <GlassCard className="p-4 flex flex-col justify-between gap-2.5">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-[#4CB782]" />
-                <h3 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+                <CheckCircle2 className="w-4 h-4 text-[#4CB782]" />
+                <h3 className="font-display text-[15px] font-bold tracking-[-0.015em] text-[#14121C] dark:text-[#F8F7FC]">
                   Today&apos;s Habits
                 </h3>
               </div>
               <button
                 onClick={() => onNavigateTab?.('todos')}
-                className="text-xs font-semibold text-[#7C3AED] dark:text-[#A78BFA] hover:underline cursor-pointer"
+                className="text-[11px] font-semibold text-[#7C3AED] dark:text-[#C4B5FD] hover:underline cursor-pointer"
               >
                 {totalHabits > 0 ? 'Manage' : '+ Add'}
               </button>
             </div>
 
             {totalHabits === 0 ? (
-              <div className="py-6 px-2 text-center flex flex-col items-center justify-center space-y-2">
-                <p className="text-xs text-[#6B6B76] dark:text-[#9A9AA5]">
+              <div className="py-5 px-2 text-center flex flex-col items-center justify-center space-y-2.5">
+                <p className="text-xs text-[#534E68] dark:text-[#938CA8]">
                   No habits added yet.
                 </p>
                 <button
                   onClick={() => onNavigateTab?.('todos')}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  className="btn-primary-purple px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   <span>Create First Habit</span>
@@ -259,47 +257,47 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-4 py-2">
-                  <ProgressRing progress={habitPercentage} size={68} strokeWidth={6}>
-                    <span className="text-xs font-bold font-mono text-[#1A1A1F] dark:text-[#FAF7FF] tabular-nums">
+                <div className="flex items-center gap-3.5 py-1">
+                  <ProgressRing progress={habitPercentage} size={54} strokeWidth={5}>
+                    <span className="text-[11px] font-bold font-mono text-[#14121C] dark:text-[#F8F7FC] tabular-nums">
                       {completedCount}/{totalHabits}
                     </span>
                   </ProgressRing>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
-                      {habitPercentage}% Completed
+                    <div className="font-display text-base font-bold text-[#14121C] dark:text-[#F8F7FC] tabular-nums leading-tight">
+                      {habitPercentage}% Complete
                     </div>
-                    <p className="text-xs text-[#6B6B76] dark:text-[#9A9AA5] truncate">
+                    <p className="text-[11px] text-[#534E68] dark:text-[#C5BED9] truncate mt-0.5">
                       {completedCount === totalHabits
-                        ? '🎉 All habits completed for today!'
-                        : `${totalHabits - completedCount} habits left to check off`}
+                        ? 'All habits wrapped up today'
+                        : `${totalHabits - completedCount} left to check off`}
                     </p>
                   </div>
                 </div>
 
-                {/* Quick mini habit toggles */}
-                <div className="space-y-1.5 mt-2">
+                {/* Minimal habit list rows */}
+                <div className="space-y-1 mt-2">
                   {habits.slice(0, 3).map((habit) => (
                     <div
                       key={habit.id}
                       onClick={() => handleToggleHabitWithBurst(habit.id)}
-                      className={`px-3 py-2 rounded-xl flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer border backdrop-blur-md ${
                         habit.completed
-                          ? 'bg-[#4CB782]/10 text-[#4CB782]'
-                          : 'bg-black/5 dark:bg-white/5 hover:bg-[#F3EBFF] dark:hover:bg-white/10 text-[#1A1A1F] dark:text-[#FAF7FF]'
+                          ? 'bg-[#4CB782]/10 border-[#4CB782]/25 text-[#2E8B57] dark:text-[#4CB782]'
+                          : 'bg-white/20 dark:bg-white/[0.035] hover:bg-white/40 dark:hover:bg-white/[0.08] border-white/45 dark:border-white/[0.08] text-[#14121C] dark:text-[#F8F7FC]'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         {habit.completed ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#4CB782] shrink-0" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#4CB782] shrink-0" />
                         ) : (
-                          <Circle className="w-4 h-4 text-[#9A9AA5] shrink-0" />
+                          <Circle className="w-3.5 h-3.5 text-[#7C7692] dark:text-[#938CA8] shrink-0" />
                         )}
-                        <span className={`truncate font-medium ${habit.completed ? 'line-through opacity-70' : ''}`}>
+                        <span className={`truncate text-[12px] font-medium ${habit.completed ? 'line-through opacity-75' : ''}`}>
                           {habit.title}
                         </span>
                       </div>
-                      <span className="text-[10px] text-[#9A9AA5] font-mono shrink-0">
+                      <span className="text-[10px] text-[#7C7692] dark:text-[#938CA8] font-mono tabular-nums shrink-0">
                         {habit.scheduledTime}
                       </span>
                     </div>
@@ -310,188 +308,184 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </GlassCard>
 
-        {/* Card C: Water Tracker with Real Firestore Water Log */}
-        <GlassCard className="p-5 flex flex-col justify-between">
+        {/* Card C: Hydration Tracker */}
+        <GlassCard className="p-4 flex flex-col justify-between gap-2.5">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-2">
-                <Droplets className="w-5 h-5 text-sky-500" />
-                <h3 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
-                  Hydration Tracker
+                <Droplets className="w-4 h-4 text-sky-400" />
+                <h3 className="font-display text-[15px] font-bold tracking-[-0.015em] text-[#14121C] dark:text-[#F8F7FC]">
+                  Hydration
                 </h3>
               </div>
               <button
                 onClick={handleQuickAddWater}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-mono text-[11px] font-semibold transition-all cursor-pointer border ${
                   waterLoggedFeedback
-                    ? 'bg-[#4CB782] text-white'
-                    : 'bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20'
+                    ? 'bg-[#4CB782] border-[#4CB782] text-white shadow-xs'
+                    : 'bg-sky-500/12 text-sky-600 dark:text-sky-300 border-sky-400/25 hover:bg-sky-500/22'
                 }`}
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>+250ml</span>
+                <Plus className="w-3 h-3" />
+                <span>250ml</span>
               </button>
             </div>
 
-            {/* Visual Glass Water Level */}
-            <div className="relative h-24 rounded-2xl bg-sky-500/10 dark:bg-sky-950/20 border border-sky-400/20 overflow-hidden flex items-end p-3">
+            {/* Sleeker Glass Water Level */}
+            <div className="relative h-[76px] rounded-2xl bg-sky-400/10 dark:bg-white/[0.035] backdrop-blur-md border border-white/55 dark:border-white/[0.12] overflow-hidden flex items-end p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
               <motion.div
                 initial={{ height: '0%' }}
                 animate={{ height: `${Math.max(10, waterPercentage)}%` }}
                 transition={{ type: 'spring', damping: 20 }}
-                className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-sky-500/40 via-sky-400/30 to-sky-300/20 backdrop-blur-xs"
+                className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-sky-500/40 via-sky-400/24 to-[#A855F7]/12 backdrop-blur-xs border-t border-sky-300/45"
               />
-              <div className="relative z-10 w-full flex items-center justify-between">
+              <div className="relative z-10 w-full flex items-baseline justify-between">
                 <div>
-                  <span className="text-xl font-extrabold text-[#1A1A1F] dark:text-[#FAF7FF] font-mono tabular-nums">
+                  <span className="font-mono text-2xl font-bold text-[#14121C] dark:text-[#F8F7FC] tabular-nums">
                     {todayWaterMl.toLocaleString()}
                   </span>
-                  <span className="text-xs text-[#6B6B76] dark:text-[#9A9AA5] ml-1">/ {waterTargetMl.toLocaleString()} ml</span>
+                  <span className="font-mono text-[11px] text-[#534E68] dark:text-[#C5BED9] ml-1">/ {waterTargetMl.toLocaleString()} ml</span>
                 </div>
-                <span className="text-xs font-semibold text-sky-600 dark:text-sky-400 bg-white/70 dark:bg-black/30 px-2 py-0.5 rounded-md">
-                  {waterPercentage}% Goal
+                <span className="font-mono text-[11px] font-semibold text-sky-600 dark:text-sky-300 tabular-nums">
+                  {waterPercentage}%
                 </span>
               </div>
             </div>
           </div>
 
-          <p className="text-xs text-[#6B6B76] dark:text-[#9A9AA5] pt-3 mt-1 border-t border-[rgba(124,58,237,0.1)]">
+          <p className="text-[11px] text-[#534E68] dark:text-[#C5BED9] pt-2.5 border-t border-[rgba(137,106,189,0.12)] dark:border-white/10">
             {todayWaterMl >= waterTargetMl
-              ? '💧 Goal reached! Hydration fuels focus and physical vitality.'
-              : 'Hydration fuels focus and physical vitality. Take another sip!'}
+              ? 'Daily hydration goal reached.'
+              : 'Stay sharp and refreshed — log your next sip.'}
           </p>
         </GlassCard>
 
-        {/* Card D: Companion Mood / Emotional Check-In */}
-        <GlassCard className="p-5 flex flex-col justify-between">
+        {/* Card D: Companion Mood (Unboxed Clean Quote, Zero Nested Card Clutter) */}
+        <GlassCard className="p-4 flex flex-col justify-between gap-2.5">
           <div>
             <div
               onClick={onOpenMoodDetails}
-              className="flex items-center justify-between mb-3 cursor-pointer group"
+              className="flex items-center justify-between mb-2 cursor-pointer group"
               title="Click to view mood details & nakhre meter"
             >
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[#7C3AED] group-hover:scale-110 transition-transform" />
-                <h3 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF] group-hover:text-[#7C3AED] transition-colors">
+                <Sparkles className="w-4 h-4 text-[#896ABD] dark:text-[#C4B5FD] group-hover:scale-110 transition-transform" />
+                <h3 className="font-display text-[15px] font-bold tracking-[-0.015em] text-[#14121C] dark:text-[#F8F7FC] group-hover:text-[#A855F7] transition-colors">
                   {companionName}&apos;s Mood
                 </h3>
               </div>
-              <span className="text-xs font-semibold capitalize text-[#7C3AED] dark:text-[#A78BFA] bg-purple-500/10 px-2 py-0.5 rounded-md">
-                {partnerMood?.status || 'Loving'} ({partnerMood?.score ?? 85}%)
+              <span className="font-mono text-[11px] font-semibold capitalize text-[#7C3AED] dark:text-[#E9D5FF] tabular-nums">
+                {partnerMood?.status || 'Loving'} · {partnerMood?.score ?? 85}%
               </span>
             </div>
 
             <div
               onClick={onOpenMoodDetails}
-              className="p-3 rounded-2xl bg-[#F3EBFF]/60 dark:bg-white/5 border border-[rgba(124,58,237,0.15)] mb-3 cursor-pointer hover:border-[rgba(124,58,237,0.3)] transition-colors"
+              className="py-2 cursor-pointer"
               title="Click to cheer up or view feelings"
             >
-              <p className="text-xs text-[#1A1A1F] dark:text-[#FAF7FF] italic leading-relaxed">
+              <p className="text-[13px] text-[#14121C] dark:text-[#F8F7FC] italic font-normal leading-relaxed">
                 &ldquo;{partnerMood?.lastReason || `${companionName} is keeping you accountable for today's habits!`}&rdquo;
               </p>
             </div>
 
-            {/* Affection bar */}
-            <div onClick={onOpenMoodDetails} className="cursor-pointer" title="Affection meter">
-              <div className="flex items-center justify-between text-xs text-[#6B6B76] dark:text-[#9A9AA5] mb-1">
-                <span>Affection Level</span>
-                <span className="font-mono">{partnerMood?.score ?? 85}/100</span>
+            {/* Slim Affection Bar */}
+            <div onClick={onOpenMoodDetails} className="cursor-pointer mt-1" title="Affection meter">
+              <div className="flex items-center justify-between text-[11px] text-[#534E68] dark:text-[#C5BED9] mb-1">
+                <span>Affection</span>
+                <span className="font-mono tabular-nums">{partnerMood?.score ?? 85}/100</span>
               </div>
-              <div className="h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
+              <div className="h-1.5 rounded-full bg-black/8 dark:bg-white/[0.08] overflow-hidden">
                 <div
                   style={{ width: `${partnerMood?.score ?? 85}%` }}
-                  className="h-full rounded-full bg-gradient-to-r from-[#A78BFA] to-[#7C3AED] transition-all duration-300"
+                  className="h-full rounded-full bg-gradient-to-r from-[#896ABD] via-[#A855F7] to-[#C4B5FD] transition-all duration-300"
                 />
               </div>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-[rgba(124,58,237,0.1)] flex items-center justify-between text-xs">
+          <div className="pt-2.5 border-t border-[rgba(137,106,189,0.12)] dark:border-white/10 flex items-center justify-between text-[11px]">
             <button
               onClick={onOpenMoodDetails}
-              className="text-[#6B6B76] dark:text-[#9A9AA5] hover:text-[#7C3AED] dark:hover:text-[#A78BFA] cursor-pointer"
+              className="text-[#534E68] dark:text-[#938CA8] hover:text-[#7C3AED] dark:hover:text-[#C4B5FD] cursor-pointer"
             >
-              Heartbeat & Nakhre
+              Heartbeat &amp; Nakhre
             </button>
             <button
               onClick={() => onNavigateTab?.('chat')}
-              className="text-[#7C3AED] dark:text-[#A78BFA] font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+              className="text-[#7C3AED] dark:text-[#C4B5FD] font-semibold flex items-center gap-1 hover:underline cursor-pointer"
             >
               <span>Talk to {companionName}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3 h-3" />
             </button>
           </div>
         </GlassCard>
 
-        {/* Card E: Quick Actions Drawer */}
-        <GlassCard className="p-5 flex flex-col justify-between">
+        {/* Card E: Minimal Quick Actions Grid */}
+        <GlassCard className="p-4 flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold text-[#1A1A1F] dark:text-[#FAF7FF] mb-3">
+            <h3 className="font-display text-[15px] font-bold tracking-[-0.015em] text-[#14121C] dark:text-[#F8F7FC] mb-2.5">
               Quick Actions
             </h3>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => onNavigateTab?.('chat')}
-                className="p-3 rounded-2xl bg-white/60 dark:bg-white/5 hover:bg-[#F3EBFF] dark:hover:bg-white/10 border border-white/60 dark:border-white/10 text-left transition-colors cursor-pointer group"
+                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-white/[0.04] hover:bg-white/44 dark:hover:bg-white/[0.09] backdrop-blur-md border border-white/50 dark:border-white/[0.1] hover:border-[#A855F7]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
               >
-                <MessageSquare className="w-4 h-4 text-[#7C3AED] mb-1 group-hover:scale-110 transition-transform" />
-                <div className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">Open Chat</div>
-                <div className="text-[10px] text-[#6B6B76] dark:text-[#9A9AA5]">Message companion</div>
+                <MessageSquare className="w-4 h-4 text-[#A855F7] shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="font-display text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] truncate">Open Chat</span>
               </button>
 
               <button
                 onClick={onStartCall}
-                className="p-3 rounded-2xl bg-white/60 dark:bg-white/5 hover:bg-[#F3EBFF] dark:hover:bg-white/10 border border-white/60 dark:border-white/10 text-left transition-colors cursor-pointer group"
+                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-white/[0.04] hover:bg-white/44 dark:hover:bg-white/[0.09] backdrop-blur-md border border-white/50 dark:border-white/[0.1] hover:border-[#4CB782]/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
               >
-                <Phone className="w-4 h-4 text-[#4CB782] mb-1 group-hover:scale-110 transition-transform" />
-                <div className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">Voice Call</div>
-                <div className="text-[10px] text-[#6B6B76] dark:text-[#9A9AA5]">Real-time conversation</div>
+                <Phone className="w-4 h-4 text-[#4CB782] shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="font-display text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] truncate">Voice Call</span>
               </button>
 
               <button
                 onClick={() => onNavigateTab?.('todos')}
-                className="p-3 rounded-2xl bg-white/60 dark:bg-white/5 hover:bg-[#F3EBFF] dark:hover:bg-white/10 border border-white/60 dark:border-white/10 text-left transition-colors cursor-pointer group"
+                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-white/[0.04] hover:bg-white/44 dark:hover:bg-white/[0.09] backdrop-blur-md border border-white/50 dark:border-white/[0.1] hover:border-[#A855F7]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
               >
-                <CheckCircle2 className="w-4 h-4 text-purple-500 mb-1 group-hover:scale-110 transition-transform" />
-                <div className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">All Habits</div>
-                <div className="text-[10px] text-[#6B6B76] dark:text-[#9A9AA5]">Add & track habits</div>
+                <CheckCircle2 className="w-4 h-4 text-[#896ABD] dark:text-[#C4B5FD] shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="font-display text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] truncate">All Habits</span>
               </button>
 
               <button
                 onClick={() => onNavigateTab?.('stats')}
-                className="p-3 rounded-2xl bg-white/60 dark:bg-white/5 hover:bg-[#F3EBFF] dark:hover:bg-white/10 border border-white/60 dark:border-white/10 text-left transition-colors cursor-pointer group"
+                className="px-3 py-2.5 rounded-xl bg-white/24 dark:bg-white/[0.04] hover:bg-white/44 dark:hover:bg-white/[0.09] backdrop-blur-md border border-white/50 dark:border-white/[0.1] hover:border-amber-400/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-2 text-left transition-all cursor-pointer group"
               >
-                <TrendingUp className="w-4 h-4 text-amber-500 mb-1 group-hover:scale-110 transition-transform" />
-                <div className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">Trends</div>
-                <div className="text-[10px] text-[#6B6B76] dark:text-[#9A9AA5]">Weekly charts</div>
+                <TrendingUp className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="font-display text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] truncate">Trends</span>
               </button>
             </div>
           </div>
         </GlassCard>
 
-        {/* Card F: Daily Reflection / Mindset Card */}
-        <GlassCard className="p-5 flex flex-col justify-between">
+        {/* Card F: Daily Reflection */}
+        <GlassCard className="p-4 flex flex-col justify-between gap-2.5">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-[#1A1A1F] dark:text-[#FAF7FF]">
+              <h3 className="font-display text-[15px] font-bold tracking-[-0.015em] text-[#14121C] dark:text-[#F8F7FC]">
                 Daily Reflection
-              </span>
+              </h3>
               <button
                 onClick={() => setAffirmationIndex((prev) => (prev + 1) % DAILY_AFFIRMATIONS.length)}
-                className="p-1 rounded-lg text-[#6B6B76] hover:text-[#7C3AED] transition-colors cursor-pointer"
+                className="p-1.5 rounded-full text-[#534E68] dark:text-[#C5BED9] hover:text-[#A855F7] hover:bg-white/30 dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                 title="Next reflection"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <p className="text-xs sm:text-sm font-medium text-[#1A1A1F] dark:text-[#FAF7FF] italic leading-relaxed py-2 pl-3 border-l-2 border-[#7C3AED]">
+            <p className="text-[13px] font-normal text-[#14121C] dark:text-[#F8F7FC] italic leading-relaxed py-1">
               &ldquo;{DAILY_AFFIRMATIONS[affirmationIndex]}&rdquo;
             </p>
           </div>
 
-          <div className="pt-3 border-t border-[rgba(124,58,237,0.1)] text-[11px] text-[#6B6B76] dark:text-[#9A9AA5]">
-            Curated daily for mental clarity and discipline
+          <div className="pt-2.5 border-t border-[rgba(137,106,189,0.12)] dark:border-white/10 text-[11px] text-[#6C6584] dark:text-[#938CA8]">
+            Curated daily for mental clarity
           </div>
         </GlassCard>
 

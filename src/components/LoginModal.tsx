@@ -29,12 +29,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [nameInput, setNameInput] = useState('Deepu');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleGoogleLogin = async () => {
     setIsSubmitting(true);
     setErrorMessage(null);
+    setInfoMessage(null);
     try {
       const user = await signInWithGoogle();
       if (user) {
@@ -45,10 +47,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           userId: user.uid,
           userAvatar: user.photoURL || undefined,
         });
+      } else {
+        setInfoMessage('Google sign-in was closed before finishing. Try again, or continue with Email or Guest.');
       }
     } catch (err: any) {
-      console.warn('Firebase Google Auth:', err);
-      if (err?.code !== 'auth/popup-closed-by-user') {
+      const code = err?.code || '';
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        setInfoMessage('Google sign-in was closed before finishing. Try again, or continue with Email or Guest.');
+      } else {
         setErrorMessage(
           err?.message || 'Google sign-in was interrupted. You can also sign in with email or guest.'
         );
@@ -63,6 +69,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     if (!emailInput.trim()) return;
     setIsSubmitting(true);
     setErrorMessage(null);
+    setInfoMessage(null);
     setTimeout(() => {
       setIsSubmitting(false);
       const derivedName = nameInput.trim() || emailInput.split('@')[0] || 'Deepu';
@@ -77,6 +84,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const handleGuestLogin = async () => {
     setIsSubmitting(true);
+    setErrorMessage(null);
+    setInfoMessage(null);
     try {
       const anonUser = await signInGuestUser();
       if (anonUser) {
@@ -103,16 +112,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/65 dark:bg-black/78 backdrop-blur-lg animate-in fade-in duration-200">
       <div
         id="login-modal-card"
-        className="w-full max-w-md bg-white/90 dark:bg-[#150F28]/95 rounded-[28px] border border-[rgba(124,58,237,0.16)] shadow-[0_16px_48px_rgba(124,58,237,0.16)] backdrop-blur-2xl overflow-hidden relative"
+        className="w-full max-w-md glass-strong rounded-[28px] border border-white/60 dark:border-white/20 shadow-[0_24px_64px_rgba(0,0,0,0.65)] overflow-hidden relative"
       >
         {/* Close Button if onClose provided */}
         {onClose && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 p-1.5 rounded-full text-[#9A9AA5] hover:text-[#1A1A1F] dark:hover:text-[#FAF7FF] bg-white/70 dark:bg-white/10 hover:bg-white transition-all cursor-pointer"
+            className="absolute top-4 right-4 z-10 p-1.5 rounded-full text-[#7C7692] dark:text-[#938CA8] hover:text-[#14121C] dark:hover:text-[#F8F7FC] bg-white/70 dark:bg-white/[0.08] hover:bg-white dark:hover:bg-white/[0.15] border border-white/60 dark:border-white/[0.12] transition-all cursor-pointer"
             title="Close"
           >
             <X className="w-4 h-4" />
@@ -120,26 +129,33 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         )}
 
         {/* Top Decorative Banner with Mascot */}
-        <div className="pt-8 pb-5 px-6 bg-gradient-to-b from-[#FAF7FF] via-[#F3EBFF]/60 to-transparent dark:from-[#21163E] dark:via-[#1A1230]/40 dark:to-transparent text-center flex flex-col items-center">
+        <div className="pt-8 pb-5 px-6 bg-gradient-to-b from-[#F3EBFF]/80 via-[#FAF7FF]/30 to-transparent dark:from-[#A855F7]/15 dark:via-[#141122]/30 dark:to-transparent text-center flex flex-col items-center">
           <div className="mb-3.5 relative">
             <AexoMascot size="lg" isListening={true} />
-            <div className="absolute -bottom-1 -right-1 bg-[#4CB782] w-4 h-4 rounded-full border-2 border-white dark:border-[#150F28]" />
+            <div className="absolute -bottom-1 -right-1 bg-[#4CB782] w-4 h-4 rounded-full border-2 border-white dark:border-[#0E0C16]" />
           </div>
-          <h2 className="text-xl font-extrabold tracking-tight text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-1.5">
+          <h2 className="text-xl font-extrabold tracking-tight text-[#14121C] dark:text-[#F8F7FC] flex items-center gap-1.5">
             <span>Welcome to Lexi</span>
-            <Sparkles className="w-4 h-4 text-[#7C3AED]" />
+            <Sparkles className="w-4 h-4 text-[#A855F7]" />
           </h2>
-          <p className="text-xs text-[#6B6B76] dark:text-[#C4B5FD] mt-1 max-w-xs leading-relaxed">
-            Your personal AI partner for daily habits, real-time voice calls & warm companionship
+          <p className="text-xs text-[#534E68] dark:text-[#C5BED9] mt-1 max-w-xs leading-relaxed">
+            Your personal AI partner for daily habits, real-time voice calls &amp; warm companionship
           </p>
         </div>
 
         {/* Content Body */}
         <div className="p-6 pt-1 space-y-4">
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2 animate-in fade-in">
+            <div className="p-3 rounded-xl bg-rose-500/12 border border-rose-400/30 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {infoMessage && !errorMessage && (
+            <div className="p-3 rounded-xl bg-[#A855F7]/12 border border-[#A855F7]/25 text-[#534E68] dark:text-[#D8CEF2] text-xs flex items-start gap-2 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#A855F7]" />
+              <span>{infoMessage}</span>
             </div>
           )}
 
@@ -150,7 +166,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 id="login-google-btn"
                 onClick={handleGoogleLogin}
                 disabled={isSubmitting}
-                className="w-full py-3 px-4 rounded-[12px] bg-white dark:bg-white/10 border border-[rgba(124,58,237,0.16)] hover:border-[#7C3AED] text-[#1A1A1F] dark:text-[#FAF7FF] font-semibold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-xs hover:shadow-[0_4px_20px_rgba(124,58,237,0.14)] transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+                className="w-full py-3 px-4 rounded-[14px] bg-white/85 dark:bg-white/[0.08] hover:bg-white dark:hover:bg-white/[0.14] border border-white/60 dark:border-white/[0.18] hover:border-[#A855F7] text-[#14121C] dark:text-[#F8F7FC] font-semibold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-[0_8px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.26)] backdrop-blur-xl transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
               >
                 {/* Google "G" SVG */}
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -177,27 +193,30 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               {/* Continue with Email */}
               <button
                 id="login-email-btn"
-                onClick={() => setAuthMode('email')}
-                className="w-full py-3 px-4 rounded-[12px] bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.2)] hover:border-[#7C3AED] text-[#7C3AED] dark:text-[#C4B5FD] font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] cursor-pointer"
+                onClick={() => {
+                  setErrorMessage(null);
+                  setInfoMessage(null);
+                  setAuthMode('email');
+                }}
+                className="w-full py-3 px-4 rounded-[14px] glass-button font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 cursor-pointer"
               >
                 <Mail className="w-4 h-4" />
                 <span>Continue with Email</span>
               </button>
 
-              <div className="relative py-2 text-center">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[rgba(124,58,237,0.12)]" />
-                </div>
-                <span className="relative px-3 bg-white dark:bg-[#150F28] text-[11px] text-[#9A9AA5]">
+              <div className="flex items-center gap-3 py-1.5">
+                <div className="flex-1 border-t border-black/10 dark:border-white/[0.12]" />
+                <span className="text-[11px] text-[#7C7692] dark:text-[#938CA8]">
                   or explore first
                 </span>
+                <div className="flex-1 border-t border-black/10 dark:border-white/[0.12]" />
               </div>
 
               {/* Continue as Guest (Dashed Outline Style) */}
               <button
                 id="login-guest-btn"
                 onClick={handleGuestLogin}
-                className="w-full py-2.5 px-4 btn-guest-dashed text-[#6B6B76] dark:text-[#C4B5FD] hover:text-[#7C3AED] font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-2.5 px-4 btn-guest-dashed text-[#534E68] dark:text-[#C5BED9] hover:text-[#7C3AED] dark:hover:text-[#F8F7FC] font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <User className="w-3.5 h-3.5" />
                 <span>Continue as Guest</span>
@@ -206,7 +225,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           ) : (
             <form onSubmit={handleEmailSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-[#1A1A1F] dark:text-[#FAF7FF] mb-1">
+                <label className="block text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] mb-1">
                   Your Name
                 </label>
                 <input
@@ -214,13 +233,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   value={nameInput}
                   onChange={(e) => setNameInput(e.target.value)}
                   placeholder="e.g. Deepu"
-                  className="w-full px-3.5 py-2.5 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                  className="w-full px-3.5 py-2.5 rounded-[12px] glass-input text-xs text-[#14121C] dark:text-[#F8F7FC] focus:outline-hidden"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1A1A1F] dark:text-[#FAF7FF] mb-1">
+                <label className="block text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] mb-1">
                   Email Address
                 </label>
                 <input
@@ -228,20 +247,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full px-3.5 py-2.5 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                  className="w-full px-3.5 py-2.5 rounded-[12px] glass-input text-xs text-[#14121C] dark:text-[#F8F7FC] focus:outline-hidden"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1A1A1F] dark:text-[#FAF7FF] mb-1">
+                <label className="block text-xs font-semibold text-[#14121C] dark:text-[#F8F7FC] mb-1">
                   Password
                 </label>
                 <input
                   type="password"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-[12px] glass-input text-xs text-[#1A1A1F] dark:text-[#FAF7FF] focus:outline-hidden"
+                  className="w-full px-3.5 py-2.5 rounded-[12px] glass-input text-xs text-[#14121C] dark:text-[#F8F7FC] focus:outline-hidden"
                 />
               </div>
 
@@ -249,14 +268,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setAuthMode('options')}
-                  className="flex-1 py-2.5 rounded-[12px] bg-white/60 dark:bg-white/10 text-[#6B6B76] dark:text-[#FAF7FF] text-xs font-semibold hover:bg-white/80 cursor-pointer"
+                  className="flex-1 py-2.5 rounded-[12px] glass-button text-xs font-semibold cursor-pointer"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-2 py-2.5 rounded-[12px] bg-[#7C3AED] hover:bg-[#5B21B6] text-white text-xs font-semibold shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  className="flex-2 py-2.5 rounded-[12px] btn-primary-purple text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>{isSubmitting ? 'Signing in...' : 'Sign In'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -265,9 +284,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </form>
           )}
 
-          <div className="pt-2 text-center text-[10px] text-[#9A9AA5] flex items-center justify-center gap-1">
+          <div className="pt-2 text-center text-[10px] text-[#7C7692] dark:text-[#938CA8] flex items-center justify-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-[#4CB782]" />
-            <span>Firebase Cloud Authentication • Secure & Encrypted</span>
+            <span>Firebase Cloud Authentication • Secure &amp; Encrypted</span>
           </div>
         </div>
       </div>
