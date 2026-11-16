@@ -28,6 +28,7 @@ interface HeaderProps {
   completedHabitsCount?: number;
   totalHabitsCount?: number;
   isScrolled?: boolean;
+  isOnline?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -43,18 +44,22 @@ export const Header: React.FC<HeaderProps> = ({
   completedHabitsCount = 0,
   totalHabitsCount = 0,
   isScrolled = false,
+  isOnline = true,
 }) => {
   const companionName = userProfile.partnerName || 'noni';
   const isAuthenticated = userProfile.isAuthenticated;
   const userInitial = (userProfile.name || userProfile.userEmail || 'U')[0].toUpperCase();
 
   const getMoodColor = (status?: string) => {
+    if (!isOnline) {
+      return 'bg-amber-500 shadow-xs shadow-amber-500/50';
+    }
     switch (status) {
+      case 'happy':
+        return 'bg-[#4CB782] shadow-xs shadow-emerald-500/50';
       case 'ecstatic':
       case 'loving':
         return 'bg-pink-500 shadow-xs shadow-pink-500/50';
-      case 'happy':
-        return 'bg-[#4CB782] shadow-xs shadow-emerald-500/50';
       case 'neutral':
         return 'bg-[#8B5CF6] shadow-xs shadow-purple-500/50';
       case 'annoyed':
@@ -103,10 +108,13 @@ export const Header: React.FC<HeaderProps> = ({
               }
             }}
             className="relative shrink-0 cursor-pointer"
-            title={`Companion Mood: ${partnerMood?.status || 'happy'} (${partnerMood?.score || 85}%) - Tap to view heart meter`}
+            title={`${!isOnline ? 'Offline • ' : ''}Companion Mood: ${partnerMood?.status || 'happy'} (${partnerMood?.score || 85}%) - Tap to view feelings`}
           >
             <AexoMascot size="sm" isListening={false} />
-            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-[#0B0814] ${getMoodColor(partnerMood?.status)}`} />
+            <span
+              aria-label={`${isOnline ? 'Online' : 'Offline'} - ${partnerMood?.status || 'happy'}`}
+              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-[#0B0814] ${getMoodColor(partnerMood?.status)}`}
+            />
           </div>
           <div className="flex items-center min-w-0">
             <span className="text-base sm:text-lg font-black text-[#1A1A1F] dark:text-[#FAF7FF] tracking-tight truncate group-hover:text-[#7C3AED] transition-colors">

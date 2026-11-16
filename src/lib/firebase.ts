@@ -11,14 +11,13 @@ import {
   getFirestore,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
+  writeBatch,
   collection,
   onSnapshot,
-  query,
-  orderBy,
-  limit,
   getDocFromServer,
   Unsubscribe
 } from 'firebase/firestore';
@@ -172,23 +171,56 @@ export async function getAuthToken(): Promise<string | null> {
  * Attaches Authorization Bearer token to all backend /api/* calls
  */
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const buildHeaders = (token: string | null) => {
+    const headers = new Headers(options.headers || {});
+    if (options.body && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    return headers;
+  };
+
   const token = await getAuthToken();
-  const headers = new Headers(options.headers || {});
-  if (!headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  return fetch(url, {
+  const res = await fetch(url, {
     ...options,
-    headers,
+    headers: buildHeaders(token),
   });
+
+  if (res.status === 401 && auth.currentUser) {
+    try {
+      const refreshedToken = await auth.currentUser.getIdToken(true);
+      if (refreshedToken && refreshedToken !== token) {
+        return await fetch(url, {
+          ...options,
+          headers: buildHeaders(refreshedToken),
+        });
+      }
+    } catch (err) {
+      console.warn('Could not refresh expired Firebase auth token:', err);
+    }
+  }
+
+  return res;
 }
+
+const USER_SUBCOLLECTIONS = [
+  'habits',
+  'messages',
+  'mood',
+  'memories',
+  'calls',
+  'events',
+  'habitLogs',
+  'waterLogs',
+] as const;
+
+export const LEGACY_POISONED_FALLBACK_TEXT = 'Main sun rahi hoon jaan, sab theek hai na?';
 
 /**
  * GDPR / DPDP Article 17 "Right to Erasure"
- * Fully deletes the user's profile document and signs out
+ * Deletes all user subcollections, root profile document, local storage, and auth user.
  */
 export async function deleteUserAccountAndData(userId: string): Promise<void> {
   if (!isClientAuthorizedFor(userId)) {
@@ -196,6 +228,15 @@ export async function deleteUserAccountAndData(userId: string): Promise<void> {
   }
 
   try {
+    for (const subcol of USER_SUBCOLLECTIONS) {
+      const snap = await getDocs(collection(db, 'users', userId, subcol));
+      if (!snap.empty) {
+        const batch = writeBatch(db);
+        snap.docs.forEach((docSnap) => batch.delete(docSnap.ref));
+        await batch.commit();
+      }
+    }
+
     // Delete root user document
     await deleteDoc(doc(db, 'users', userId));
 
@@ -225,6 +266,28 @@ function isClientAuthorizedFor(userId: string): boolean {
 // Firestore Database Sync Operations
 
 /**
+ * Recursively removes keys with `undefined` values before writing to Firestore,
+ * preventing FirebaseError: Unsupported field value: undefined.
+ */
+export function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item !== undefined)
+      .map((item) => stripUndefined(item)) as unknown as T;
+  }
+  if (value !== null && typeof value === 'object') {
+    const cleaned: Record<string, any> = {};
+    for (const [key, val] of Object.entries(value as Record<string, any>)) {
+      if (val !== undefined) {
+        cleaned[key] = stripUndefined(val);
+      }
+    }
+    return cleaned as T;
+  }
+  return value;
+}
+
+/**
  * Synchronize UserProfile to /users/{userId}
  */
 export async function syncUserProfile(userId: string, profile: Partial<UserProfile>): Promise<void> {
@@ -235,35 +298,40 @@ export async function syncUserProfile(userId: string, profile: Partial<UserProfi
   const path = `users/${userId}`;
   try {
     const userDocRef = doc(db, 'users', userId);
-    await setDoc(
-      userDocRef,
-      {
-        userId,
-        email: auth.currentUser?.email || profile.userEmail || '',
-        name: profile.name || 'Darling',
-        gender: profile.gender || 'male',
-        partnerName: profile.partnerName || 'Lexi',
-        partnerGender: profile.partnerGender || 'female',
-        partnerTone: profile.partnerTone || 'playful_loving',
-        voiceGender: profile.voiceGender || 'female',
-        wakeUpTime: profile.wakeUpTime || '07:30',
-        sleepTime: profile.sleepTime || '23:30',
-        dailyWaterGoal: profile.dailyWaterGoal ?? 8,
-        streakDays: profile.streakDays ?? 1,
-        bestStreak: profile.bestStreak ?? 1,
-        isOnboarded: profile.isOnboarded ?? true,
-        dailyCheckInTime: profile.dailyCheckInTime || '08:30',
-        dailyCheckInEnabled: profile.dailyCheckInEnabled ?? true,
-        checkInType: profile.checkInType || 'voice_and_text',
-        lastCheckInDate: profile.lastCheckInDate || new Date().toISOString().split('T')[0],
-        voiceSpeed: profile.voiceSpeed ?? 1.0,
-        voiceToneStyle: profile.voiceToneStyle || 'playful',
-        themeMode: profile.themeMode || 'light',
-        location: profile.location || '',
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true }
-    );
+    const payload = stripUndefined({
+      userId,
+      email: auth.currentUser?.email || profile.userEmail || '',
+      name: (profile.name || 'Darling').slice(0, 64),
+      gender: profile.gender || 'male',
+      partnerName: (profile.partnerName || 'Lexi').slice(0, 64),
+      partnerGender: profile.partnerGender || 'female',
+      partnerTone: profile.partnerTone || 'playful_loving',
+      voiceGender: profile.voiceGender || 'female',
+      preferredVoiceName: profile.preferredVoiceName,
+      preferredLanguage: profile.preferredLanguage,
+      wakeUpTime: profile.wakeUpTime || '07:00',
+      sleepTime: profile.sleepTime || '23:00',
+      dailyWaterGoal: profile.dailyWaterGoal ?? 8,
+      streakDays: profile.streakDays ?? 0,
+      bestStreak: profile.bestStreak ?? 0,
+      isOnboarded: profile.isOnboarded ?? false,
+      dailyCheckInTime: profile.dailyCheckInTime || '08:30',
+      dailyCheckInEnabled: profile.dailyCheckInEnabled ?? true,
+      checkInType: profile.checkInType || 'voice_and_text',
+      lastCheckInDate: profile.lastCheckInDate,
+      voiceSpeed: profile.voiceSpeed ?? 1.0,
+      voiceToneStyle: profile.voiceToneStyle || 'playful',
+      themeMode: profile.themeMode || 'dark',
+      location: profile.location || '',
+      calendarSynced: profile.calendarSynced ?? false,
+      alarmsSynced: profile.alarmsSynced ?? false,
+      relationshipDynamic: profile.relationshipDynamic,
+      primaryGoal: profile.primaryGoal,
+      languageMix: profile.languageMix,
+      timeZone: profile.timeZone,
+      updatedAt: new Date().toISOString(),
+    });
+    await setDoc(userDocRef, payload, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -280,11 +348,14 @@ export async function syncUserHabit(userId: string, habit: Habit): Promise<void>
   const path = `users/${userId}/habits/${habit.id}`;
   try {
     const habitDocRef = doc(db, 'users', userId, 'habits', habit.id);
-    await setDoc(habitDocRef, {
-      ...habit,
-      userId,
-      updatedAt: new Date().toISOString(),
-    });
+    await setDoc(
+      habitDocRef,
+      stripUndefined({
+        ...habit,
+        userId,
+        updatedAt: new Date().toISOString(),
+      })
+    );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -318,13 +389,53 @@ export async function saveUserChatMessage(userId: string, message: ChatMessage):
   const path = `users/${userId}/messages/${message.id}`;
   try {
     const messageDocRef = doc(db, 'users', userId, 'messages', message.id);
-    await setDoc(messageDocRef, {
-      ...message,
-      userId,
-      createdAt: new Date().toISOString(),
-    });
+    const { audioBase64: _omitAudio, ...serializableMsg } = message;
+    await setDoc(
+      messageDocRef,
+      stripUndefined({
+        ...serializableMsg,
+        userId,
+        createdAt: new Date().toISOString(),
+      })
+    );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+/**
+ * Clear all chat messages in /users/{userId}/messages
+ */
+export async function clearUserChatMessages(userId: string): Promise<void> {
+  if (!isClientAuthorizedFor(userId)) {
+    return;
+  }
+  const path = `users/${userId}/messages`;
+  try {
+    const snap = await getDocs(collection(db, 'users', userId, 'messages'));
+    if (snap.empty) return;
+    const batch = writeBatch(db);
+    snap.docs.forEach((docSnap) => batch.delete(docSnap.ref));
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+/**
+ * Delete specific message IDs (e.g., legacy poisoned fallback cleanup)
+ */
+export async function deleteUserMessagesByIds(userId: string, messageIds: string[]): Promise<void> {
+  if (!isClientAuthorizedFor(userId) || messageIds.length === 0) {
+    return;
+  }
+  const path = `users/${userId}/messages`;
+  try {
+    const batch = writeBatch(db);
+    messageIds.forEach((id) => batch.delete(doc(db, 'users', userId, 'messages', id)));
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 
@@ -339,11 +450,14 @@ export async function syncPartnerMood(userId: string, mood: PartnerMood): Promis
   const path = `users/${userId}/mood/current`;
   try {
     const moodDocRef = doc(db, 'users', userId, 'mood', 'current');
-    await setDoc(moodDocRef, {
-      ...mood,
-      userId,
-      updatedAt: new Date().toISOString(),
-    });
+    await setDoc(
+      moodDocRef,
+      stripUndefined({
+        ...mood,
+        userId,
+        updatedAt: new Date().toISOString(),
+      })
+    );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -360,11 +474,14 @@ export async function saveUserMemory(userId: string, memory: MemoryItem): Promis
   const path = `users/${userId}/memories/${memory.id}`;
   try {
     const memoryDocRef = doc(db, 'users', userId, 'memories', memory.id);
-    await setDoc(memoryDocRef, {
-      ...memory,
-      userId,
-      learnedAt: memory.learnedAt || new Date().toISOString(),
-    });
+    await setDoc(
+      memoryDocRef,
+      stripUndefined({
+        ...memory,
+        userId,
+        learnedAt: memory.learnedAt || new Date().toISOString(),
+      })
+    );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -398,13 +515,35 @@ export async function saveCallRecord(userId: string, callRecord: CallRecord): Pr
   const path = `users/${userId}/calls/${callRecord.id}`;
   try {
     const callDocRef = doc(db, 'users', userId, 'calls', callRecord.id);
-    await setDoc(callDocRef, {
-      ...callRecord,
-      userId,
-      createdAt: new Date().toISOString(),
-    });
+    await setDoc(
+      callDocRef,
+      stripUndefined({
+        ...callRecord,
+        userId,
+        createdAt: new Date().toISOString(),
+      })
+    );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+/**
+ * Clear all call records in /users/{userId}/calls
+ */
+export async function clearUserCallRecords(userId: string): Promise<void> {
+  if (!isClientAuthorizedFor(userId)) {
+    return;
+  }
+  const path = `users/${userId}/calls`;
+  try {
+    const snap = await getDocs(collection(db, 'users', userId, 'calls'));
+    if (snap.empty) return;
+    const batch = writeBatch(db);
+    snap.docs.forEach((docSnap) => batch.delete(docSnap.ref));
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 
@@ -419,11 +558,14 @@ export async function syncCalendarEvent(userId: string, event: CalendarEvent): P
   const path = `users/${userId}/events/${event.id}`;
   try {
     const eventDocRef = doc(db, 'users', userId, 'events', event.id);
-    await setDoc(eventDocRef, {
-      ...event,
-      userId,
-      updatedAt: new Date().toISOString(),
-    });
+    await setDoc(
+      eventDocRef,
+      stripUndefined({
+        ...event,
+        userId,
+        updatedAt: new Date().toISOString(),
+      })
+    );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -520,13 +662,17 @@ export function subscribeChatMessages(
 
   const path = `users/${userId}/messages`;
   const msgColRef = collection(db, 'users', userId, 'messages');
-  const q = query(msgColRef, orderBy('timestamp', 'asc'), limit(100));
   return onSnapshot(
-    q,
+    msgColRef,
     (snap) => {
-      const items: ChatMessage[] = [];
-      snap.forEach((docSnap) => items.push(docSnap.data() as ChatMessage));
-      onUpdate(items);
+      const items: Array<ChatMessage & { createdAt?: string }> = [];
+      snap.forEach((docSnap) => items.push(docSnap.data() as ChatMessage & { createdAt?: string }));
+      items.sort((a, b) => {
+        const keyA = a.createdAt || a.id || '';
+        const keyB = b.createdAt || b.id || '';
+        return keyA.localeCompare(keyB);
+      });
+      onUpdate(items.slice(-100));
     },
     (error) => {
       if (onError) onError(error);
@@ -607,13 +753,17 @@ export function subscribeCallRecords(
 
   const path = `users/${userId}/calls`;
   const callsColRef = collection(db, 'users', userId, 'calls');
-  const q = query(callsColRef, orderBy('timestamp', 'desc'), limit(50));
   return onSnapshot(
-    q,
+    callsColRef,
     (snap) => {
-      const items: CallRecord[] = [];
-      snap.forEach((docSnap) => items.push(docSnap.data() as CallRecord));
-      onUpdate(items);
+      const items: Array<CallRecord & { createdAt?: string }> = [];
+      snap.forEach((docSnap) => items.push(docSnap.data() as CallRecord & { createdAt?: string }));
+      items.sort((a, b) => {
+        const keyA = a.createdAt || a.id || '';
+        const keyB = b.createdAt || b.id || '';
+        return keyB.localeCompare(keyA);
+      });
+      onUpdate(items.slice(0, 50));
     },
     (error) => {
       if (onError) onError(error);
@@ -665,12 +815,16 @@ export async function syncHabitLog(
   const path = `users/${userId}/habitLogs/${date}`;
   try {
     const docRef = doc(db, 'users', userId, 'habitLogs', date);
-    await setDoc(docRef, {
-      ...logData,
-      date,
-      userId,
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    await setDoc(
+      docRef,
+      stripUndefined({
+        ...logData,
+        date,
+        userId,
+        updatedAt: new Date().toISOString(),
+      }),
+      { merge: true }
+    );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }

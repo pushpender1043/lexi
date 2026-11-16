@@ -14,6 +14,15 @@ import firebaseConfig from "./firebase-applet-config.json" with { type: "json" }
 
 dotenv.config();
 
+// Boot-time verification of GEMINI_API_KEY configuration
+const bootApiKey = process.env.GEMINI_API_KEY;
+if (!bootApiKey || bootApiKey === "MY_GEMINI_API_KEY" || bootApiKey.trim().length === 0) {
+  console.warn("⚠️ [Boot Notice] GEMINI_API_KEY is not configured or using default placeholder.");
+  console.warn("   Configure via AI Studio Settings > Secrets panel. Script-mirrored conversational fallbacks active.");
+} else {
+  console.log("✅ [Boot] GEMINI_API_KEY is active and verified for server-side Gemini generation.");
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -168,12 +177,10 @@ function verifyFirebaseToken(req: Request, _res: Response, next: NextFunction) {
 
 app.use("/api", verifyFirebaseToken);
 
-// 5. Candidate AI Models in Priority Order
-const CANDIDATE_MODELS = [
+// 5. Candidate AI Models in Priority Order (Current valid Google GenAI models)
+export const CANDIDATE_MODELS = [
   "gemini-3.1-flash-lite",
-  "gemini-3.8-flash",
-  "gemini-flash-latest",
-  "gemini-3.1-pro-preview",
+  "gemini-4-hydrogen",
 ];
 
 const modelCooldownUntil: Record<string, number> = {};
@@ -243,6 +250,113 @@ async function generateWithFallback<T>(
   throw lastErr;
 }
 
+export type CanonicalMoodStatus = "ecstatic" | "loving" | "happy" | "neutral" | "annoyed" | "angry";
+
+/**
+ * Normalizes any incoming mood status string (including granular moods like 'calm', 'proud')
+ * to one of the 6 canonical Firestore & UI MoodStatus enum values.
+ */
+export function normalizeMoodStatus(status?: string): CanonicalMoodStatus {
+  if (!status || typeof status !== "string") return "happy";
+  const s = status.toLowerCase().trim();
+  if (["ecstatic", "loving", "happy", "neutral", "annoyed", "angry"].includes(s)) {
+    return s as CanonicalMoodStatus;
+  }
+  const mapping: Record<string, CanonicalMoodStatus> = {
+    excited: "ecstatic",
+    romantic: "loving",
+    proud: "ecstatic",
+    calm: "neutral",
+    focused: "happy",
+    curious: "happy",
+    playful: "happy",
+    nostalgic: "neutral",
+    sleepy: "neutral",
+    sad: "neutral",
+    anxious: "annoyed",
+    pouting: "annoyed",
+  };
+  return mapping[s] || "happy";
+}
+
+/**
+ * Robust JSON parser that safely strips markdown code fences (```json ... ```)
+ * and extracts the innermost JSON payload without throwing.
+ */
+export function extractCleanJson(rawText: string): any {
+  if (!rawText || typeof rawText !== "string") return null;
+  let text = rawText.trim();
+  if (text.startsWith("```")) {
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  }
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
+    text = text.substring(firstBrace, lastBrace + 1);
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Prepares and sanitizes chat history for the Gemini API:
+ * - Drops duplicate trailing user turn (which sendMessage supplies)
+ * - Enforces strict user/model turn alternation
+ * - Guarantees non-empty history starts with 'user'
+ * - Drops empty or whitespace-only messages
+ */
+export const LEGACY_POISONED_REPLIES = new Set([
+  "main sun rahi hoon jaan, sab theek hai na?",
+]);
+
+export function buildSanitizedChatHistory(
+  rawHistory: Array<{ sender?: string; text?: string }>,
+  currentMessage: string
+): Array<{ role: "user" | "model"; parts: [{ text: string }] }> {
+  const turns: Array<{ role: "user" | "model"; text: string }> = [];
+
+  for (const item of rawHistory) {
+    const text = sanitizePromptInput(item.text || "", 4000);
+    if (!text) continue;
+    if (LEGACY_POISONED_REPLIES.has(text.trim().toLowerCase())) continue;
+    const s = (item.sender || "").toLowerCase();
+    const role: "user" | "model" =
+      s === "partner" || s === "assistant" || s === "model" || s === "lexi" ? "model" : "user";
+    turns.push({ role, text });
+  }
+
+  // If the last turn in history is the current user message, drop it (sendMessage will supply it)
+  if (turns.length > 0 && turns[turns.length - 1].role === "user") {
+    const lastTurnText = turns[turns.length - 1].text.trim();
+    if (lastTurnText === currentMessage.trim() || lastTurnText.length === 0) {
+      turns.pop();
+    }
+  }
+
+  // Cap at last 8 turns
+  const sliced = turns.slice(-8);
+
+  // Gemini chat history must start with 'user'
+  while (sliced.length > 0 && sliced[0].role !== "user") {
+    sliced.shift();
+  }
+
+  // Merge consecutive turns with the same role to enforce strict alternation
+  const alternating: Array<{ role: "user" | "model"; parts: [{ text: string }] }> = [];
+  for (const turn of sliced) {
+    if (alternating.length > 0 && alternating[alternating.length - 1].role === turn.role) {
+      alternating[alternating.length - 1].parts[0].text += `\n${turn.text}`;
+    } else {
+      alternating.push({ role: turn.role, parts: [{ text: turn.text }] });
+    }
+  }
+
+  return alternating;
+}
+
 /**
  * Intelligent in-character fallback response in case all AI models are temporarily unreachable
  */
@@ -263,7 +377,7 @@ function generateFallbackChatResponse(
     suggestedVoiceEmotion: fallback.suggestedVoiceEmotion,
     moodUpdate: {
       scoreDelta: fallback.mood === "proud" ? 8 : fallback.mood === "happy" ? 4 : 2,
-      newStatus: partnerMood?.status || fallback.mood || "happy",
+      newStatus: normalizeMoodStatus(partnerMood?.status || fallback.mood),
       nakhreDelta: 0,
       reason: "Script-mirrored conversational connection",
     },
@@ -291,11 +405,11 @@ const ChatPayloadSchema = z.object({
   history: z
     .array(
       z.object({
-        sender: z.enum(["user", "partner", "system"]),
-        text: z.string().max(4000),
+        sender: z.string().optional().default("user"),
+        text: z.string().max(4000).optional().default(""),
       })
     )
-    .max(20)
+    .max(100)
     .optional()
     .default([]),
   userProfile: z
@@ -303,7 +417,10 @@ const ChatPayloadSchema = z.object({
       userId: z.string().max(128).optional(),
       name: z.string().max(64).optional(),
       partnerName: z.string().max(64).optional(),
-      partnerGender: z.enum(["male", "female", "non_binary"]).optional(),
+      partnerGender: z
+        .enum(["male", "female", "non_binary", "neutral"])
+        .optional()
+        .transform((v) => (v === "neutral" ? "non_binary" : v)),
       relationshipDynamic: z
         .enum(["sweet_loving", "playful_teasing", "disciplined_coach", "calm_soulmate"])
         .optional(),
@@ -312,6 +429,7 @@ const ChatPayloadSchema = z.object({
       streakDays: z.number().int().min(0).max(10000).optional(),
       languageMix: z.string().max(64).optional(),
     })
+    .passthrough()
     .optional()
     .default({}),
   habits: z
@@ -329,8 +447,8 @@ const ChatPayloadSchema = z.object({
     .default([]),
   partnerMood: z
     .object({
-      score: z.number().min(0).max(100).optional(),
-      status: z.enum(["ecstatic", "loving", "happy", "neutral", "annoyed", "angry"]).optional(),
+      score: z.number().min(0).max(100).optional().default(75),
+      status: z.string().optional().transform((val) => normalizeMoodStatus(val)),
     })
     .optional()
     .default({ score: 75, status: "happy" }),
@@ -363,17 +481,21 @@ const ProactivePayloadSchema = z.object({
       userId: z.string().max(128).optional(),
       name: z.string().max(64).optional(),
       partnerName: z.string().max(64).optional(),
-      partnerGender: z.enum(["male", "female", "non_binary"]).optional(),
+      partnerGender: z
+        .enum(["male", "female", "non_binary", "neutral"])
+        .optional()
+        .transform((v) => (v === "neutral" ? "non_binary" : v)),
       relationshipDynamic: z
         .enum(["sweet_loving", "playful_teasing", "disciplined_coach", "calm_soulmate"])
         .optional(),
     })
+    .passthrough()
     .optional()
     .default({}),
   habits: z.array(z.any()).max(50).optional().default([]),
   partnerMood: z
     .object({
-      status: z.enum(["ecstatic", "loving", "happy", "neutral", "annoyed", "angry"]).optional(),
+      status: z.string().optional().transform((val) => normalizeMoodStatus(val)),
       score: z.number().optional(),
     })
     .optional()
@@ -383,23 +505,27 @@ const ProactivePayloadSchema = z.object({
 
 const CallTurnPayloadSchema = z.object({
   spokenText: z.string().max(2000),
-  history: z.array(z.any()).max(20).optional().default([]),
+  history: z.array(z.any()).max(100).optional().default([]),
   userProfile: z
     .object({
       userId: z.string().max(128).optional(),
       name: z.string().max(64).optional(),
       partnerName: z.string().max(64).optional(),
-      partnerGender: z.enum(["male", "female", "non_binary"]).optional(),
+      partnerGender: z
+        .enum(["male", "female", "non_binary", "neutral"])
+        .optional()
+        .transform((v) => (v === "neutral" ? "non_binary" : v)),
       relationshipDynamic: z
         .enum(["sweet_loving", "playful_teasing", "disciplined_coach", "calm_soulmate"])
         .optional(),
     })
+    .passthrough()
     .optional()
     .default({}),
   habits: z.array(z.any()).max(50).optional().default([]),
   partnerMood: z
     .object({
-      status: z.enum(["ecstatic", "loving", "happy", "neutral", "annoyed", "angry"]).optional(),
+      status: z.string().optional().transform((val) => normalizeMoodStatus(val)),
       score: z.number().optional(),
     })
     .optional()
@@ -408,8 +534,8 @@ const CallTurnPayloadSchema = z.object({
 
 const TtsPayloadSchema = z.object({
   text: z.string().min(1).max(500),
-  voiceGender: z.enum(["male", "female"]).optional().default("female"),
-  voiceNameOverride: z.enum(["Kore", "Aoede", "Leda", "Zephyr"]).optional(),
+  voiceGender: z.enum(["male", "female", "non_binary"]).optional().default("female"),
+  voiceNameOverride: z.enum(["Kore", "Aoede", "Leda", "Zephyr", "Puck", "Fenrir"]).optional(),
 });
 
 // 7. Health Check Endpoint
@@ -455,8 +581,13 @@ app.post("/api/chat", async (req: Request, res: Response) => {
   } = parseResult.data;
 
   // IDOR check: If authenticated with UID, reject attempts to impersonate different userProfile.userId
+  // (Gracefully reconcile guest sessions that start with 'usr_')
   if (req.authUser && userProfile.userId && userProfile.userId !== req.authUser.uid) {
-    return res.status(403).json({ error: "Forbidden: Cross-user profile access rejected." });
+    if (userProfile.userId.startsWith("usr_")) {
+      userProfile.userId = req.authUser.uid;
+    } else {
+      return res.status(403).json({ error: "Forbidden: Cross-user profile access rejected." });
+    }
   }
 
   const cleanMessage = sanitizePromptInput(message, 4000);
@@ -495,11 +626,7 @@ app.post("/api/chat", async (req: Request, res: Response) => {
     upcomingEvents: safeEvents as any,
   });
 
-  const safeHistory = (history || []).slice(-8);
-  const formattedHistory = safeHistory.map((h) => ({
-    role: h.sender === "user" ? "user" : "model",
-    parts: [{ text: sanitizePromptInput(h.text || "", 4000) }],
-  }));
+  const formattedHistory = buildSanitizedChatHistory(history || [], cleanMessage);
 
   // Robust prompt injection isolation with XML boundary tags
   const userPrompt = `
@@ -543,10 +670,8 @@ ${eventsSummary}
     });
 
     const rawText = response.text || "{}";
-    let parsedData: any = {};
-    try {
-      parsedData = JSON.parse(rawText);
-    } catch {
+    let parsedData: any = extractCleanJson(rawText);
+    if (!parsedData || typeof parsedData !== "object") {
       parsedData = {
         reply: rawText,
         mood: "calm",
@@ -555,6 +680,35 @@ ${eventsSummary}
         detectedHabitAction: null,
         newMemory: null,
       };
+    }
+
+    if (!parsedData.reply) {
+      parsedData.reply = rawText || "Main sun rahi hoon, bolo!";
+    }
+
+    // One-shot repeat-guard against repeating the previous model reply verbatim
+    const previousModelTurn = [...formattedHistory].reverse().find((t) => t.role === "model");
+    const prevModelText = previousModelTurn?.parts?.[0]?.text?.trim().toLowerCase();
+    if (prevModelText && String(parsedData.reply).trim().toLowerCase() === prevModelText) {
+      try {
+        const retryRes = await generateWithFallback(async (ai, model) => {
+          const retryChat = ai.chats.create({
+            model,
+            config: {
+              systemInstruction: `${systemInstruction}\nCRITICAL: Respond fresh and naturally without repeating your previous reply verbatim.`,
+              responseMimeType: "application/json",
+            },
+            history: formattedHistory,
+          });
+          return await retryChat.sendMessage({ message: userPrompt });
+        });
+        const retryParsed = extractCleanJson(retryRes.text || "");
+        if (retryParsed?.reply && String(retryParsed.reply).trim().toLowerCase() !== prevModelText) {
+          parsedData = retryParsed;
+        }
+      } catch {
+        // Keep initial parsed response if retry fails
+      }
     }
 
     if (!parsedData.mood) {
@@ -566,15 +720,13 @@ ${eventsSummary}
       parsedData.moodUpdate = {
         scoreDelta: 2,
         nakhreDelta: 0,
-        newStatus: partnerMood?.status || "happy",
+        newStatus: normalizeMoodStatus(partnerMood?.status),
         reason: "Chatted with you",
       };
     } else {
       parsedData.moodUpdate.scoreDelta = Math.max(-20, Math.min(20, Number(parsedData.moodUpdate.scoreDelta) || 0));
       parsedData.moodUpdate.nakhreDelta = Math.max(-2, Math.min(2, Number(parsedData.moodUpdate.nakhreDelta) || 0));
-      if (!["ecstatic", "loving", "happy", "neutral", "annoyed", "angry"].includes(parsedData.moodUpdate.newStatus)) {
-        parsedData.moodUpdate.newStatus = partnerMood?.status || "happy";
-      }
+      parsedData.moodUpdate.newStatus = normalizeMoodStatus(parsedData.moodUpdate.newStatus || partnerMood?.status);
       parsedData.moodUpdate.reason = sanitizePromptInput(parsedData.moodUpdate.reason || "Conversation update", 120);
     }
 
@@ -597,7 +749,11 @@ app.post("/api/proactive", async (req: Request, res: Response) => {
 
   // IDOR check: Reject cross-user impersonation
   if (req.authUser && userProfile.userId && userProfile.userId !== req.authUser.uid) {
-    return res.status(403).json({ error: "Forbidden: Cross-user profile access rejected." });
+    if (userProfile.userId.startsWith("usr_")) {
+      userProfile.userId = req.authUser.uid;
+    } else {
+      return res.status(403).json({ error: "Forbidden: Cross-user profile access rejected." });
+    }
   }
 
   const partnerName = sanitizePromptInput(userProfile.partnerName || "noni", 64);
@@ -641,7 +797,11 @@ Respond in JSON:
       });
     });
 
-    const parsed = JSON.parse(response.text || "{}");
+    const parsed = extractCleanJson(response.text || "") || {
+      message: "Thinking of you! Take care and drink some water.",
+      category: "nudge",
+      urgency: "low",
+    };
     return res.json(parsed);
   } catch (error: any) {
     console.warn("Proactive fallback triggered:", error?.message || "Unavailable");
@@ -677,7 +837,11 @@ app.post("/api/call-turn", async (req: Request, res: Response) => {
 
   // IDOR check: Reject cross-user impersonation
   if (req.authUser && userProfile.userId && userProfile.userId !== req.authUser.uid) {
-    return res.status(403).json({ error: "Forbidden: Cross-user profile access rejected." });
+    if (userProfile.userId.startsWith("usr_")) {
+      userProfile.userId = req.authUser.uid;
+    } else {
+      return res.status(403).json({ error: "Forbidden: Cross-user profile access rejected." });
+    }
   }
   const userName = sanitizePromptInput(userProfile.name || "sweetheart", 64);
   const cleanSpoken = sanitizePromptInput(spokenText, 2000);
@@ -713,7 +877,12 @@ ${JSON.stringify(safeHistory)}
       });
     });
 
-    const parsed = JSON.parse(response.text || "{}");
+    const parsed = extractCleanJson(response.text || "") || {
+      callReply: "Main sun rahi hoon, batao na kya hua?",
+      mood: "calm",
+      emotion: "caring",
+      habitUpdateDetected: null,
+    };
     return res.json(parsed);
   } catch (error: any) {
     console.warn("Call Turn fallback triggered:", error?.message || "Unavailable");
@@ -757,7 +926,7 @@ app.post("/api/tts", async (req: Request, res: Response) => {
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-tts-preview",
+      model: "gemini-3.8-flash-lite-tts",
       contents: [{ parts: [{ text: cleanText }] }],
       config: {
         responseModalities: ["AUDIO" as any],

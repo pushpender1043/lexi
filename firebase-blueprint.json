@@ -33,7 +33,7 @@
         "partnerGender": {
           "type": "string",
           "description": "Gender of the AI companion partner.",
-          "enum": ["male", "female", "neutral"]
+          "enum": ["male", "female", "neutral", "non_binary"]
         },
         "partnerTone": {
           "type": "string",
@@ -43,7 +43,7 @@
         "voiceGender": {
           "type": "string",
           "description": "Voice gender for TTS speech synthesis.",
-          "enum": ["male", "female"]
+          "enum": ["male", "female", "non_binary"]
         },
         "wakeUpTime": {
           "type": "string",
@@ -108,6 +108,44 @@
           "type": "string",
           "description": "User city or region.",
           "maxLength": 128
+        },
+        "calendarSynced": {
+          "type": "boolean",
+          "description": "Whether calendar sync is enabled."
+        },
+        "alarmsSynced": {
+          "type": "boolean",
+          "description": "Whether alarm sync is enabled."
+        },
+        "relationshipDynamic": {
+          "type": "string",
+          "description": "Companion relationship dynamic preset.",
+          "maxLength": 64
+        },
+        "primaryGoal": {
+          "type": "string",
+          "description": "Primary habit focus selected during onboarding.",
+          "maxLength": 64
+        },
+        "languageMix": {
+          "type": "string",
+          "description": "Preferred conversation language mix.",
+          "maxLength": 64
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "description": "Preferred response language.",
+          "maxLength": 32
+        },
+        "preferredVoiceName": {
+          "type": "string",
+          "description": "Selected Gemini TTS voice name.",
+          "maxLength": 32
+        },
+        "timeZone": {
+          "type": "string",
+          "description": "IANA timezone identifier for daily streak calculations.",
+          "maxLength": 64
         },
         "updatedAt": {
           "type": "string",
@@ -177,6 +215,10 @@
           "description": "Importance tier.",
           "enum": ["crucial", "medium", "flexible"]
         },
+        "isCrucial": {
+          "type": "boolean",
+          "description": "Whether habit is required for daily streak credit."
+        },
         "lastCompletedAt": {
           "type": "string",
           "description": "Timestamp or human text of last completion.",
@@ -237,6 +279,11 @@
         "moodTag": {
           "type": "string",
           "description": "Mood associated with this message turn.",
+          "maxLength": 32
+        },
+        "mood": {
+          "type": "string",
+          "description": "Granular atmospheric mood for the message turn.",
           "maxLength": 32
         },
         "habitTag": {
@@ -430,6 +477,76 @@
         }
       },
       "required": ["id", "userId", "title", "startTime", "endTime"]
+    },
+    "HabitLog": {
+      "title": "HabitLog",
+      "description": "Daily completion summary for a specific YYYY-MM-DD date in the user's timezone.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID.",
+          "maxLength": 128
+        },
+        "date": {
+          "type": "string",
+          "description": "Date key formatted YYYY-MM-DD.",
+          "maxLength": 20
+        },
+        "completedHabitIds": {
+          "type": "array",
+          "description": "IDs of habits completed on this date."
+        },
+        "totalHabitsCount": {
+          "type": "number",
+          "description": "Total active habits tracked on this date."
+        },
+        "completedCrucialCount": {
+          "type": "number",
+          "description": "Count of crucial habits completed."
+        },
+        "totalCrucialCount": {
+          "type": "number",
+          "description": "Total crucial habits."
+        },
+        "completedAllCrucial": {
+          "type": "boolean",
+          "description": "Whether daily streak requirement was met."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last log update.",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId", "date"]
+    },
+    "WaterLog": {
+      "title": "WaterLog",
+      "description": "Daily hydration volume log in milliliters.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID.",
+          "maxLength": 128
+        },
+        "date": {
+          "type": "string",
+          "description": "Date key formatted YYYY-MM-DD.",
+          "maxLength": 20
+        },
+        "glasses": {
+          "type": "number",
+          "description": "Total milliliters logged for the day."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update.",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId", "date", "glasses"]
     }
   },
   "firestore": {
@@ -460,6 +577,14 @@
     "/users/{userId}/events/{eventId}": {
       "schema": "CalendarEvent",
       "description": "Subcollection of calendar and alarm routine events."
+    },
+    "/users/{userId}/habitLogs/{date}": {
+      "schema": "HabitLog",
+      "description": "Subcollection of daily habit completion snapshots."
+    },
+    "/users/{userId}/waterLogs/{date}": {
+      "schema": "WaterLog",
+      "description": "Subcollection of daily hydration logs."
     }
   }
 }

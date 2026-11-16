@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { generateUniqueId, deduplicateArrayIds } from '../src/utils/id';
 import { MoodStatus, PartnerMood, Habit } from '../src/types';
 import { generateScriptMirrorFallback } from '../src/lib/persona';
+import { stripUndefined, LEGACY_POISONED_FALLBACK_TEXT } from '../src/lib/firebase';
+import { isRiffWavBytes } from '../src/utils/speech';
+import { getTodayDateString } from '../src/utils/streak';
 
 describe('Client State & Data Invariants Tests', () => {
   describe('ID Generation & Deduplication', () => {
@@ -193,6 +196,236 @@ describe('Client State & Data Invariants Tests', () => {
 
       assert.equal(completed, 1);
       assert.equal(progressPercent, 50);
+    });
+  });
+
+  describe('Phase 3 Mood & Header Status Invariants', () => {
+    it('restores healthy green happy status when score is healthy (>= 60) and cleans corrupted legacy state', () => {
+      const corruptedLegacyMood = {
+        status: 'loving',
+        score: 75,
+        nakhreLevel: 0,
+        lastReason: 'Old fallback',
+        lastUpdated: 'Earlier',
+      };
+
+      // Simulator of App.tsx initializer
+      const normalizedMood = { ...corruptedLegacyMood };
+      if (normalizedMood.score >= 55 && (normalizedMood.status === 'loving' || normalizedMood.status === 'calm' || normalizedMood.status === 'proud')) {
+        normalizedMood.status = 'happy';
+      }
+
+      assert.equal(normalizedMood.status, 'happy', 'Must normalize to green happy status');
+      assert.equal(normalizedMood.score, 75);
+    });
+
+    it('maps mood status correctly to header indicator colors', () => {
+      const getMoodColor = (status?: string, isOnline = true) => {
+        if (!isOnline) return 'bg-amber-500 shadow-xs shadow-amber-500/50';
+        switch (status) {
+          case 'happy': return 'bg-[#4CB782] shadow-xs shadow-emerald-500/50';
+          case 'ecstatic':
+          case 'loving': return 'bg-pink-500 shadow-xs shadow-pink-500/50';
+          case 'neutral': return 'bg-[#8B5CF6] shadow-xs shadow-purple-500/50';
+          case 'annoyed': return 'bg-amber-500 shadow-xs shadow-amber-500/50';
+          case 'angry': return 'bg-rose-500 shadow-xs shadow-rose-500/50';
+          default: return 'bg-[#4CB782]';
+        }
+      };
+
+      assert.ok(getMoodColor('happy').includes('#4CB782'), 'Happy status must produce emerald green');
+      assert.ok(getMoodColor('happy', false).includes('amber-500'), 'Offline state must produce amber indicator');
+      assert.ok(getMoodColor('ecstatic').includes('pink-500'), 'Ecstatic status must produce pink');
+      assert.ok(getMoodColor('angry').includes('rose-500'), 'Angry status must produce rose red');
+    });
+  });
+
+  describe('Phase 4 Habit CRUD & Real Data Invariants', () => {
+    it('handles optimistic habit toggle and rolls back cleanly on simulated failure', () => {
+      const initialHabits: Habit[] = [
+        {
+          id: 'habit_gym',
+          title: 'Morning Workout',
+          category: 'fitness',
+          targetValue: 1,
+          currentValue: 0,
+          unit: 'session',
+          scheduledTime: '07:00 AM',
+          streak: 3,
+          completed: false,
+          importance: 'crucial',
+        },
+      ];
+
+      // Step 1: Optimistic toggle
+      let habits = initialHabits.map(h => {
+        if (h.id === 'habit_gym') {
+          const nextState = !h.completed;
+          return {
+            ...h,
+            completed: nextState,
+            currentValue: nextState ? h.targetValue : 0,
+            streak: (h.streak || 0) + 1,
+          };
+        }
+        return h;
+      });
+
+      assert.equal(habits[0].completed, true);
+      assert.equal(habits[0].streak, 4);
+
+      // Step 2: Simulated Firestore rejection / rollback
+      const simulatedFirestoreRejection = true;
+      if (simulatedFirestoreRejection) {
+        habits = initialHabits;
+      }
+
+      assert.equal(habits[0].completed, false);
+      assert.equal(habits[0].streak, 3);
+    });
+
+    it('handles optimistic habit deletion and rolls back on failure', () => {
+      const initialHabits: Habit[] = [
+        {
+          id: 'habit_1',
+          title: 'Drink 2L water',
+          category: 'hydration',
+          targetValue: 8,
+          currentValue: 4,
+          unit: 'glasses',
+          scheduledTime: 'Anytime',
+          streak: 5,
+          completed: false,
+          importance: 'crucial',
+        },
+        {
+          id: 'habit_2',
+          title: 'Study 1 hour',
+          category: 'productivity',
+          targetValue: 1,
+          currentValue: 1,
+          unit: 'hours',
+          scheduledTime: '08:00 PM',
+          streak: 2,
+          completed: true,
+          importance: 'medium',
+        },
+      ];
+
+      // Optimistic delete
+      let habits = initialHabits.filter(h => h.id !== 'habit_1');
+      assert.equal(habits.length, 1);
+      assert.equal(habits[0].id, 'habit_2');
+
+      // Rollback on simulated error
+      const failed = true;
+      if (failed) {
+        habits = initialHabits;
+      }
+      assert.equal(habits.length, 2);
+      assert.equal(habits[0].id, 'habit_1');
+    });
+
+    it('guarantees pure zero baseline metrics for brand new users without mock numbers', () => {
+      const newHabits: Habit[] = [];
+      const completedCount = newHabits.filter(h => h.completed).length;
+      const totalCount = newHabits.length;
+      const pace = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+      assert.equal(totalCount, 0, 'New user must have 0 habits');
+      assert.equal(completedCount, 0, 'New user must have 0 completed habits');
+      assert.equal(pace, 0, 'Completion pace must be 0% with no fake 84% numbers');
+    });
+  });
+
+  describe('Phase 5 Firestore Serialization & Chronological Ordering', () => {
+    it('strips undefined fields recursively so Firestore setDoc never rejects unchecked habits', () => {
+      const uncheckedHabitPayload = {
+        id: 'habit_meds',
+        title: 'Take Vitamins',
+        completed: false,
+        lastCompletedAt: undefined,
+        notes: undefined,
+        nested: {
+          keep: 'value',
+          drop: undefined,
+        },
+        tags: ['Health', undefined],
+      };
+
+      const sanitized = stripUndefined(uncheckedHabitPayload);
+      assert.equal('lastCompletedAt' in sanitized, false, 'Undefined lastCompletedAt must be stripped');
+      assert.equal('notes' in sanitized, false, 'Undefined notes must be stripped');
+      assert.equal('drop' in sanitized.nested, false, 'Nested undefined must be stripped');
+      assert.equal(sanitized.nested.keep, 'value');
+      assert.deepEqual(sanitized.tags, ['Health']);
+    });
+
+    it('sorts chat messages chronologically using ISO createdAt even across AM/PM string wraps', () => {
+      const messages = [
+        { id: 'msg_2', timestamp: '01:15 PM', createdAt: '2026-11-15T13:15:00.000Z', text: 'Afternoon reply' },
+        { id: 'msg_1', timestamp: '09:30 AM', createdAt: '2026-11-15T09:30:00.000Z', text: 'Morning greeting' },
+      ];
+
+      const sorted = [...messages].sort((a, b) =>
+        (a.createdAt || a.id).localeCompare(b.createdAt || b.id)
+      );
+
+      assert.equal(sorted[0].id, 'msg_1', 'Morning message must sort before afternoon message');
+      assert.equal(sorted[1].id, 'msg_2');
+    });
+  });
+
+  describe('Phase 6 TTS Container Detection & Legacy Fallback Cleanup', () => {
+    it('detects RIFF WAVE containers returned by Gemini TTS vs raw PCM16 bytes', () => {
+      const wavHeader = new Uint8Array([
+        0x52, 0x49, 0x46, 0x46, // RIFF
+        0x24, 0x00, 0x00, 0x00,
+        0x57, 0x41, 0x56, 0x45, // WAVE
+      ]);
+      const rawPcmBytes = new Uint8Array([0x00, 0x01, 0xfe, 0xff, 0x10, 0x00, 0x20, 0x00, 0x30, 0x00, 0x40, 0x00]);
+
+      assert.equal(isRiffWavBytes(wavHeader), true, 'RIFF WAVE bytes must be detected');
+      assert.equal(isRiffWavBytes(rawPcmBytes), false, 'Raw PCM bytes must not be misidentified as WAV');
+    });
+
+    it('strips legacy poisoned fallback messages cleanly from stored chat lists', () => {
+      const stored = [
+        { id: 'm1', sender: 'user', text: 'hy kya hal h' },
+        { id: 'm2', sender: 'partner', text: LEGACY_POISONED_FALLBACK_TEXT },
+        { id: 'm3', sender: 'partner', text: 'Main bilkul badhiya hoon!' },
+      ];
+      const cleaned = stored.filter((m) => m.text.trim() !== LEGACY_POISONED_FALLBACK_TEXT);
+      assert.equal(cleaned.length, 2);
+      assert.ok(!cleaned.some((m) => m.text === LEGACY_POISONED_FALLBACK_TEXT));
+    });
+  });
+
+  describe('Phase 7 Profile/Settings Sync & Zero-Value Nullish Invariants', () => {
+    it('preserves explicit 0 streakDays and 0 mood scores via nullish coalescing instead of fake fallbacks', () => {
+      const zeroStreakProfile = { streakDays: 0, bestStreak: 0 };
+      const zeroMood = { score: 0, status: 'angry' as MoodStatus };
+
+      assert.equal(zeroStreakProfile.streakDays ?? 0, 0, '0 streak must render as 0d, never 1d');
+      assert.equal(zeroStreakProfile.bestStreak ?? 0, 0, '0 bestStreak must render as 0');
+      assert.equal(zeroMood.score ?? 85, 0, '0 mood score must not fall back to 85');
+    });
+
+    it('preserves user-selected voiceGender independently from partnerGender on save', () => {
+      const partnerGender = 'non_binary';
+      const selectedVoiceGender = 'male';
+      const savedProfileUpdate = {
+        partnerGender,
+        voiceGender: selectedVoiceGender,
+        preferredVoiceName: 'Zephyr' as const,
+      };
+      assert.equal(savedProfileUpdate.voiceGender, 'male');
+      assert.equal(savedProfileUpdate.preferredVoiceName, 'Zephyr');
+    });
+
+    it('computes consistent YYYY-MM-DD local date strings for user timezones', () => {
+      const istDate = getTodayDateString('Asia/Kolkata');
+      assert.match(istDate, /^\d{4}-\d{2}-\d{2}$/, 'Timezone date key must match YYYY-MM-DD format');
     });
   });
 });

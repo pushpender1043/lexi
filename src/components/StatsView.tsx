@@ -154,7 +154,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
     const weekDays = getWeekDaysForDate(todayStr, habitLogs);
     return weekDays.map((wd) => {
       if (wd.isToday) {
-        return { day: wd.fullLabel, score: partnerMood.score || 80 };
+        return { day: wd.fullLabel, score: partnerMood.score ?? 80 };
       }
       if (wd.isFuture) {
         return { day: wd.fullLabel, score: 0 };

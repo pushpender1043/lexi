@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, PartnerTone, PartnerGender } from '../types';
 import {
   Settings,
@@ -23,7 +23,7 @@ import {
   Trash2,
   AlertTriangle,
 } from 'lucide-react';
-import { playCompanionVoice } from '../utils/speech';
+import { playCompanionVoice, stopCompanionVoice } from '../utils/speech';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -91,6 +91,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen) {
+      stopCompanionVoice();
+      setIsPlayingPreview(false);
+      setConfirmDelete(false);
+      return;
+    }
+    setName(userProfile.name || 'Deepu');
+    setLocation(userProfile.location || 'Delhi, India');
+    setPartnerName(userProfile.partnerName || 'Lexi');
+    setPartnerTone(userProfile.partnerTone || 'playful_loving');
+    setPartnerGender(userProfile.partnerGender || 'female');
+    setVoiceGender(userProfile.voiceGender || 'female');
+    setRelationshipDynamic(userProfile.relationshipDynamic || 'sweet_loving');
+    setPreferredVoiceName(userProfile.preferredVoiceName || 'Kore');
+    setPreferredLanguage(userProfile.preferredLanguage || 'auto');
+    setVoiceToneStyle(userProfile.voiceToneStyle || 'playful');
+    setVoiceSpeed(userProfile.voiceSpeed || 1.0);
+    setDailyCheckInTime(userProfile.dailyCheckInTime || '08:30');
+    setDailyCheckInEnabled(userProfile.dailyCheckInEnabled !== undefined ? userProfile.dailyCheckInEnabled : true);
+    setWakeUpTime(userProfile.wakeUpTime || '07:00');
+    setSleepTime(userProfile.sleepTime || '23:30');
+    setDailyWaterGoal(userProfile.dailyWaterGoal || 8);
+    setNotificationsEnabled(userProfile.notificationsEnabled !== undefined ? userProfile.notificationsEnabled : true);
+    setConfirmDelete(false);
+  }, [isOpen, userProfile]);
+
+  useEffect(() => {
+    return () => {
+      stopCompanionVoice();
+    };
+  }, []);
+
   if (!isOpen) return null;
 
   const handleTestVoice = () => {
@@ -115,9 +148,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
 
     playCompanionVoice(sampleSentence, {
-      gender: voiceGender === 'male' ? 'male' : 'female',
+      gender: voiceGender,
+      preferredVoiceName,
       tone: voiceToneStyle,
       rate: voiceSpeed,
+      useGeminiTts: true,
       onEnd: () => setIsPlayingPreview(false),
       onError: () => setIsPlayingPreview(false),
     });
@@ -131,7 +166,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       partnerTone,
       partnerGender,
       relationshipDynamic,
-      voiceGender: partnerGender === 'male' ? 'male' : 'female',
+      voiceGender,
       preferredVoiceName,
       preferredLanguage,
       voiceToneStyle,

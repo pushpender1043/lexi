@@ -63,8 +63,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const habitPercentage = totalHabits > 0 ? Math.round((completedCount / totalHabits) * 100) : 0;
   const userName = userProfile.name || 'Friend';
   const companionName = userProfile.partnerName || 'Lexi';
-  const streakDays = userProfile.streakDays || 0;
-  const bestStreak = userProfile.bestStreak || streakDays;
+  const streakDays = userProfile.streakDays ?? 0;
+  const bestStreak = userProfile.bestStreak ?? streakDays;
 
   const todayStr = useMemo(() => getTodayDateString(userProfile.timeZone), [userProfile.timeZone]);
   const weekDays = useMemo(() => getWeekDaysForDate(todayStr, habitLogs), [todayStr, habitLogs]);
@@ -377,7 +377,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </h3>
               </div>
               <span className="text-xs font-semibold capitalize text-[#7C3AED] dark:text-[#A78BFA] bg-purple-500/10 px-2 py-0.5 rounded-md">
-                {partnerMood?.status || 'Loving'} ({partnerMood?.score || 85}%)
+                {partnerMood?.status || 'Loving'} ({partnerMood?.score ?? 85}%)
               </span>
             </div>
 
@@ -395,11 +395,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div onClick={onOpenMoodDetails} className="cursor-pointer" title="Affection meter">
               <div className="flex items-center justify-between text-xs text-[#6B6B76] dark:text-[#9A9AA5] mb-1">
                 <span>Affection Level</span>
-                <span className="font-mono">{partnerMood?.score || 85}/100</span>
+                <span className="font-mono">{partnerMood?.score ?? 85}/100</span>
               </div>
               <div className="h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
                 <div
-                  style={{ width: `${partnerMood?.score || 85}%` }}
+                  style={{ width: `${partnerMood?.score ?? 85}%` }}
                   className="h-full rounded-full bg-gradient-to-r from-[#A78BFA] to-[#7C3AED] transition-all duration-300"
                 />
               </div>

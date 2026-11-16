@@ -35,9 +35,11 @@ service cloud.firestore {
              data.partnerName is string && data.partnerName.size() > 0 && data.partnerName.size() <= 64 &&
              (!('email' in data) || (data.email is string && data.email.size() <= 256)) &&
              (!('gender' in data) || data.gender in ['male', 'female', 'non_binary', 'other']) &&
-             (!('partnerGender' in data) || data.partnerGender in ['male', 'female', 'neutral']) &&
+             (!('partnerGender' in data) || data.partnerGender in ['male', 'female', 'neutral', 'non_binary']) &&
              (!('partnerTone' in data) || data.partnerTone in ['playful_loving', 'calm_grounding', 'strict_caring', 'sweet_clingy', 'sassy_feisty']) &&
-             (!('voiceGender' in data) || data.voiceGender in ['male', 'female']) &&
+             (!('voiceGender' in data) || data.voiceGender in ['male', 'female', 'non_binary']) &&
+             (!('preferredVoiceName' in data) || (data.preferredVoiceName is string && data.preferredVoiceName.size() <= 32)) &&
+             (!('preferredLanguage' in data) || (data.preferredLanguage is string && data.preferredLanguage.size() <= 32)) &&
              (!('wakeUpTime' in data) || (data.wakeUpTime is string && data.wakeUpTime.size() <= 10)) &&
              (!('sleepTime' in data) || (data.sleepTime is string && data.sleepTime.size() <= 10)) &&
              (!('dailyWaterGoal' in data) || (data.dailyWaterGoal is number && data.dailyWaterGoal >= 0 && data.dailyWaterGoal <= 50)) &&
@@ -54,6 +56,10 @@ service cloud.firestore {
              (!('location' in data) || (data.location is string && data.location.size() <= 128)) &&
              (!('calendarSynced' in data) || data.calendarSynced is bool) &&
              (!('alarmsSynced' in data) || data.alarmsSynced is bool) &&
+             (!('relationshipDynamic' in data) || (data.relationshipDynamic is string && data.relationshipDynamic.size() <= 64)) &&
+             (!('primaryGoal' in data) || (data.primaryGoal is string && data.primaryGoal.size() <= 64)) &&
+             (!('languageMix' in data) || (data.languageMix is string && data.languageMix.size() <= 64)) &&
+             (!('timeZone' in data) || (data.timeZone is string && data.timeZone.size() <= 64)) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
     }
 
@@ -71,6 +77,7 @@ service cloud.firestore {
              (!('scheduledTime' in data) || (data.scheduledTime is string && data.scheduledTime.size() <= 30)) &&
              (!('streak' in data) || (data.streak is number && data.streak >= 0)) &&
              (!('importance' in data) || data.importance in ['crucial', 'medium', 'flexible']) &&
+             (!('isCrucial' in data) || data.isCrucial is bool) &&
              (!('lastCompletedAt' in data) || (data.lastCompletedAt is string && data.lastCompletedAt.size() <= 64)) &&
              (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
@@ -86,6 +93,7 @@ service cloud.firestore {
              (!('timestamp' in data) || (data.timestamp is string && data.timestamp.size() <= 64)) &&
              (!('audioDurationSec' in data) || (data.audioDurationSec is number && data.audioDurationSec >= 0 && data.audioDurationSec <= 3600)) &&
              (!('moodTag' in data) || (data.moodTag is string && data.moodTag.size() <= 32)) &&
+             (!('mood' in data) || (data.mood is string && data.mood.size() <= 32)) &&
              (!('habitTag' in data) || (data.habitTag is string && data.habitTag.size() <= 100)) &&
              (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
     }
@@ -96,6 +104,7 @@ service cloud.firestore {
              data.score is number && data.score >= 0 && data.score <= 100 &&
              data.status in ['ecstatic', 'loving', 'happy', 'neutral', 'annoyed', 'angry'] &&
              (!('nakhreLevel' in data) || (data.nakhreLevel is number && data.nakhreLevel >= 0 && data.nakhreLevel <= 5)) &&
+             (!('granularMood' in data) || (data.granularMood is string && data.granularMood.size() <= 32)) &&
              (!('lastReason' in data) || (data.lastReason is string && data.lastReason.size() <= 500)) &&
              (!('lastUpdated' in data) || (data.lastUpdated is string && data.lastUpdated.size() <= 64)) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
@@ -120,6 +129,7 @@ service cloud.firestore {
              (!('partnerName' in data) || (data.partnerName is string && data.partnerName.size() <= 64)) &&
              (!('timestamp' in data) || (data.timestamp is string && data.timestamp.size() <= 64)) &&
              (!('moodDuringCall' in data) || (data.moodDuringCall is string && data.moodDuringCall.size() <= 32)) &&
+             (!('granularMood' in data) || (data.granularMood is string && data.granularMood.size() <= 32)) &&
              (!('summary' in data) || (data.summary is string && data.summary.size() <= 1000)) &&
              (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
     }
@@ -134,6 +144,26 @@ service cloud.firestore {
              (!('category' in data) || data.category in ['exam', 'meeting', 'gym', 'personal', 'routine']) &&
              (!('syncedFrom' in data) || data.syncedFrom in ['google_calendar', 'device_alarm', 'manual']) &&
              (!('location' in data) || (data.location is string && data.location.size() <= 128)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // HabitLog daily snapshot validation
+    function isValidHabitLog(data, dateKey) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.date is string && data.date == dateKey && dateKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+             (!('completedHabitIds' in data) || (data.completedHabitIds is list && data.completedHabitIds.size() <= 100)) &&
+             (!('totalHabitsCount' in data) || (data.totalHabitsCount is number && data.totalHabitsCount >= 0 && data.totalHabitsCount <= 200)) &&
+             (!('completedCrucialCount' in data) || (data.completedCrucialCount is number && data.completedCrucialCount >= 0 && data.completedCrucialCount <= 200)) &&
+             (!('totalCrucialCount' in data) || (data.totalCrucialCount is number && data.totalCrucialCount >= 0 && data.totalCrucialCount <= 200)) &&
+             (!('completedAllCrucial' in data) || data.completedAllCrucial is bool) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // WaterLog daily hydration validation
+    function isValidWaterLog(data, dateKey) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.date is string && data.date == dateKey && dateKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+             data.glasses is number && data.glasses >= 0 && data.glasses <= 20000 &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
     }
 
@@ -205,14 +235,18 @@ service cloud.firestore {
       // Habit Logs Subcollection: Daily completion record per date YYYY-MM-DD
       match /habitLogs/{date} {
         allow get, list: if isOwner(userId);
-        allow create, update: if isOwner(userId) && isValidId(date);
+        allow create: if isOwner(userId) && isValidId(date) && isValidHabitLog(incoming(), date);
+        allow update: if isOwner(userId) && isValidId(date) && isValidHabitLog(incoming(), date) &&
+                         incoming().userId == existing().userId && incoming().date == existing().date;
         allow delete: if isOwner(userId);
       }
 
       // Water Logs Subcollection: Daily water tracking per date YYYY-MM-DD
       match /waterLogs/{date} {
         allow get, list: if isOwner(userId);
-        allow create, update: if isOwner(userId) && isValidId(date);
+        allow create: if isOwner(userId) && isValidId(date) && isValidWaterLog(incoming(), date);
+        allow update: if isOwner(userId) && isValidId(date) && isValidWaterLog(incoming(), date) &&
+                         incoming().userId == existing().userId && incoming().date == existing().date;
         allow delete: if isOwner(userId);
       }
     }

@@ -2,7 +2,8 @@
 import { authFetch } from '../lib/firebase';
 
 export interface SpeakOptions {
-  gender?: 'female' | 'male';
+  gender?: 'female' | 'male' | 'non_binary';
+  preferredVoiceName?: 'Kore' | 'Aoede' | 'Leda' | 'Zephyr' | 'Puck' | 'Fenrir';
   emotion?: 'loving' | 'angry' | 'happy' | 'teasing' | 'caring' | 'proud' | 'celebratory';
   tone?: 'playful' | 'serious' | 'comforting' | 'sweet' | 'sassy';
   rate?: number; // base speed e.g. 0.8 to 1.5
@@ -28,13 +29,27 @@ function getAudioContext(): AudioContext {
 }
 
 /**
- * Converts a raw base64 PCM 16-bit or audio buffer into a playable AudioBuffer.
+ * Decodes base64 WAV (RIFF) or raw 16-bit signed PCM mono audio into a playable AudioBuffer.
  */
-function pcm16Base64ToAudioBuffer(
+export function isRiffWavBytes(bytes: Uint8Array): boolean {
+  return (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 && // R
+    bytes[1] === 0x49 && // I
+    bytes[2] === 0x46 && // F
+    bytes[3] === 0x46 && // F
+    bytes[8] === 0x57 && // W
+    bytes[9] === 0x41 && // A
+    bytes[10] === 0x56 && // V
+    bytes[11] === 0x45 // E
+  );
+}
+
+async function decodeTtsBase64ToAudioBuffer(
   ctx: AudioContext,
   base64Data: string,
   sampleRate: number = 24000
-): AudioBuffer {
+): Promise<AudioBuffer> {
   const binaryString = atob(base64Data);
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
@@ -42,8 +57,15 @@ function pcm16Base64ToAudioBuffer(
     bytes[i] = binaryString.charCodeAt(i);
   }
 
-  // 16-bit signed PCM mono
-  const int16Array = new Int16Array(bytes.buffer);
+  // Gemini TTS returns a complete RIFF WAVE container; decode natively to avoid header static
+  if (isRiffWavBytes(bytes)) {
+    const copy = bytes.buffer.slice(0);
+    return await ctx.decodeAudioData(copy);
+  }
+
+  // Raw 16-bit signed PCM mono fallback (align even byte count cleanly)
+  const usableByteLength = bytes.byteLength - (bytes.byteLength % 2);
+  const int16Array = new Int16Array(bytes.buffer, 0, usableByteLength / 2);
   const audioBuffer = ctx.createBuffer(1, int16Array.length, sampleRate);
   const channelData = audioBuffer.getChannelData(0);
 
@@ -55,7 +77,7 @@ function pcm16Base64ToAudioBuffer(
 }
 
 /**
- * Play PCM audio from Gemini Flash TTS
+ * Play PCM or WAV audio from Gemini Flash TTS
  */
 export async function playPcmAudio(
   base64Data: string,
@@ -65,7 +87,10 @@ export async function playPcmAudio(
   try {
     stopCompanionVoice();
     const ctx = getAudioContext();
-    const buffer = pcm16Base64ToAudioBuffer(ctx, base64Data, sampleRate);
+    if (ctx.state === 'suspended') {
+      await ctx.resume().catch(() => {});
+    }
+    const buffer = await decodeTtsBase64ToAudioBuffer(ctx, base64Data, sampleRate);
 
     const source = ctx.createBufferSource();
     source.buffer = buffer;
@@ -80,7 +105,7 @@ export async function playPcmAudio(
     source.start(0);
     return true;
   } catch (err) {
-    console.warn("PCM playback error, will fallback to Web Speech:", err);
+    console.warn("TTS audio playback error, will fallback to Web Speech:", err);
     return false;
   }
 }
@@ -99,8 +124,9 @@ export async function playCompanionVoice(text: string, options: SpeakOptions = {
       const res = await authFetch('/api/tts', {
         method: 'POST',
         body: JSON.stringify({
-          text: text.slice(0, 300),
+          text: text.slice(0, 480),
           voiceGender: options.gender || 'female',
+          ...(options.preferredVoiceName ? { voiceNameOverride: options.preferredVoiceName } : {}),
         }),
       });
 

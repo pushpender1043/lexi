@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, PartnerMood, PartnerTone, PartnerGender } from '../types';
 import {
   Flame,
@@ -37,6 +37,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [voiceGender, setVoiceGender] = useState<PartnerGender>(userProfile.voiceGender || 'female');
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    setName(userProfile.name);
+    setPartnerName(userProfile.partnerName);
+    setPartnerTone(userProfile.partnerTone);
+    setWakeUpTime(userProfile.wakeUpTime || '07:00');
+    setSleepTime(userProfile.sleepTime || '23:30');
+    setDailyWaterGoal(userProfile.dailyWaterGoal || 8);
+    setDailyCheckInTime(userProfile.dailyCheckInTime || '08:30');
+    setDailyCheckInEnabled(userProfile.dailyCheckInEnabled ?? true);
+    setCheckInType(userProfile.checkInType || 'voice_and_text');
+    setVoiceGender(userProfile.voiceGender || 'female');
+  }, [userProfile]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +100,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <div className="flex items-center gap-2.5">
           <div className="px-3.5 py-2 rounded-[12px] bg-[#F3EBFF] dark:bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.2)] text-[#7C3AED] dark:text-[#C4B5FD] text-xs font-bold flex items-center gap-1.5 tabular-nums">
             <Flame className="w-4 h-4 fill-[#7C3AED]" />
-            <span>{userProfile.streakDays || 1}d Streak</span>
+            <span>{userProfile.streakDays ?? 0}d Streak</span>
           </div>
 
           <div className="px-3.5 py-2 rounded-[12px] glass text-xs font-semibold text-[#1A1A1F] dark:text-[#FAF7FF] flex items-center gap-1.5">

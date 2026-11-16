@@ -16,7 +16,7 @@ import {
   Pause,
   ChevronDown,
 } from 'lucide-react';
-import { createSpeechRecognizer, playCompanionVoice } from '../utils/speech';
+import { createSpeechRecognizer, playCompanionVoice, stopCompanionVoice } from '../utils/speech';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ChatViewProps {
@@ -84,6 +84,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
       setSearchQuery('');
     }
   }, [isSearchOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
 
   // Voice recording using speech recognition
   const startVoiceRecording = () => {
@@ -153,7 +164,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   const handlePlayVoice = (msg: ChatMessage) => {
     if (playingMessageId === msg.id) {
-      window.speechSynthesis.cancel();
+      stopCompanionVoice();
       setPlayingMessageId(null);
       return;
     }
@@ -161,15 +172,18 @@ export const ChatView: React.FC<ChatViewProps> = ({
     setPlayingMessageId(msg.id);
     playCompanionVoice(msg.text, {
       gender: userProfile.voiceGender,
+      preferredVoiceName: userProfile.preferredVoiceName,
       tone: userProfile.voiceToneStyle || 'playful',
       rate: userProfile.voiceSpeed || 1.0,
       emotion: partnerMood.score < 50 ? 'angry' : 'loving',
+      useGeminiTts: true,
       onEnd: () => setPlayingMessageId(null),
+      onError: () => setPlayingMessageId(null),
     });
   };
 
   const companionPrompts = [
-    'Hey Lexi, how was your day? ❤️',
+    `Hey ${partnerName}, how was your day? ❤️`,
     'Hold me accountable for my habits today 💪',
     'I just finished my focus session! ✨',
     'Need a quick boost of positive energy 🥺',

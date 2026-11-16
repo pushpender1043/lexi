@@ -224,4 +224,154 @@ describe('Server API & Security Hardening Tests', () => {
       assert.strictEqual((data as any).stack, undefined, 'Stack trace must NEVER be sent to client');
     });
   });
+
+  describe('Phase 2 Resiliency & Contract Hardening', () => {
+    it('successfully processes chat requests with long history (>20 messages) without 400 rejection', async () => {
+      const longHistory = Array.from({ length: 25 }, (_, i) => ({
+        sender: i % 2 === 0 ? 'user' : 'partner',
+        text: `Message ${i + 1} in a long dialogue`,
+      }));
+
+      const res = await fetch(`${BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'Can you summarize our discussion so far?',
+          history: longHistory,
+          userProfile: {
+            name: 'TestUser',
+            partnerName: 'Lexi',
+          },
+        }),
+      });
+
+      assert.equal(res.status, 200, 'History > 20 items must be safely accepted and sliced, not rejected with 400');
+      const data = await res.json();
+      assert.ok(data.reply && data.reply.length > 0, 'Reply must be returned');
+      assert.notEqual(data.reply, 'Main sun rahi hoon jaan, sab theek hai na?', 'Must not return canned string');
+    });
+
+    it('normalizes granular mood statuses (calm, proud, focused) without 400 rejection', async () => {
+      const res = await fetch(`${BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'Just relaxing after a productive study session',
+          history: [],
+          partnerMood: {
+            status: 'calm', // granular mood that previously broke Zod enum
+            score: 75,
+          },
+          userProfile: {
+            name: 'TestUser',
+            partnerName: 'Lexi',
+          },
+        }),
+      });
+
+      assert.equal(res.status, 200, 'Granular mood status must be accepted and normalized without 400');
+      const data = await res.json();
+      assert.ok(data.reply, 'Valid reply must be returned');
+      if (data.moodUpdate?.newStatus) {
+        assert.ok(
+          ['ecstatic', 'loving', 'happy', 'neutral', 'annoyed', 'angry'].includes(data.moodUpdate.newStatus),
+          'Returned newStatus must be normalized to canonical MoodStatus enum'
+        );
+      }
+    });
+
+    it('gracefully reconciles guest user IDs (usr_...) when authenticating with Firebase token', async () => {
+      const projectId = 'poetic-receiver-qcbh2';
+      const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+      const payload = Buffer.from(
+        JSON.stringify({
+          aud: projectId,
+          iss: `https://securetoken.google.com/${projectId}`,
+          sub: 'newly_logged_in_uid_123',
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        })
+      ).toString('base64url');
+      const token = `${header}.${payload}.signature`;
+
+      // Client with temporary guest ID usr_abc123 transitions to authenticated
+      const res = await fetch(`${BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: 'Hello Lexi, I just signed in!',
+          userProfile: {
+            userId: 'usr_guest_temp_999', // guest ID prefix
+            name: 'TransformedGuest',
+            partnerName: 'Lexi',
+          },
+        }),
+      });
+
+      assert.equal(res.status, 200, 'Guest UID must be gracefully reconciled instead of returning 403');
+      const data = await res.json();
+      assert.ok(data.reply && data.reply.length > 0);
+    });
+
+    it('TTS endpoint accepts valid payload and returns structured audio response or graceful fallback', async () => {
+      const res = await fetch(`${BASE_URL}/api/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: 'Hello sweetheart, how was your day?',
+          voiceGender: 'female',
+        }),
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.ok('audioBase64' in data, 'audioBase64 property must be present in response');
+    });
+
+    it('accepts non_binary voiceGender and Puck/Fenrir voiceNameOverride without 400', async () => {
+      const res = await fetch(`${BASE_URL}/api/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: 'Stay locked in today!',
+          voiceGender: 'non_binary',
+          voiceNameOverride: 'Puck',
+        }),
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.ok('audioBase64' in data);
+    });
+
+    it('filters legacy poisoned fallback replies from history and uses active Gemini model candidates', async () => {
+      const healthRes = await fetch(`${BASE_URL}/api/health`);
+      const healthData = await healthRes.json();
+      assert.deepEqual(healthData.candidateModels, ['gemini-3.1-flash-lite', 'gemini-4-hydrogen']);
+
+      const res = await fetch(`${BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'Aaj soft skills ka assessment hai mera',
+          history: [
+            { sender: 'user', text: 'hy kya hal h' },
+            { sender: 'partner', text: 'Main sun rahi hoon jaan, sab theek hai na?' },
+          ],
+          userProfile: {
+            name: 'Deepak',
+            partnerName: 'Lexi',
+            relationshipDynamic: 'disciplined_coach',
+          },
+        }),
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.ok(data.reply && data.reply.length > 0);
+      assert.notEqual(data.reply.trim(), 'Main sun rahi hoon jaan, sab theek hai na?');
+    });
+  });
 });

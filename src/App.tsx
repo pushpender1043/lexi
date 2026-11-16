@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   UserProfile, Habit, PartnerMood, CalendarEvent, MemoryItem, 
   ChatMessage, ProactiveNudge, CallRecord, MoodStatus 
@@ -40,23 +40,35 @@ import {
   testFirestoreConnection,
   syncUserProfile,
   syncUserHabit,
+  deleteUserHabit,
   saveUserChatMessage,
+  clearUserChatMessages,
+  deleteUserMessagesByIds,
+  LEGACY_POISONED_FALLBACK_TEXT,
   syncPartnerMood,
   saveUserMemory,
   deleteUserMemory,
   saveCallRecord,
+  clearUserCallRecords,
+  syncCalendarEvent,
   authFetch,
   deleteUserAccountAndData,
   syncHabitLog,
   subscribeHabitLogs,
   syncWaterLog,
   subscribeWaterLogs,
+  subscribeUserProfile,
+  subscribeChatMessages,
+  subscribeUserMemories,
+  subscribeCallRecords,
+  subscribeCalendarEvents,
 } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, onSnapshot, doc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc } from 'firebase/firestore';
 import { generateUniqueId, deduplicateArrayIds } from './utils/id';
 import { HabitLogEntry, getTodayDateString, calculateStreak } from './utils/streak';
 import { MoodProvider, useMood } from './lib/moods';
+import { generateScriptMirrorFallback } from './lib/persona';
 import { Mood } from './types';
 
 function AppContent() {
@@ -76,12 +88,31 @@ function AppContent() {
 
   const [partnerMood, setPartnerMood] = useState<PartnerMood>(() => {
     const saved = localStorage.getItem('lexi_partner_mood');
-    return saved ? JSON.parse(saved) : DEFAULT_PARTNER_MOOD;
+    if (!saved) return DEFAULT_PARTNER_MOOD;
+    try {
+      const parsed = JSON.parse(saved);
+      // Clean up legacy corrupted state: ensure standard healthy state displays green 'happy'
+      if (parsed.score >= 55 && (parsed.status === 'loving' || parsed.status === 'calm' || parsed.status === 'proud')) {
+        parsed.status = 'happy';
+      }
+      return parsed;
+    } catch {
+      return DEFAULT_PARTNER_MOOD;
+    }
   });
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const saved = localStorage.getItem('lexi_messages');
-    return saved ? deduplicateArrayIds(JSON.parse(saved), 'msg') : DEFAULT_MESSAGES;
+    if (!saved) return DEFAULT_MESSAGES;
+    try {
+      const parsed = JSON.parse(saved) as ChatMessage[];
+      const cleaned = parsed.filter(
+        (m) => (m?.text || '').trim() !== LEGACY_POISONED_FALLBACK_TEXT
+      );
+      return deduplicateArrayIds(cleaned, 'msg');
+    } catch {
+      return DEFAULT_MESSAGES;
+    }
   });
 
   const [callRecords, setCallRecords] = useState<CallRecord[]>(() => {
@@ -111,10 +142,19 @@ function AppContent() {
     return saved ? JSON.parse(saved) : {};
   });
 
-  // Network connectivity status for offline resilience
+  // Network + server + Firestore connectivity status for truthful status indicator
   const [isOnline, setIsOnline] = useState<boolean>(
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
+  const [isServerHealthy, setIsServerHealthy] = useState<boolean>(true);
+  const [isFirestoreConnected, setIsFirestoreConnected] = useState<boolean>(true);
+  const userProfileRef = useRef(userProfile);
+  const partnerMoodRef = useRef(partnerMood);
+  const isSendingChatRef = useRef(false);
+  const cleanedPoisonedUidRef = useRef<string | null>(null);
+
+  userProfileRef.current = userProfile;
+  partnerMoodRef.current = partnerMood;
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -124,6 +164,41 @@ function AppContent() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const checkConnectivity = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        if (active) setIsServerHealthy(false);
+        return;
+      }
+      try {
+        const res = await fetch('/api/health', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Health check non-200');
+        const data = await res.json();
+        if (active) {
+          setIsServerHealthy(data?.status === 'ok' && data?.environment?.geminiConfigured !== false);
+        }
+      } catch {
+        if (active) setIsServerHealthy(false);
+      }
+      const fsOk = await testFirestoreConnection();
+      if (active) setIsFirestoreConnected(fsOk);
+    };
+
+    checkConnectivity();
+    const interval = setInterval(checkConnectivity, 45000);
+    const onVisibility = () => {
+      if (!document.hidden) checkConnectivity();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
 
@@ -145,41 +220,90 @@ function AppContent() {
 
   // 1. Firebase Auth state listener and initial connection check
   useEffect(() => {
-    testFirestoreConnection();
+    testFirestoreConnection().then((ok) => setIsFirestoreConnected(ok));
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const currentProfile = userProfileRef.current;
       if (firebaseUser) {
+        const isSwitchingAccount = Boolean(
+          currentProfile.userId &&
+          !currentProfile.userId.startsWith('usr_') &&
+          currentProfile.userId !== firebaseUser.uid
+        );
+        if (isSwitchingAccount) {
+          localStorage.clear();
+          cleanedPoisonedUidRef.current = null;
+          setHabits(DEFAULT_HABITS);
+          setPartnerMood(DEFAULT_PARTNER_MOOD);
+          setMessages(DEFAULT_MESSAGES);
+          setCallRecords(DEFAULT_CALL_RECORDS);
+          setCalendarEvents(DEFAULT_CALENDAR_EVENTS);
+          setMemories(DEFAULT_MEMORIES);
+          setHabitLogs({});
+          setWaterLogs({});
+          setUserProfile({
+            ...DEFAULT_USER_PROFILE,
+            isAuthenticated: true,
+            userId: firebaseUser.uid,
+            userEmail: firebaseUser.email || '',
+            name: firebaseUser.displayName || 'Friend',
+            userAvatar: firebaseUser.photoURL || undefined,
+            loginProvider: firebaseUser.isAnonymous ? 'guest' : 'google',
+          });
+        } else {
+          setUserProfile(prev => ({
+            ...prev,
+            isAuthenticated: true,
+            userId: firebaseUser.uid,
+            userEmail: firebaseUser.email || prev.userEmail,
+            name: firebaseUser.displayName || prev.name,
+            userAvatar: firebaseUser.photoURL || prev.userAvatar,
+            loginProvider: firebaseUser.isAnonymous ? 'guest' : 'google',
+          }));
+        }
+        setIsLoginOpen(false);
+      } else if (currentProfile.isAuthenticated && currentProfile.loginProvider === 'google') {
         setUserProfile(prev => ({
           ...prev,
-          isAuthenticated: true,
-          userId: firebaseUser.uid,
-          userEmail: firebaseUser.email || prev.userEmail,
-          name: firebaseUser.displayName || prev.name,
-          userAvatar: firebaseUser.photoURL || prev.userAvatar,
-          loginProvider: 'google',
+          isAuthenticated: false,
         }));
-        setIsLoginOpen(false);
+        setIsLoginOpen(true);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  // 2. Real-time Firestore synchronization for authenticated users
+  // 2. Real-time Firestore synchronization for authenticated users across all collections
   useEffect(() => {
     const currentUid = auth.currentUser?.uid;
     if (!userProfile.isAuthenticated || !currentUid || userProfile.userId !== currentUid) return;
+
+    // Listen to remote user profile
+    const profileUnsub = subscribeUserProfile(currentUid, (remoteProfile) => {
+      if (remoteProfile) {
+        setUserProfile(prev => ({
+          ...prev,
+          ...remoteProfile,
+          isAuthenticated: true,
+          userId: currentUid,
+        }));
+        if (remoteProfile.isOnboarded) {
+          setIsOnboardingOpen(false);
+        }
+      }
+    });
 
     // Listen to remote habits
     const habitsUnsub = onSnapshot(
       collection(db, 'users', currentUid, 'habits'),
       (snapshot) => {
-        if (!snapshot.empty) {
-          const remoteHabits: Habit[] = [];
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data() as Habit;
-            remoteHabits.push(data);
-          });
+        const remoteHabits: Habit[] = [];
+        snapshot.forEach((docSnap) => {
+          remoteHabits.push(docSnap.data() as Habit);
+        });
+        const hasRemovals = snapshot.docChanges().some((c) => c.type === 'removed');
+        if (!snapshot.empty || hasRemovals) {
           setHabits(remoteHabits);
         } else if (DEFAULT_HABITS.length > 0) {
           DEFAULT_HABITS.forEach((h) => {
@@ -198,15 +322,52 @@ function AppContent() {
       (docSnap) => {
         if (docSnap.exists()) {
           const remoteMood = docSnap.data() as PartnerMood;
+          if (
+            remoteMood.score >= 55 &&
+            (remoteMood.status === 'loving' || (remoteMood.status as string) === 'calm' || (remoteMood.status as string) === 'proud')
+          ) {
+            remoteMood.status = 'happy';
+          }
           setPartnerMood(remoteMood);
         } else {
-          syncPartnerMood(currentUid, partnerMood).catch(console.warn);
+          syncPartnerMood(currentUid, partnerMoodRef.current).catch(console.warn);
         }
       },
       (error) => {
         console.warn('Firestore mood sync notice:', error.message);
       }
     );
+
+    // Listen to remote chat messages and auto-clean legacy poisoned fallback rows once per session
+    const messagesUnsub = subscribeChatMessages(currentUid, (remoteMsgs) => {
+      const poisonedIds = remoteMsgs
+        .filter((m) => (m?.text || '').trim() === LEGACY_POISONED_FALLBACK_TEXT)
+        .map((m) => m.id)
+        .filter(Boolean);
+      const cleanMsgs = remoteMsgs.filter(
+        (m) => (m?.text || '').trim() !== LEGACY_POISONED_FALLBACK_TEXT
+      );
+      if (poisonedIds.length > 0 && cleanedPoisonedUidRef.current !== currentUid) {
+        cleanedPoisonedUidRef.current = currentUid;
+        deleteUserMessagesByIds(currentUid, poisonedIds).catch(console.warn);
+      }
+      setMessages(deduplicateArrayIds(cleanMsgs, 'msg'));
+    });
+
+    // Listen to remote user memories
+    const memoriesUnsub = subscribeUserMemories(currentUid, (remoteMemories) => {
+      setMemories(deduplicateArrayIds(remoteMemories, 'mem'));
+    });
+
+    // Listen to remote call records
+    const callsUnsub = subscribeCallRecords(currentUid, (remoteCalls) => {
+      setCallRecords(deduplicateArrayIds(remoteCalls, 'call'));
+    });
+
+    // Listen to remote calendar events
+    const eventsUnsub = subscribeCalendarEvents(currentUid, (remoteEvents) => {
+      setCalendarEvents(deduplicateArrayIds(remoteEvents, 'cal'));
+    });
 
     // Listen to remote daily habit logs (users/{uid}/habitLogs/{date})
     const habitLogsUnsub = subscribeHabitLogs(currentUid, (remoteLogs) => {
@@ -219,8 +380,13 @@ function AppContent() {
     });
 
     return () => {
+      profileUnsub();
       habitsUnsub();
       moodUnsub();
+      messagesUnsub();
+      memoriesUnsub();
+      callsUnsub();
+      eventsUnsub();
       habitLogsUnsub();
       waterLogsUnsub();
     };
@@ -270,12 +436,17 @@ function AppContent() {
     } catch (err) {
       console.warn('Sign out notice:', err);
     }
-    setUserProfile(prev => ({
-      ...prev,
-      isAuthenticated: false,
-      userId: undefined,
-      loginProvider: 'guest',
-    }));
+    localStorage.clear();
+    setUserProfile(DEFAULT_USER_PROFILE);
+    setHabits(DEFAULT_HABITS);
+    setPartnerMood(DEFAULT_PARTNER_MOOD);
+    setMessages(DEFAULT_MESSAGES);
+    setCallRecords(DEFAULT_CALL_RECORDS);
+    setCalendarEvents(DEFAULT_CALENDAR_EVENTS);
+    setMemories(DEFAULT_MEMORIES);
+    setHabitLogs({});
+    setWaterLogs({});
+    setIsLoginOpen(true);
   };
 
   // Dark / Light Theme Mode State
@@ -393,14 +564,24 @@ function AppContent() {
 
     if (!greetingText) {
       const pendingNames = pendingHabits.slice(0, 3).map(h => h.title).join(', ');
-      greetingText = `Good morning ${userName}! ☀️ Aaj din ki fresh shuruat karte hain. Tumhare pending tasks hain: ${pendingNames || 'water & health routine'}.`;
+      const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+      const isMale = userProfile.partnerGender === 'male';
+      greetingText = `Good morning ${userName}! ☀️ Aaj din ki fresh shuruat karte hain. Pending tasks: ${pendingNames || 'water & health routine'}.`;
       if (firstEvent) {
         greetingText += ` Aur calendar mein "${firstEvent.title}" scheduled hai ${firstEvent.startTime} baje.`;
       }
-      greetingText += ` Bilkul aalas nahi chalega meri jaan, main nazar rakh rahi hoon! Love you! ❤️`;
+      if (dynamic === 'disciplined_coach') {
+        greetingText += ` Zero excuses today, Champ—time to lock in and hit 100%! 💪`;
+      } else if (dynamic === 'playful_teasing') {
+        greetingText += ` Aalas bilkul nahi chalega yaar, nazar rakh ${isMale ? 'raha' : 'rahi'} hoon! 😉`;
+      } else if (dynamic === 'calm_soulmate') {
+        greetingText += ` Take a deep breath and step into your day peacefully. Main yahin hoon. 🌿`;
+      } else {
+        greetingText += ` Bilkul aalas nahi chalega, main dhyan rakh ${isMale ? 'raha' : 'rahi'} hoon! ❤️`;
+      }
     }
 
-    // Append to chat
+    // Append to chat & persist
     const checkInMsg: ChatMessage = {
       id: generateUniqueId('msg'),
       sender: 'partner',
@@ -410,6 +591,10 @@ function AppContent() {
       moodTag: 'loving',
     };
     setMessages(prev => [...prev, checkInMsg]);
+    const uid = userProfile.userId || auth.currentUser?.uid;
+    if (uid) {
+      saveUserChatMessage(uid, checkInMsg).catch(console.warn);
+    }
 
     // Show floating proactive banner
     setProactiveNudge({
@@ -424,16 +609,24 @@ function AppContent() {
     if (userProfile.checkInType !== 'text_only' && voiceEnabled) {
       playCompanionVoice(greetingText, {
         gender: userProfile.voiceGender,
+        preferredVoiceName: userProfile.preferredVoiceName,
+        tone: userProfile.voiceToneStyle || 'sweet',
+        rate: userProfile.voiceSpeed || 1.0,
         emotion: 'loving',
+        useGeminiTts: true,
       });
     }
 
-    // Mark today as checked-in
-    const todayDate = new Date().toISOString().split('T')[0];
-    setUserProfile(prev => ({
-      ...prev,
+    // Mark today as checked-in and persist to Firestore
+    const todayDate = getTodayDateString(userProfile.timeZone);
+    const updatedProfile = {
+      ...userProfileRef.current,
       lastCheckInDate: todayDate,
-    }));
+    };
+    setUserProfile(updatedProfile);
+    if (uid) {
+      syncUserProfile(uid, updatedProfile).catch(console.warn);
+    }
   };
 
   // Monitor user's 'Daily Check-in Time'
@@ -445,7 +638,7 @@ function AppContent() {
       const currentHours = String(now.getHours()).padStart(2, '0');
       const currentMins = String(now.getMinutes()).padStart(2, '0');
       const currentTimeString = `${currentHours}:${currentMins}`;
-      const todayDate = now.toISOString().split('T')[0];
+      const todayDate = getTodayDateString(userProfile.timeZone);
 
       if (currentTimeString === userProfile.dailyCheckInTime && userProfile.lastCheckInDate !== todayDate) {
         handleTriggerDailyCheckIn(true);
@@ -457,58 +650,67 @@ function AppContent() {
     return () => clearInterval(interval);
   }, [userProfile.dailyCheckInEnabled, userProfile.dailyCheckInTime, userProfile.lastCheckInDate, habits, calendarEvents, voiceEnabled]);
 
-  // Recalculate mood score from habit progress
+  // Recalculate mood score from habit progress (pure computation, zero side-effects in React updater)
   const updateMoodOnHabitAction = (action: 'completed' | 'incremented' | 'skipped', habitTitle: string) => {
     let transientMood: Mood = 'calm';
     if (action === 'completed') transientMood = 'proud';
     else if (action === 'incremented') transientMood = 'happy';
     else if (action === 'skipped') transientMood = 'angry';
 
-    // Safely trigger transient mood outside the render / functional updater cycle
     setTimeout(() => {
       triggerTransientMood(transientMood);
     }, 0);
 
-    setPartnerMood(prev => {
-      let delta = 0;
-      let newNakhre = prev.nakhreLevel;
-      let reason = prev.lastReason;
+    const prev = partnerMoodRef.current;
+    const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+    let delta = 0;
+    let newNakhre = prev.nakhreLevel;
+    let reason = prev.lastReason;
 
-      if (action === 'completed') {
-        delta = 8;
-        newNakhre = Math.max(0, newNakhre - 1);
-        reason = `${userProfile.partnerName}: "Proud of you for finishing ${habitTitle}! Aise hi disciplined raho jaan ❤️"`;
-      } else if (action === 'incremented') {
-        delta = 3;
-        reason = `${userProfile.partnerName}: "Good progress on ${habitTitle}!"`;
-      } else if (action === 'skipped') {
-        delta = -12;
-        newNakhre = Math.min(5, newNakhre + 1);
-        reason = `${userProfile.partnerName}: "Haww! ${habitTitle} skip kar diya? Ab toh main naraz hoon! 😤"`;
-      }
+    if (action === 'completed') {
+      delta = 8;
+      newNakhre = Math.max(0, newNakhre - 1);
+      reason =
+        dynamic === 'disciplined_coach'
+          ? `${userProfile.partnerName}: "Locked in ${habitTitle}. Solid execution, Champ!"`
+          : dynamic === 'playful_teasing'
+          ? `${userProfile.partnerName}: "Mast kaam kiya yaar on ${habitTitle}!"`
+          : dynamic === 'calm_soulmate'
+          ? `${userProfile.partnerName}: "Mindful progress finishing ${habitTitle}."`
+          : `${userProfile.partnerName}: "Proud of you for finishing ${habitTitle}! Aise hi disciplined raho ❤️"`;
+    } else if (action === 'incremented') {
+      delta = 3;
+      reason = `${userProfile.partnerName}: "Good progress on ${habitTitle}!"`;
+    } else if (action === 'skipped') {
+      delta = -12;
+      newNakhre = Math.min(5, newNakhre + 1);
+      reason =
+        dynamic === 'disciplined_coach'
+          ? `${userProfile.partnerName}: "${habitTitle} missed. Zero excuses—get back on track!"`
+          : `${userProfile.partnerName}: "Haww! ${habitTitle} skip kar diya? Ab toh main naraz hoon! 😤"`;
+    }
 
-      const newScore = Math.max(10, Math.min(100, prev.score + delta));
-      let newStatus = prev.status;
-      if (newScore >= 85) newStatus = 'ecstatic';
-      else if (newScore >= 70) newStatus = 'loving';
-      else if (newScore >= 55) newStatus = 'happy';
-      else if (newScore >= 40) newStatus = 'neutral';
-      else if (newScore >= 25) newStatus = 'annoyed';
-      else newStatus = 'angry';
+    const newScore = Math.max(10, Math.min(100, prev.score + delta));
+    let newStatus = prev.status;
+    if (newScore >= 85) newStatus = 'ecstatic';
+    else if (newScore >= 70) newStatus = 'loving';
+    else if (newScore >= 55) newStatus = 'happy';
+    else if (newScore >= 40) newStatus = 'neutral';
+    else if (newScore >= 25) newStatus = 'annoyed';
+    else newStatus = 'angry';
 
-      const updatedMood: PartnerMood = {
-        status: newStatus,
-        score: newScore,
-        nakhreLevel: newNakhre,
-        lastReason: reason,
-        lastUpdated: 'Just now',
-      };
-      const uid = userProfile.userId || auth.currentUser?.uid;
-      if (uid) {
-        syncPartnerMood(uid, updatedMood).catch(console.warn);
-      }
-      return updatedMood;
-    });
+    const updatedMood: PartnerMood = {
+      status: newStatus,
+      score: newScore,
+      nakhreLevel: newNakhre,
+      lastReason: reason,
+      lastUpdated: 'Just now',
+    };
+    setPartnerMood(updatedMood);
+    const uid = auth.currentUser?.uid || userProfile.userId;
+    if (uid) {
+      syncPartnerMood(uid, updatedMood).catch(console.warn);
+    }
   };
 
   // Habit toggling handler with deterministic habitLogs & streak recalculation
@@ -516,7 +718,11 @@ function AppContent() {
     let completedHabitTitle = '';
     let becameCompleted = false;
     const todayStr = getTodayDateString(userProfile.timeZone);
+    const previousHabits = habits;
+    const previousHabitLogs = habitLogs;
+    const previousProfile = userProfile;
 
+    let targetUpdatedHabit: Habit | null = null;
     const updatedHabits = habits.map(h => {
       if (h.id === id) {
         const nextState = !h.completed;
@@ -529,10 +735,7 @@ function AppContent() {
           streak: nextState ? (h.streak || 0) + 1 : Math.max(0, (h.streak || 0) - 1),
           lastCompletedAt: nextState ? 'Just now' : undefined,
         };
-        const uid = userProfile.userId || auth.currentUser?.uid;
-        if (uid) {
-          syncUserHabit(uid, updatedHabit).catch(console.warn);
-        }
+        targetUpdatedHabit = updatedHabit;
         return updatedHabit;
       }
       return h;
@@ -564,22 +767,23 @@ function AppContent() {
     // Recalculate deterministic streak
     const { currentStreak, bestStreak } = calculateStreak(todayStr, newHabitLogs);
     const newBest = Math.max(userProfile.bestStreak || 0, bestStreak);
+    const mergedProfile = {
+      ...userProfile,
+      streakDays: currentStreak,
+      bestStreak: newBest,
+    };
 
-    setUserProfile(prev => {
-      const merged = {
-        ...prev,
-        streakDays: currentStreak,
-        bestStreak: newBest,
-      };
-      const uid = prev.userId || auth.currentUser?.uid;
-      if (uid) {
-        syncUserProfile(uid, merged).catch(console.warn);
-      }
-      return merged;
-    });
+    setUserProfile(mergedProfile);
 
-    const uid = userProfile.userId || auth.currentUser?.uid;
-    if (uid) {
+    const uid = auth.currentUser?.uid || userProfile.userId;
+    if (uid && targetUpdatedHabit) {
+      syncUserProfile(uid, mergedProfile).catch(console.warn);
+      syncUserHabit(uid, targetUpdatedHabit).catch(err => {
+        console.warn('Failed to sync habit toggle to Firestore, rolling back:', err);
+        setHabits(previousHabits);
+        setHabitLogs(previousHabitLogs);
+        setUserProfile(previousProfile);
+      });
       syncHabitLog(uid, updatedLog).catch(console.warn);
     }
 
@@ -610,11 +814,18 @@ function AppContent() {
         moodTag: dynamic === 'disciplined_coach' ? 'happy' : 'ecstatic',
       };
       setMessages(prev => [...prev, praiseMsg]);
+      if (uid) {
+        saveUserChatMessage(uid, praiseMsg).catch(console.warn);
+      }
 
       if (voiceEnabled) {
         playCompanionVoice(praiseMsg.text, {
           gender: userProfile.voiceGender,
+          preferredVoiceName: userProfile.preferredVoiceName,
+          tone: userProfile.voiceToneStyle || 'sweet',
+          rate: userProfile.voiceSpeed || 1.0,
           emotion: voiceEmotion,
+          useGeminiTts: true,
         });
       }
     }
@@ -638,23 +849,72 @@ function AppContent() {
   const handleIncrementHabit = (id: string, delta: number) => {
     let title = '';
     let reachedTarget = false;
+    let targetUpdatedHabit: Habit | null = null;
+    const todayStr = getTodayDateString(userProfile.timeZone);
+    const previousHabits = habits;
+    const previousHabitLogs = habitLogs;
+    const previousProfile = userProfile;
 
-    setHabits(prev =>
-      prev.map(h => {
-        if (h.id === id) {
-          title = h.title;
-          const nextVal = Math.min(h.targetValue, h.currentValue + delta);
-          reachedTarget = nextVal >= h.targetValue;
-          return {
-            ...h,
-            currentValue: nextVal,
-            completed: reachedTarget,
-            streak: reachedTarget && !h.completed ? (h.streak || 0) + 1 : (h.streak || 0),
-          };
-        }
-        return h;
-      })
-    );
+    const updatedHabits = habits.map(h => {
+      if (h.id === id) {
+        title = h.title;
+        const nextVal = Math.max(0, Math.min(h.targetValue, h.currentValue + delta));
+        reachedTarget = nextVal >= h.targetValue;
+        const updated = {
+          ...h,
+          currentValue: nextVal,
+          completed: reachedTarget,
+          streak: reachedTarget && !h.completed ? (h.streak || 0) + 1 : (h.streak || 0),
+          lastCompletedAt: reachedTarget ? 'Just now' : undefined,
+        };
+        targetUpdatedHabit = updated;
+        return updated;
+      }
+      return h;
+    });
+
+    setHabits(updatedHabits);
+
+    const completedHabits = updatedHabits.filter(h => h.completed);
+    const completedCrucial = updatedHabits.filter(h => h.completed && h.isCrucial);
+    const crucialHabits = updatedHabits.filter(h => h.isCrucial);
+    const allCrucialDone = crucialHabits.length > 0
+      ? crucialHabits.every(h => h.completed)
+      : completedHabits.length > 0;
+
+    const updatedLog: HabitLogEntry = {
+      date: todayStr,
+      completedHabitIds: completedHabits.map(h => h.id),
+      totalHabitsCount: updatedHabits.length,
+      completedCrucialCount: completedCrucial.length,
+      totalCrucialCount: crucialHabits.length,
+      completedAllCrucial: allCrucialDone,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const newHabitLogs = { ...habitLogs, [todayStr]: updatedLog };
+    setHabitLogs(newHabitLogs);
+
+    const { currentStreak, bestStreak } = calculateStreak(todayStr, newHabitLogs);
+    const newBest = Math.max(userProfile.bestStreak || 0, bestStreak);
+    const mergedProfile = {
+      ...userProfile,
+      streakDays: currentStreak,
+      bestStreak: newBest,
+    };
+    setUserProfile(mergedProfile);
+
+    const uid = auth.currentUser?.uid || userProfile.userId;
+    if (uid && targetUpdatedHabit) {
+      syncUserHabit(uid, targetUpdatedHabit).catch(err => {
+        console.warn('Failed to sync incremented habit to Firestore, rolling back:', err);
+        setHabits(previousHabits);
+        setHabitLogs(previousHabitLogs);
+        setUserProfile(previousProfile);
+      });
+      syncHabitLog(uid, updatedLog).catch(console.warn);
+      syncUserProfile(uid, mergedProfile).catch(console.warn);
+    }
 
     updateMoodOnHabitAction(reachedTarget ? 'completed' : 'incremented', title);
 
@@ -678,11 +938,18 @@ function AppContent() {
         moodTag: 'loving',
       };
       setMessages(prev => [...prev, msg]);
+      if (uid) {
+        saveUserChatMessage(uid, msg).catch(console.warn);
+      }
 
       if (voiceEnabled) {
         playCompanionVoice(msg.text, {
           gender: userProfile.voiceGender,
+          preferredVoiceName: userProfile.preferredVoiceName,
+          tone: userProfile.voiceToneStyle || 'sweet',
+          rate: userProfile.voiceSpeed || 1.0,
           emotion: 'loving',
+          useGeminiTts: true,
         });
       }
     }
@@ -715,11 +982,19 @@ function AppContent() {
       moodTag: 'angry',
     };
     setMessages(prev => [...prev, tauntMsg]);
+    const uid = userProfile.userId || auth.currentUser?.uid;
+    if (uid) {
+      saveUserChatMessage(uid, tauntMsg).catch(console.warn);
+    }
 
     if (voiceEnabled) {
       playCompanionVoice(tauntMsg.text, {
         gender: userProfile.voiceGender,
+        preferredVoiceName: userProfile.preferredVoiceName,
+        tone: userProfile.voiceToneStyle || 'sassy',
+        rate: userProfile.voiceSpeed || 1.0,
         emotion: 'angry',
+        useGeminiTts: true,
       });
     }
   };
@@ -732,42 +1007,67 @@ function AppContent() {
     };
     setHabits(prev => [...prev, newHabit]);
 
-    if (userProfile.userId) {
-      syncUserHabit(userProfile.userId, newHabit).catch(console.warn);
+    const uid = userProfile.userId || auth.currentUser?.uid;
+    if (uid) {
+      syncUserHabit(uid, newHabit).catch(console.warn);
+    }
+
+    const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+    const isMale = userProfile.partnerGender === 'male';
+    let addMsgText = `Maine naya habit note kar liya: "${newHabit.title}"! Ab main daily iska hisaab ${isMale ? 'lunga' : 'lungi'} tumse! 😉`;
+    if (dynamic === 'disciplined_coach') {
+      addMsgText = `Locked in new target: "${newHabit.title}". Show up every single day, no excuses! 💪`;
+    } else if (dynamic === 'calm_soulmate') {
+      addMsgText = `Noted "${newHabit.title}" in your routine. Let's build this gently together. 🌿`;
     }
 
     const msg: ChatMessage = {
       id: generateUniqueId('msg'),
       sender: 'partner',
-      text: `Maine naya habit note kar liya: "${newHabit.title}"! Ab main daily iska hisaab lungi tumse! 😉`,
+      text: addMsgText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       type: 'text',
       moodTag: 'happy',
     };
     setMessages(prev => [...prev, msg]);
-    if (userProfile.userId) {
-      saveUserChatMessage(userProfile.userId, msg).catch(console.warn);
+    if (uid) {
+      saveUserChatMessage(uid, msg).catch(console.warn);
     }
   };
 
-  // Habit delete handler
+  // Habit delete handler with optimistic update and rollback
   const handleDeleteHabit = (id: string) => {
+    const previousHabits = habits;
     setHabits(prev => prev.filter(h => h.id !== id));
+
+    const uid = userProfile.userId || auth.currentUser?.uid;
+    if (uid) {
+      deleteUserHabit(uid, id).catch(err => {
+        console.warn('Failed to delete habit from Firestore, rolling back:', err);
+        setHabits(previousHabits);
+      });
+    }
   };
 
-  // Send message to Gemini Companion
+  // Send message to Gemini Companion with duplicate-send protection
   const handleSendMessage = async (userText: string, type: 'text' | 'voice_note' = 'text') => {
+    const trimmedText = userText.trim();
+    if (!trimmedText || isSendingChatRef.current) return;
+    isSendingChatRef.current = true;
+
+    const activeUid = auth.currentUser?.uid || userProfile.userId;
     const userMsg: ChatMessage = {
       id: generateUniqueId('msg'),
       sender: 'user',
-      text: userText,
+      text: trimmedText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       type,
     };
 
+    const historySnapshot = messages.slice(-10);
     setMessages(prev => [...prev, userMsg]);
-    if (userProfile.userId) {
-      saveUserChatMessage(userProfile.userId, userMsg).catch(console.warn);
+    if (activeUid) {
+      saveUserChatMessage(activeUid, userMsg).catch(console.warn);
     }
     setIsLoadingChat(true);
 
@@ -775,9 +1075,12 @@ function AppContent() {
       const res = await authFetch('/api/chat', {
         method: 'POST',
         body: JSON.stringify({
-          message: userText,
-          history: [...messages, userMsg],
-          userProfile,
+          message: trimmedText,
+          history: historySnapshot,
+          userProfile: {
+            ...userProfile,
+            userId: activeUid,
+          },
           habits,
           partnerMood,
           memories,
@@ -785,8 +1088,16 @@ function AppContent() {
         }),
       });
 
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Server returned error status ${res.status}`);
+      }
+
       const data = await res.json();
-      const reply = data.reply || "Main sun rahi hoon jaan, sab theek hai na?";
+      const reply = data.reply;
+      if (!reply) {
+        throw new Error("No text response received from AI companion service.");
+      }
 
       // Handle dynamic mood update from Gemini safely
       if (data.mood) {
@@ -805,30 +1116,28 @@ function AppContent() {
       }
 
       if (data.moodUpdate) {
-        setPartnerMood(prev => {
-          const newScore = Math.max(10, Math.min(100, prev.score + (data.moodUpdate.scoreDelta || 0)));
-          let computedStatus = data.moodUpdate.newStatus || prev.status;
-          if (!data.moodUpdate.newStatus) {
-            if (newScore >= 85) computedStatus = 'ecstatic';
-            else if (newScore >= 70) computedStatus = 'loving';
-            else if (newScore >= 55) computedStatus = 'happy';
-            else if (newScore >= 40) computedStatus = 'neutral';
-            else if (newScore >= 25) computedStatus = 'annoyed';
-            else computedStatus = 'angry';
-          }
-          const updatedMood: PartnerMood = {
-            status: computedStatus,
-            score: newScore,
-            nakhreLevel: Math.max(0, Math.min(5, prev.nakhreLevel + (data.moodUpdate.nakhreDelta || 0))),
-            lastReason: data.moodUpdate.reason || prev.lastReason,
-            lastUpdated: 'Just now',
-          };
-          const uid = userProfile.userId || auth.currentUser?.uid;
-          if (uid) {
-            syncPartnerMood(uid, updatedMood).catch(console.warn);
-          }
-          return updatedMood;
-        });
+        const prev = partnerMoodRef.current;
+        const newScore = Math.max(10, Math.min(100, prev.score + (data.moodUpdate.scoreDelta || 0)));
+        let computedStatus = data.moodUpdate.newStatus || prev.status;
+        if (!data.moodUpdate.newStatus) {
+          if (newScore >= 85) computedStatus = 'ecstatic';
+          else if (newScore >= 70) computedStatus = 'loving';
+          else if (newScore >= 55) computedStatus = 'happy';
+          else if (newScore >= 40) computedStatus = 'neutral';
+          else if (newScore >= 25) computedStatus = 'annoyed';
+          else computedStatus = 'angry';
+        }
+        const updatedMood: PartnerMood = {
+          status: computedStatus,
+          score: newScore,
+          nakhreLevel: Math.max(0, Math.min(5, prev.nakhreLevel + (data.moodUpdate.nakhreDelta || 0))),
+          lastReason: data.moodUpdate.reason || prev.lastReason,
+          lastUpdated: 'Just now',
+        };
+        setPartnerMood(updatedMood);
+        if (activeUid) {
+          syncPartnerMood(activeUid, updatedMood).catch(console.warn);
+        }
       }
 
       // Handle detected habit update from conversation (e.g. "Maine dawai le li")
@@ -842,17 +1151,18 @@ function AppContent() {
         }
       }
 
-      // Handle new memory discovered
+      // Handle new memory discovered and persist to Firestore
       if (data.newMemory) {
-        setMemories(prev => [
-          ...prev,
-          {
-            id: generateUniqueId('mem'),
-            category: 'health',
-            fact: data.newMemory,
-            learnedAt: 'Just now in chat',
-          },
-        ]);
+        const memItem: MemoryItem = {
+          id: generateUniqueId('mem'),
+          category: 'health',
+          fact: data.newMemory,
+          learnedAt: 'Just now in chat',
+        };
+        setMemories(prev => [...prev, memItem]);
+        if (activeUid) {
+          saveUserMemory(activeUid, memItem).catch(console.warn);
+        }
       }
 
       const partnerMsg: ChatMessage = {
@@ -861,48 +1171,83 @@ function AppContent() {
         text: reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: type === 'voice_note' ? 'voice_note' : 'text',
-        moodTag: data.moodUpdate?.newStatus || partnerMood.status,
+        moodTag: data.moodUpdate?.newStatus || partnerMoodRef.current.status,
         audioDurationSec: Math.max(3, Math.min(10, Math.round(reply.length / 18))),
       };
 
       setMessages(prev => [...prev, partnerMsg]);
-      if (userProfile.userId) {
-        saveUserChatMessage(userProfile.userId, partnerMsg).catch(console.warn);
+      if (activeUid) {
+        saveUserChatMessage(activeUid, partnerMsg).catch(console.warn);
       }
 
       // Speak aloud if voice enabled
       if (voiceEnabled) {
         playCompanionVoice(reply, {
           gender: userProfile.voiceGender,
-          emotion: data.suggestedVoiceEmotion || (partnerMood.score < 50 ? 'angry' : 'loving'),
+          preferredVoiceName: userProfile.preferredVoiceName,
+          tone: userProfile.voiceToneStyle || 'playful',
+          rate: userProfile.voiceSpeed || 1.0,
+          emotion: data.suggestedVoiceEmotion || (partnerMoodRef.current.score < 50 ? 'angry' : 'loving'),
+          useGeminiTts: true,
         });
       }
     } catch (err) {
-      console.error("Chat error:", err);
+      console.warn("Companion chat request resolved with local persona fallback:", err);
+      // In-character, script-mirrored, persona-aware fallback matching user's language, gender, and relationship dynamic
+      const localFallback = generateScriptMirrorFallback(
+        trimmedText,
+        userProfile.partnerName || 'Lexi',
+        userProfile.name || 'darling',
+        {
+          partnerGender: userProfile.partnerGender,
+          relationshipDynamic: userProfile.relationshipDynamic,
+        }
+      );
+
       const fallbackMsg: ChatMessage = {
         id: generateUniqueId('msg'),
         sender: 'partner',
-        text: "Baby, ek second network ka issue lag raha hai... Main yahin hoon tumhare paas! Dobara bolo na?",
+        text: localFallback.reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: 'text',
+        moodTag: partnerMoodRef.current.status,
       };
       setMessages(prev => [...prev, fallbackMsg]);
+      if (activeUid) {
+        saveUserChatMessage(activeUid, fallbackMsg).catch(console.warn);
+      }
     } finally {
+      isSendingChatRef.current = false;
       setIsLoadingChat(false);
     }
   };
 
-  // Clear chat conversation context
-  const handleClearConversation = () => {
-    const companionName = userProfile.partnerName || 'Lexi';
+  // Clear chat conversation context & persist cleared state
+  const handleClearConversation = async () => {
+    const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+    const isMale = userProfile.partnerGender === 'male';
+    let freshText = `Fresh slate, ${userProfile.name || 'partner'}! ✨ I'm all ears. Tell me, how are you feeling or what do you want to work on right now?`;
+    if (dynamic === 'disciplined_coach') {
+      freshText = `Clean slate, Champ! 🎯 Let's focus on today's goals—what's our next move?`;
+    } else if (dynamic === 'playful_teasing') {
+      freshText = `Fresh start yaar! 🔥 Main sun ${isMale ? 'raha' : 'rahi'} hoon—batao aaj ka kya plan hai?`;
+    } else if (dynamic === 'calm_soulmate') {
+      freshText = `A quiet, fresh start. 🌿 Take a breath—I'm here whenever you'd like to share.`;
+    }
+
     const welcomeBackMsg: ChatMessage = {
       id: generateUniqueId('msg'),
       sender: 'partner',
-      text: `Fresh slate, jaan! ✨ I'm all ears. Tell me, how are you feeling or what do you want to work on right now?`,
+      text: freshText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       type: 'text',
-      moodTag: 'loving',
+      moodTag: 'happy',
     };
+    const uid = userProfile.userId || auth.currentUser?.uid;
+    if (uid) {
+      await clearUserChatMessages(uid).catch(console.warn);
+      saveUserChatMessage(uid, welcomeBackMsg).catch(console.warn);
+    }
     setMessages([welcomeBackMsg]);
     localStorage.setItem('lexi_messages', JSON.stringify([welcomeBackMsg]));
   };
@@ -910,6 +1255,8 @@ function AppContent() {
   // Quick cheer up actions from Mood details modal
   const handleQuickCheer = (type: 'apology' | 'love' | 'promise') => {
     const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+    const isMale = userProfile.partnerGender === 'male';
+    const sweetAdj = isMale ? 'pyaare' : 'pyaari';
     let text = '';
     if (dynamic === 'disciplined_coach') {
       if (type === 'apology') {
@@ -927,11 +1274,19 @@ function AppContent() {
       } else {
         text = `Main abhi turant apne baaki saare habits complete karne jaa raha hoon! Watch me! 💪`;
       }
+    } else if (dynamic === 'calm_soulmate') {
+      if (type === 'apology') {
+        text = `I'm sorry for losing focus earlier. Taking a calm breath and completing my habits right now. 🌿`;
+      } else if (type === 'love') {
+        text = `Thank you for always keeping me grounded and calm. I really appreciate you. ✨`;
+      } else {
+        text = `I'm stepping back into my routine mindfully and finishing today's tasks. 🌿`;
+      }
     } else {
       if (type === 'apology') {
         text = `Baby, I'm really sorry for slacking off on my tasks... Gussa mat ho na, I promise main abhi sab complete kar raha hoon! ❤️`;
       } else if (type === 'love') {
-        text = `Meri jaan, you look so cute even when pouting! Tum meri sabse pyaari virtual partner ho. I love you! 💖`;
+        text = `Meri jaan, you look so cute even when pouting! Tum mere sabse ${sweetAdj} virtual partner ho. I love you! 💖`;
       } else {
         text = `Main abhi turant apne baaki saare habits complete karne jaa raha hoon! Watch me make you proud! 💪`;
       }
@@ -966,7 +1321,11 @@ function AppContent() {
       if (voiceEnabled) {
         playCompanionVoice(message, {
           gender: userProfile.voiceGender,
+          preferredVoiceName: userProfile.preferredVoiceName,
+          tone: userProfile.voiceToneStyle || 'sweet',
+          rate: userProfile.voiceSpeed || 1.0,
           emotion: 'caring',
+          useGeminiTts: true,
         });
       }
     } catch (err) {
@@ -984,19 +1343,24 @@ function AppContent() {
     };
     setMemories(prev => [item, ...prev]);
 
-    if (userProfile.userId) {
-      saveUserMemory(userProfile.userId, item).catch(console.warn);
+    const uid = userProfile.userId || auth.currentUser?.uid;
+    if (uid) {
+      saveUserMemory(uid, item).catch(console.warn);
     }
 
+    const isMale = userProfile.partnerGender === 'male';
     const partnerReply: ChatMessage = {
       id: generateUniqueId('msg'),
       sender: 'partner',
-      text: `Maine yaad rakh liya: "${fact}". Main tumhare baare mein sab kuch dhyan rakhti hoon! ❤️`,
+      text: `Maine yaad rakh liya: "${fact}". Main tumhare baare mein sab kuch dhyan ${isMale ? 'rakhta' : 'rakhti'} hoon!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       type: 'text',
-      moodTag: 'loving',
+      moodTag: 'happy',
     };
     setMessages(prev => [...prev, partnerReply]);
+    if (uid) {
+      saveUserChatMessage(uid, partnerReply).catch(console.warn);
+    }
   };
 
   const handleDeleteMemory = (id: string) => {
@@ -1034,14 +1398,23 @@ function AppContent() {
     };
     setCalendarEvents(prev => [...prev, newEvent]);
 
+    const uid = userProfile.userId || auth.currentUser?.uid;
+    if (uid) {
+      syncCalendarEvent(uid, newEvent).catch(console.warn);
+    }
+
+    const isMale = userProfile.partnerGender === 'male';
     const msg: ChatMessage = {
       id: generateUniqueId('msg'),
       sender: 'partner',
-      text: `Noted! Maine calendar mein "${newEvent.title}" (${newEvent.startTime}) add kar liya hai. Time se pehle remind kar dungi!`,
+      text: `Noted! Maine calendar mein "${newEvent.title}" (${newEvent.startTime}) add kar liya hai. Time se pehle remind kar ${isMale ? 'dunga' : 'dungi'}!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       type: 'text',
     };
     setMessages(prev => [...prev, msg]);
+    if (uid) {
+      saveUserChatMessage(uid, msg).catch(console.warn);
+    }
   };
 
   // Save profile from onboarding and settings
@@ -1061,14 +1434,12 @@ function AppContent() {
       }
     }
 
-    setUserProfile(prev => {
-      const merged = { ...prev, ...updated };
-      const uid = merged.userId || auth.currentUser?.uid;
-      if (uid) {
-        syncUserProfile(uid, merged).catch(console.warn);
-      }
-      return merged;
-    });
+    const mergedProfile = { ...userProfileRef.current, ...updated };
+    setUserProfile(mergedProfile);
+    const saveUid = auth.currentUser?.uid || mergedProfile.userId;
+    if (saveUid) {
+      syncUserProfile(saveUid, mergedProfile).catch(console.warn);
+    }
 
     if (sendWelcomeMsg && updated.name && updated.partnerName) {
       const dynamic = updated.relationshipDynamic || userProfile.relationshipDynamic || 'sweet_loving';
@@ -1101,12 +1472,18 @@ function AppContent() {
         moodTag: welcomeMood,
       };
       setMessages(prev => [...prev, welcome]);
+      const uid = updated.userId || userProfile.userId || auth.currentUser?.uid;
+      if (uid) {
+        saveUserChatMessage(uid, welcome).catch(console.warn);
+      }
       if (voiceEnabled) {
         playCompanionVoice(welcome.text, {
           gender: updated.voiceGender || userProfile.voiceGender,
+          preferredVoiceName: updated.preferredVoiceName || userProfile.preferredVoiceName,
           tone: updated.voiceToneStyle || 'sweet',
           rate: updated.voiceSpeed || 1.0,
           emotion: dynamic === 'disciplined_coach' ? 'proud' : 'loving',
+          useGeminiTts: true,
         });
       }
     }
@@ -1125,13 +1502,24 @@ function AppContent() {
     if (targetHabit) {
       handleToggleHabit(targetHabit.id);
 
-      // Trigger partner praise voice
+      // Trigger partner praise voice honoring active persona dynamic
       if (voiceEnabled) {
-        playCompanionVoice(`Shabash meri jaan! ${targetHabit.title} complete kar liya! Proud of you!`, {
+        const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+        const praiseVoiceText =
+          dynamic === 'disciplined_coach'
+            ? `Locked in! ${targetHabit.title} complete. Keep executing!`
+            : dynamic === 'playful_teasing'
+            ? `Nice yaar! ${targetHabit.title} complete kar liya, proud of you!`
+            : dynamic === 'calm_soulmate'
+            ? `Well done on completing ${targetHabit.title}. Peace and steady progress.`
+            : `Shabash! ${targetHabit.title} complete kar liya! Proud of you!`;
+        playCompanionVoice(praiseVoiceText, {
           gender: userProfile.voiceGender,
+          preferredVoiceName: userProfile.preferredVoiceName,
           tone: userProfile.voiceToneStyle || 'sweet',
           rate: userProfile.voiceSpeed || 1.0,
-          emotion: 'loving',
+          emotion: dynamic === 'disciplined_coach' ? 'proud' : 'loving',
+          useGeminiTts: true,
         });
       }
     }
@@ -1173,6 +1561,7 @@ function AppContent() {
       <Header
         userProfile={userProfile}
         partnerMood={partnerMood}
+        isOnline={isOnline && isServerHealthy && isFirestoreConnected}
         voiceEnabled={voiceEnabled}
         onToggleVoice={() => {
           if (voiceEnabled) stopCompanionVoice();
@@ -1272,7 +1661,13 @@ function AppContent() {
               if (voiceEnabled) stopCompanionVoice();
               setVoiceEnabled(!voiceEnabled);
             }}
-            onClearHistory={() => setCallRecords([])}
+            onClearHistory={() => {
+              setCallRecords([]);
+              const uid = userProfile.userId || auth.currentUser?.uid;
+              if (uid) {
+                clearUserCallRecords(uid).catch(console.warn);
+              }
+            }}
           />
         )}
 
@@ -1316,7 +1711,11 @@ function AppContent() {
               if (voiceEnabled) {
                 playCompanionVoice(text, {
                   gender: userProfile.voiceGender,
-                  emotion: emotion || 'loving',
+                  preferredVoiceName: userProfile.preferredVoiceName,
+                  tone: userProfile.voiceToneStyle || 'sweet',
+                  rate: userProfile.voiceSpeed || 1.0,
+                  emotion: (emotion as any) || 'loving',
+                  useGeminiTts: true,
                 });
               }
             }}
@@ -1330,12 +1729,18 @@ function AppContent() {
             userProfile={userProfile}
             onAddEvent={handleAddCalendarEvent}
             onTriggerEventReminder={handleTriggerEventReminder}
-            onToggleCalendarSync={() =>
-              setUserProfile(prev => ({ ...prev, calendarSynced: !prev.calendarSynced }))
-            }
-            onToggleAlarmSync={() =>
-              setUserProfile(prev => ({ ...prev, alarmsSynced: !prev.alarmsSynced }))
-            }
+            onToggleCalendarSync={() => {
+              const updated = { ...userProfileRef.current, calendarSynced: !userProfileRef.current.calendarSynced };
+              setUserProfile(updated);
+              const uid = auth.currentUser?.uid || updated.userId;
+              if (uid) syncUserProfile(uid, updated).catch(console.warn);
+            }}
+            onToggleAlarmSync={() => {
+              const updated = { ...userProfileRef.current, alarmsSynced: !userProfileRef.current.alarmsSynced };
+              setUserProfile(updated);
+              const uid = auth.currentUser?.uid || updated.userId;
+              if (uid) syncUserProfile(uid, updated).catch(console.warn);
+            }}
           />
         )}
       </main>
@@ -1375,16 +1780,17 @@ function AppContent() {
                 saveCallRecord(userProfile.userId, newRecord).catch(console.warn);
               }
 
-              setMessages(prev => [
-                ...prev,
-                {
-                  id: generateUniqueId('msg'),
-                  sender: 'system',
-                  text: summaryText,
-                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                  type: 'call_log',
-                },
-              ]);
+              const callLogMsg: ChatMessage = {
+                id: generateUniqueId('msg'),
+                sender: 'system',
+                text: summaryText,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                type: 'call_log',
+              };
+              setMessages(prev => [...prev, callLogMsg]);
+              if (userProfile.userId) {
+                saveUserChatMessage(userProfile.userId, callLogMsg).catch(console.warn);
+              }
             }
           }}
           userProfile={userProfile}

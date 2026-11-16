@@ -63,12 +63,23 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
   const timerRef = useRef<any>(null);
   const silenceTimeoutRef = useRef<any>(null);
   const micAnalyzerCleanupRef = useRef<(() => void) | null>(null);
+  const callStatusRef = useRef(callStatus);
+  const isMutedRef = useRef(isMuted);
+  const isSpeakerMutedRef = useRef(isSpeakerMuted);
+  const isProcessingTurnRef = useRef(false);
+  const lastSubmittedUtteranceRef = useRef<{ text: string; at: number }>({ text: '', at: 0 });
+  const isUnmountedRef = useRef(false);
+
+  callStatusRef.current = callStatus;
+  isMutedRef.current = isMuted;
+  isSpeakerMutedRef.current = isSpeakerMuted;
 
   const companionName = userProfile.partnerName || 'Lexi';
 
   // 1. Initialize Call Timer & Real Microphone Equalizer
   useEffect(() => {
     if (!isOpen) return;
+    isUnmountedRef.current = false;
 
     // Start Call Timer
     timerRef.current = setInterval(() => {
@@ -77,11 +88,12 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
 
     // Initialize Web Audio API Microphone Analyzer
     const cleanupAnalyzer = startMicrophoneAudioAnalyzer((frequencies, volume) => {
+      if (isUnmountedRef.current) return;
       setAudioFrequencies(frequencies);
       setVoiceVolume(volume);
 
-      // Barge-in detection: if companion is speaking and user speaks with audible volume (> 28)
-      if (volume > 28 && callStatus === 'speaking') {
+      // Barge-in detection using live ref (prevents stale closure)
+      if (volume > 68 && callStatusRef.current === 'speaking') {
         handleBargeInInterruption();
       }
     });
@@ -89,7 +101,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
 
     // Initial greeting from companion
     const connectTimer = setTimeout(() => {
-      setCallStatus('speaking');
+      if (isUnmountedRef.current) return;
       const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
       const isMale = userProfile.partnerGender === 'male';
       let greeting = `Hello ${userProfile.name}! Bolo na baby, main sun rahi hoon. Aaj din kaisa jaa raha hai?`;
@@ -104,20 +116,30 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
       }
       setPartnerSpeechText(greeting);
       setCallHistory([{ sender: companionName, text: greeting }]);
+      setCallStatus('speaking');
 
-      playCompanionVoice(greeting, {
-        gender: userProfile.voiceGender,
-        emotion: dynamic === 'disciplined_coach' ? 'proud' : partnerMood.score < 50 ? 'angry' : 'loving',
-        tone: userProfile.voiceToneStyle || 'sweet',
-        rate: userProfile.voiceSpeed || 1.0,
-        onEnd: () => {
-          setCallStatus('listening');
-          startListening();
-        },
-      });
+      if (!isSpeakerMutedRef.current) {
+        playCompanionVoice(greeting, {
+          gender: userProfile.voiceGender,
+          preferredVoiceName: userProfile.preferredVoiceName,
+          emotion: dynamic === 'disciplined_coach' ? 'proud' : partnerMood.score < 50 ? 'angry' : 'loving',
+          tone: userProfile.voiceToneStyle || 'sweet',
+          rate: userProfile.voiceSpeed || 1.0,
+          useGeminiTts: true,
+          onEnd: () => {
+            if (isUnmountedRef.current) return;
+            setCallStatus('listening');
+            startListening();
+          },
+        });
+      } else {
+        setCallStatus('listening');
+        startListening();
+      }
     }, 900);
 
     return () => {
+      isUnmountedRef.current = true;
       if (timerRef.current) clearInterval(timerRef.current);
       if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
       clearTimeout(connectTimer);
@@ -140,7 +162,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
 
   // 3. Speech Recognition Engine
   const startListening = () => {
-    if (isMuted) return;
+    if (isMutedRef.current || isUnmountedRef.current) return;
     stopListening();
 
     const recognizer = createSpeechRecognizer(
@@ -155,7 +177,7 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
         } else if (transcript.trim().length > 3) {
           // Auto-submit after 1.5 seconds of silence
           silenceTimeoutRef.current = setTimeout(() => {
-            if (transcript.trim().length > 2) {
+            if (transcript.trim().length > 2 && !isProcessingTurnRef.current) {
               handleUserUtterance(transcript.trim());
             }
           }, 1500);
@@ -186,27 +208,48 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
 
   // 4. Handle Conversation Turn
   const handleUserUtterance = async (utterance: string) => {
+    const trimmed = utterance.trim();
+    if (!trimmed || isProcessingTurnRef.current) return;
+    const now = Date.now();
+    if (
+      lastSubmittedUtteranceRef.current.text === trimmed &&
+      now - lastSubmittedUtteranceRef.current.at < 2500
+    ) {
+      return;
+    }
+
+    isProcessingTurnRef.current = true;
+    lastSubmittedUtteranceRef.current = { text: trimmed, at: now };
     stopListening();
     setCallStatus('processing');
-    setUserSpokenText(utterance);
+    setUserSpokenText(trimmed);
 
-    const updatedHistory = [...callHistory, { sender: userProfile.name, text: utterance }];
+    const updatedHistory = [...callHistory, { sender: userProfile.name, text: trimmed }];
     setCallHistory(updatedHistory);
 
     try {
       const res = await authFetch('/api/call-turn', {
         method: 'POST',
         body: JSON.stringify({
-          spokenText: utterance,
-          history: updatedHistory,
+          spokenText: trimmed,
+          history: updatedHistory.slice(-8),
           userProfile,
           partnerMood,
           habits,
         }),
       });
 
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Call turn error ${res.status}`);
+      }
+
       const data = await res.json();
-      const reply = data.callReply || 'Main sun rahi hoon jaan, bolo!';
+      const reply = data.callReply;
+      if (!reply) {
+        throw new Error("No call speech response from server");
+      }
+      if (isUnmountedRef.current) return;
       setPartnerSpeechText(reply);
       setCallHistory((prev) => [...prev, { sender: companionName, text: reply }]);
 
@@ -214,18 +257,23 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
       if (data.habitUpdateDetected) {
         setDetectedHabitNotice(`Habit detected: ${data.habitUpdateDetected}`);
         onHabitDetectedInCall(data.habitUpdateDetected);
-        setTimeout(() => setDetectedHabitNotice(null), 3500);
+        setTimeout(() => {
+          if (!isUnmountedRef.current) setDetectedHabitNotice(null);
+        }, 3500);
       }
 
       setCallStatus('speaking');
 
-      if (!isSpeakerMuted) {
+      if (!isSpeakerMutedRef.current) {
         playCompanionVoice(reply, {
           gender: userProfile.voiceGender,
+          preferredVoiceName: userProfile.preferredVoiceName,
           emotion: data.emotion || 'caring',
           tone: userProfile.voiceToneStyle || 'sweet',
           rate: userProfile.voiceSpeed || 1.0,
+          useGeminiTts: true,
           onEnd: () => {
+            if (isUnmountedRef.current) return;
             setCallStatus('listening');
             setUserSpokenText('');
             startListening();
@@ -234,12 +282,14 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
       } else {
         // Speaker is muted, auto resume listening after read delay
         setTimeout(() => {
+          if (isUnmountedRef.current) return;
           setCallStatus('listening');
           setUserSpokenText('');
           startListening();
         }, Math.max(2000, reply.length * 50));
       }
     } catch {
+      if (isUnmountedRef.current) return;
       const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
       const isMale = userProfile.partnerGender === 'male';
       let fallbackReply = 'Baby, aawaz thodi cut gayi... Par main yahin hoon tumhare sath!';
@@ -254,14 +304,23 @@ export const LiveCallModal: React.FC<LiveCallModalProps> = ({
       }
       setPartnerSpeechText(fallbackReply);
       setCallStatus('speaking');
-      playCompanionVoice(fallbackReply, {
-        gender: userProfile.voiceGender,
-        emotion: dynamic === 'disciplined_coach' ? 'proud' : 'caring',
-        onEnd: () => {
-          setCallStatus('listening');
-          startListening();
-        },
-      });
+      if (!isSpeakerMutedRef.current) {
+        playCompanionVoice(fallbackReply, {
+          gender: userProfile.voiceGender,
+          preferredVoiceName: userProfile.preferredVoiceName,
+          emotion: dynamic === 'disciplined_coach' ? 'proud' : 'caring',
+          onEnd: () => {
+            if (isUnmountedRef.current) return;
+            setCallStatus('listening');
+            startListening();
+          },
+        });
+      } else {
+        setCallStatus('listening');
+        startListening();
+      }
+    } finally {
+      isProcessingTurnRef.current = false;
     }
   };
 

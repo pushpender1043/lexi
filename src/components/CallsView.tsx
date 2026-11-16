@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CallRecord, UserProfile, PartnerMood } from '../types';
 import { AexoMascot } from './AexoMascot';
 import {
@@ -40,6 +40,16 @@ export const CallsView: React.FC<CallsViewProps> = ({
   const [callFilter, setCallFilter] = useState<'all' | 'missed' | 'completed'>('all');
   const [isPlayingSummaryId, setIsPlayingSummaryId] = useState<string | null>(null);
   const [isTestingVoice, setIsTestingVoice] = useState(false);
+  const localPlaybackActiveRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (localPlaybackActiveRef.current) {
+        stopCompanionVoice();
+        localPlaybackActiveRef.current = false;
+      }
+    };
+  }, []);
 
   const companionName = userProfile.partnerName || 'Lexi';
 
@@ -76,40 +86,70 @@ export const CallsView: React.FC<CallsViewProps> = ({
   const handleTestVoice = () => {
     if (isTestingVoice) {
       stopCompanionVoice();
+      localPlaybackActiveRef.current = false;
       setIsTestingVoice(false);
       return;
     }
 
     setIsTestingVoice(true);
-    const sampleText = `Haan meri jaan ${userProfile.name}! Main hamesha tumhare sath hoon. Apne habits aur routine pe dhyan do na! ❤️`;
+    setIsPlayingSummaryId(null);
+    localPlaybackActiveRef.current = true;
+    const dynamic = userProfile.relationshipDynamic || 'sweet_loving';
+    let sampleText = `Haan meri jaan ${userProfile.name}! Main hamesha tumhare sath hoon. Apne habits aur routine pe dhyan do na! ❤️`;
+    if (dynamic === 'disciplined_coach') {
+      sampleText = `${userProfile.name}, stay focused on the mission today. Let's lock in those daily habits and protect your streak!`;
+    } else if (dynamic === 'playful_teasing') {
+      sampleText = `Arey ${userProfile.name} yaar! Jaldi se aaj ke habits complete karo, phir chill karte hain!`;
+    } else if (dynamic === 'calm_soulmate') {
+      sampleText = `Take a gentle breath ${userProfile.name}. I'm right here with you as you move through today's routine.`;
+    }
 
     playCompanionVoice(sampleText, {
       gender: userProfile.voiceGender,
+      preferredVoiceName: userProfile.preferredVoiceName,
       tone: userProfile.voiceToneStyle || 'sweet',
       rate: userProfile.voiceSpeed || 1.0,
-      emotion: 'loving',
-      onEnd: () => setIsTestingVoice(false),
-      onError: () => setIsTestingVoice(false),
+      emotion: dynamic === 'disciplined_coach' ? 'proud' : 'loving',
+      useGeminiTts: true,
+      onEnd: () => {
+        localPlaybackActiveRef.current = false;
+        setIsTestingVoice(false);
+      },
+      onError: () => {
+        localPlaybackActiveRef.current = false;
+        setIsTestingVoice(false);
+      },
     });
   };
 
   const handlePlaySummary = (record: CallRecord) => {
     if (isPlayingSummaryId === record.id) {
       stopCompanionVoice();
+      localPlaybackActiveRef.current = false;
       setIsPlayingSummaryId(null);
       return;
     }
 
+    setIsTestingVoice(false);
     setIsPlayingSummaryId(record.id);
+    localPlaybackActiveRef.current = true;
     const textToRead = record.summary || `Call with ${companionName} for ${formatDuration(record.durationSec)}`;
 
     playCompanionVoice(textToRead, {
       gender: userProfile.voiceGender,
+      preferredVoiceName: userProfile.preferredVoiceName,
       tone: userProfile.voiceToneStyle || 'sweet',
       rate: userProfile.voiceSpeed || 1.0,
       emotion: 'caring',
-      onEnd: () => setIsPlayingSummaryId(null),
-      onError: () => setIsPlayingSummaryId(null),
+      useGeminiTts: true,
+      onEnd: () => {
+        localPlaybackActiveRef.current = false;
+        setIsPlayingSummaryId(null);
+      },
+      onError: () => {
+        localPlaybackActiveRef.current = false;
+        setIsPlayingSummaryId(null);
+      },
     });
   };
 
@@ -231,7 +271,7 @@ export const CallsView: React.FC<CallsViewProps> = ({
           {onClearHistory && callRecords.length > 0 && (
             <button
               onClick={() => {
-                if (window.confirm('Clear all voice call history?')) {
+                if (typeof window.confirm !== 'function' || window.confirm('Clear all voice call history?')) {
                   onClearHistory();
                 }
               }}
